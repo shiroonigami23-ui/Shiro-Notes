@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Simple File Share</title>
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-storage.js"></script>
+</head>
+<body>
+  <h2>📂 Simple File Share</h2>
+
+  <input type="file" id="fileInput">
+  <button onclick="uploadFile()">Upload</button>
+
+  <h3>Available Files:</h3>
+  <ul id="fileList"></ul>
+
+<script>
+  // TODO: Replace with your Firebase config
+  const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT.firebaseapp.com",
+    projectId: "YOUR_PROJECT",
+    storageBucket: "YOUR_PROJECT.appspot.com",
+    messagingSenderId: "SENDER_ID",
+    appId: "APP_ID"
+  };
+
+  // Init Firebase
+  const app = firebase.initializeApp(firebaseConfig);
+  const storage = firebase.storage();
+
+  // Upload file
+  async function uploadFile() {
+    const file = document.getElementById("fileInput").files[0];
+    if (!file) return alert("Choose a file!");
+    const storageRef = storage.ref("uploads/" + file.name);
+    await storageRef.put(file);
+    alert("Uploaded!");
+    listFiles();
+  }
+
+  // List files
+  async function listFiles() {
+    const listRef = storage.ref("uploads/");
+    const res = await listRef.listAll();
+    const ul = document.getElementById("fileList");
+    ul.innerHTML = "";
+    for (const itemRef of res.items) {
+      const url = await itemRef.getDownloadURL();
+      const li = document.createElement("li");
+      li.innerHTML = `<a href="${url}" target="_blank">${itemRef.name}</a>`;
+      ul.appendChild(li);
+    }
+  }
+
+  // Load on start
+  listFiles();
+</script>
+</body>
+</html>
