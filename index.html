@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ShareBox - Fresh File Upload App</title>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;700&family=Roboto&display=swap" rel="stylesheet">
+  <style>
+    body {
+      background: linear-gradient(120deg, #e3f0ff 0%, #fafafa 100%);
+      font-family: 'Montserrat', 'Roboto', Arial, sans-serif;
+      min-height: 100vh;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .app-container {
+      max-width: 600px;
+      width: 100%;
+      margin: 42px 0;
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 16px 40px rgba(50,130,250,0.08);
+      padding: 36px 26px 26px 26px;
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+    }
+    h1 {
+      text-align: center;
+      color: #347afe;
+      font-weight: 700;
+      font-size: 2rem;
+      margin-bottom: 10px;
+      letter-spacing: 1.2px;
+    }
+    .drag-drop-card {
+      border: 2.5px dashed #347afe;
+      border-radius: 14px;
+      min-height: 110px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: #f4f7fe;
+      transition: border-color 0.25s;
+      padding: 28px 14px;
+      text-align: center;
+      color: #1553a6;
+      margin-bottom: 10px;
+      cursor: pointer;
+    }
+    .drag-drop-card.dragover {
+      border-color: #00cf81;
+      background: #e6fcf0;
+    }
+    .drag-drop-card input[type="file"] {
+      display: none;
+    }
+    .uploader-input {
+      margin-top: 14px;
+      padding: 9px;
+      border-radius: 6px;
+      border: 1.5px solid #bbe1ff;
+      font-size: 1rem;
+      width: 60%;
+      min-width: 170px;
+      outline: none;
+      transition: border-color 0.25s;
+    }
+    .uploader-input:focus {
+      border-color: #347afe;
+    }
+    .upload-btn {
+      margin-top: 18px;
+      padding: 12px 29px;
+      background: linear-gradient(90deg, #347afe 30%, #00cf81 100%);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 1.08rem;
+      cursor: pointer;
+      box-shadow: 0 4px 16px rgba(52,122,254,0.11);
+      transition: background 0.25s, box-shadow 0.25s;
+    }
+    .upload-btn:disabled {
+      background: #dddddd;
+      cursor: not-allowed;
+    }
+    .progress-wrap {
+      width: 98%;
+      background: #e9ecef;
+      border-radius: 8px;
+      margin: 15px 0;
+      height: 20px;
+      overflow: hidden;
+      box-shadow: 0 1px 7px rgba(52,122,254,0.08);
+    }
+    .progress-bar {
+      background: linear-gradient(90deg, #347afe 0%, #00cf81 100%);
+      height: 20px;
+      width: 0%;
+      transition: width 0.35s ease;
+      border-radius: 8px;
+    }
+    .file-list {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .file-card {
+      background: #f7faff;
+      border-radius: 8px;
+      box-shadow: 0 2px 12px rgba(154,190,245,0.08);
+      padding: 15px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+      transition: box-shadow 0.18s;
+    }
+    .file-card:hover {
+      box-shadow: 0 10px 28px rgba(45,112,240,0.11);
+      background: #eef5ff;
+    }
+    .file-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .file-meta {
+      display: flex;
+      flex-direction: column;
+      max-width: 75%;
+    }
+    .file-name {
+      font-size: 1.12rem;
+      color: #2d415c;
+      font-weight: 500;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      overflow: hidden;
+    }
+    .file-extra {
+      font-size: 0.87rem;
+      color: #00cf81;
+    }
+    .file-date {
+      font-size: 0.81rem;
+      color: #88a2b4;
+    }
+    .file-uploader {
+      color: #347afe;
+      font-weight: 700;
+      margin-right: 8px;
+    }
+    .download-btn {
+      background: #347afe;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 7px 19px;
+      font-weight: 500;
+      font-size: 0.99rem;
+      cursor: pointer;
+      transition: background 0.25s;
+      box-shadow: 0 1px 8px rgba(52,122,254,0.14);
+      margin-right: 7px;
+    }
+    .download-btn:hover {
+      background: #1553a6;
+    }
+    .download-count {
+      background: #fff;
+      color: #347afe;
+      border-radius: 14px;
+      padding: 3px 10px;
+      font-size: 0.89rem;
+      font-weight: bold;
+      box-shadow: 0 1px 4px #bbcdf7;
+      margin-left: 7px;
+      user-select: none;
+    }
+    /* Comment UI */
+    .comments-section {
+      background: #e6f5ff;
+      border-radius: 6px;
+      margin-top: 10px;
+      padding: 7px 12px;
+    }
+    .comment-list {
+      list-style: none;
+      padding: 0;
+      margin: 0 0 8px 0;
+    }
+    .comment-item {
+      font-size: 0.93rem;
+      color: #2d415c;
+      margin-bottom: 5px;
+    }
+    .comment-user {
+      font-weight: bold;
+      color: #347afe;
+      margin-right: 6px;
+    }
+    .comment-form {
+      display: flex;
+      gap: 7px;
+      margin-bottom: 0;
+    }
+    .comment-form input[type=text] {
+      border-radius: 5px;
+      border: 1.5px solid #bbe1ff;
+      padding: 5.5px;
+      width: 29%;
+      font-size: 0.95rem;
+    }
+    .comment-form input[type=text]:focus {
+      border-color: #347afe;
+    }
+    .comment-form textarea {
+      border-radius: 5px;
+      border: 1.5px solid #bbe1ff;
+      padding: 5.5px;
+      font-size: 0.97rem;
+      resize: vertical;
+      width: 50%;
+      min-height: 32px;
+    }
+    .comment-form button {
+      background: #00cf81;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      font-weight: 500;
+      font-size: 0.97rem;
+      padding: 5px 13px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .comment-form button:disabled {
+      background: #bbbbbb;
+      cursor: not-allowed;
+    }
+    @media (max-width: 700px) {
+      .app-container {
+        max-width: 99vw;
+        border-radius: 0;
+        box-shadow: none;
+        padding: 13px 5px;
+      }
+      .drag-drop-card, .file-card {
+        padding: 13px 4px;
+      }
+      .file-meta {
+        max-width: 86vw;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <h1>ShareBox</h1>
+    <div class="drag-drop-card" id="dropArea">
+      <span>Drag and drop a file, or <label for="fileInput" style="color:#347afe;text-decoration:underline;cursor:pointer;">browse</label></span>
+      <input type="file" id="fileInput" accept=".pdf,.epu,.mp3,.jpg" />
+      <input type="text" class="uploader-input" id="uploaderName" placeholder="Your name for credit (required)" />
+      <button class="upload-btn" id="uploadBtn" disabled>Upload File</button>
+      <div class="progress-wrap">
+        <div class="progress-bar" id="progressBar"></div>
+      </div>
+      <div style="font-size:0.9em;color:#d32f2f;margin-top:8px;" id="errorMsg"></div>
+    </div>
+    <div>
+      <h2 style="color:#1553a6; margin-bottom:13px">Files Shared By Users</h2>
+      <div class="file-list" id="fileList"></div>
+    </div>
+  </div>
+  <script>
+  const BACKEND_URL = "https://sharelit-1.onrender.com";
+
+// Fetch and render file list
+function fetchFiles() {
+  fetch(`${BACKEND_URL}/files`)
+    .then(res => res.json())
+    .then(files => renderFiles(files))
+    .catch(() => {
+      document.getElementById('fileList').innerHTML = '<div style="color:#ff4848;padding:16px;">Failed to load files.</div>';
+    });
+}
+
+function renderFiles(list) {
+  const fileList = document.getElementById('fileList');
+  fileList.innerHTML = '';
+  list.forEach(file => {
+    const card = document.createElement('div');
+    card.className = 'file-card';
+
+    // Meta/header
+    const header = document.createElement('div');
+    header.className = 'file-header';
+    const meta = document.createElement('div');
+    meta.className = 'file-meta';
+    meta.innerHTML = `<span class="file-name">${file.originalname}</span>
+      <span class="file-extra"><span class="file-uploader">${file.uploader}</span></span>
+      <span class="file-date">${new Date(file.uploadDate).toLocaleDateString()}</span>`;
+
+    const actions = document.createElement('div');
+    actions.className = 'file-actions';
+    actions.innerHTML = `<button class="download-btn">Download</button>
+      <span class="download-count">${file.downloads || 0} Downloads</span>`;
+    actions.querySelector('.download-btn').onclick = () => {
+      window.open(`${BACKEND_URL}/download/${file.id}`, '_blank');
+    };
+
+    header.append(meta, actions);
+
+    // Comments
+    const comments = document.createElement('div');
+    comments.className = 'comments-section';
+    const commentList = document.createElement('ul');
+    commentList.className = 'comment-list';
+    (file.comments||[]).forEach(c => {
+      const item = document.createElement('li');
+      item.className = 'comment-item';
+      item.innerHTML = `<span class="comment-user">${c.name}</span>${c.text}`;
+      commentList.appendChild(item);
+    });
+
+    // Add new comment form
+    const commentForm = document.createElement('form');
+    commentForm.className = 'comment-form';
+    commentForm.innerHTML = `
+      <input type="text" placeholder="Your name" required />
+      <textarea placeholder="Add comment" required></textarea>
+      <button type="submit">Comment</button>
+    `;
+    commentForm.onsubmit = function(e) {
+      e.preventDefault();
+      const name = commentForm.querySelector('input').value.trim();
+      const text = commentForm.querySelector('textarea').value.trim();
+      if (!name || !text) return;
+      fetch(`${BACKEND_URL}/comment/${file.id}`, {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({name, text})
+      }).then(r=>r.json()).then(()=>fetchFiles());
+    };
+
+    comments.append(commentList, commentForm);
+    card.append(header, comments);
+    fileList.appendChild(card);
+  });
+}
+
+// Drag & drop highlight and handler
+const dropArea = document.getElementById('dropArea');
+dropArea.addEventListener('dragover', e => {
+  e.preventDefault(); dropArea.classList.add('dragover');
+});
+dropArea.addEventListener('dragleave', e => {
+  dropArea.classList.remove('dragover');
+});
+dropArea.addEventListener('drop', e => {
+  e.preventDefault(); dropArea.classList.remove('dragover');
+  if (e.dataTransfer.files.length > 0) {
+    fileInput.files = e.dataTransfer.files;
+    validateForm();
+  }
+});
+
+// Form controls
+const uploaderName = document.getElementById('uploaderName');
+const fileInput = document.getElementById('fileInput');
+const uploadBtn = document.getElementById('uploadBtn');
+const errorMsg = document.getElementById('errorMsg');
+const progressBar = document.getElementById('progressBar');
+
+function validateForm() {
+  errorMsg.textContent = '';
+  uploadBtn.disabled = !(fileInput.files.length > 0 && uploaderName.value.trim() !== '');
+}
+uploaderName.addEventListener('input', validateForm);
+fileInput.addEventListener('change', validateForm);
+
+uploadBtn.addEventListener('click', () => {
+  errorMsg.textContent = '';
+  const file = fileInput.files[0];
+  const name = uploaderName.value.trim();
+  if (!file || !name) return;
+  if (file.size > 10*1024*1024) {
+    errorMsg.textContent = 'File exceeds 10MB limit.';
+    return;
+  }
+  const allowed = ['pdf','epu','mp3','jpg'];
+  const ext = file.name.split('.').pop().toLowerCase();
+  if (!allowed.includes(ext)) {
+    errorMsg.textContent = 'File type not allowed.';
+    return;
+  }
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('uploader', name);
+  const xhr = new XMLHttpRequest();
+  xhr.open('POST', `${BACKEND_URL}/upload`, true);
+  xhr.upload.onprogress = e => {
+    if (e.lengthComputable) {
+      progressBar.style.width = (e.loaded/e.total*100)+'%';
+    }
+  };
+  xhr.onload = () => {
+    progressBar.style.width = '0%';
+    if (xhr.status === 200) {
+      fetchFiles();
+      fileInput.value = '';
+      uploaderName.value = '';
+      uploadBtn.disabled = true;
+    } else {
+      errorMsg.textContent = JSON.parse(xhr.responseText).error || 'Upload failed';
+    }
+  };
+  xhr.onerror = () => {
+    progressBar.style.width = '0%';
+    errorMsg.textContent = 'Network upload error';
+  };
+  xhr.send(formData);
+});
+
+fetchFiles();
+  </script>
+</body>
+</html>
