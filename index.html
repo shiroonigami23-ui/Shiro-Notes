@@ -5,30 +5,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Shiro-Notes</title>
     
-    <!-- Tailwind CSS - The primary styling framework -->
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
     <!-- Custom Stylesheet -->
     <link rel="stylesheet" href="style.css">
     
-    <!-- React Libraries -->
+    <!-- External Libraries -->
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    
-    <!-- Babel for JSX - MUST be loaded before our script -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    
-    <!-- Dexie.js for IndexedDB -->
     <script src="https://unpkg.com/dexie@3/dist/dexie.js"></script>
-    
-    <!-- Crypto.js for encryption -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     
-    <!-- Our Application Logic - Loaded as a Babel module -->
-    <script type="text/babel" src="script.js" defer></script>
+    <!-- Our Application Scripts (in order of dependency) -->
+    <script type="text/babel" src="db.js"></script>
+    <script type="text/babel" src="utils.js"></script>
+    <script type="text/babel" src="components.js"></script>
+    <script type="text/babel" src="app.js"></script>
 </head>
 <body class="bg-gray-100 dark:bg-gray-900 overflow-hidden">
-    <!-- React will render the application here -->
     <div id="root"></div>
 </body>
 </html>
