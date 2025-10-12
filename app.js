@@ -1,7 +1,6 @@
 const { useState, useEffect } = React;
 
 function App() {
-    // ... other state is unchanged ...
     const [notes, setNotes] = useState([]);
     const [activeNoteId, setActiveNoteId] = useState(null);
     const [isInitialised, setIsInitialised] = useState(false);
@@ -14,8 +13,6 @@ function App() {
     const [unlockedNoteData, setUnlockedNoteData] = useState(null);
     const [passwordAttempt, setPasswordAttempt] = useState(null);
     const [mobileView, setMobileView] = useState('list');
-    
-    // [NEW] State for tag filtering
     const [activeTag, setActiveTag] = useState(null);
 
     useEffect(() => {
@@ -33,7 +30,8 @@ function App() {
                 setNotes(allNotes);
 
                 if (allNotes.length > 0 && window.innerWidth >= 768) {
-                    setActiveNoteId(allNotes[0].id);
+                    const firstNoteId = (filteredNotes.length > 0 ? filteredNotes[0] : allNotes[0]).id;
+                    setActiveNoteId(firstNoteId);
                 }
             } catch (error) {
                 console.error("Initialization failed:", error);
@@ -99,7 +97,8 @@ function App() {
         const remainingNotes = notes.filter(note => note.id !== activeNoteId);
         await db.notes.delete(activeNoteId);
         setNotes(remainingNotes);
-        setActiveNoteId(remainingNotes.length > 0 ? remainingNotes.filter(n => !activeTag || n.tags.includes(activeTag))[0]?.id : null);
+        const nextNote = remainingNotes.filter(n => !activeTag || (n.tags && n.tags.includes(activeTag)))[0];
+        setActiveNoteId(nextNote ? nextNote.id : null);
         setIsDeleting(false);
         setMobileView('list');
         showNotification("Note deleted.", "success");
@@ -116,7 +115,9 @@ function App() {
     const handleToggleLock = () => { if (activeNoteId) { setIsPasswordPrompting(true); setPasswordAttempt({ id: activeNoteId, isToggle: true }); } };
 
     const handlePasswordConfirm = (password) => {
-        if (hashPassword(password) !== masterPasswordHash) return showNotification("Incorrect password.", "error");
+        if (hashPassword(password) !== masterPasswordHash) {
+             return showNotification("Incorrect password.", "error");
+        }
         
         const { id, isToggle } = passwordAttempt;
         if (isToggle) {
@@ -125,6 +126,7 @@ function App() {
             performUnlock(id, password);
         }
         setIsPasswordPrompting(false);
+        setPasswordAttempt(null);
     };
     
     const performUnlock = (noteId, password) => {
@@ -135,30 +137,34 @@ function App() {
         const tags = note.tags;
         setUnlockedNoteData({ id: noteId, title, content, tags });
         setActiveNoteId(noteId);
-        setPasswordAttempt(prev => ({ ...prev, password }));
+        setPasswordAttempt({ id: noteId, password: password, isToggle: false });
         setMobileView('editor');
     };
     
+    // [UPDATED] This function now handles both locking and unlocking
     const performToggleLock = async (noteId, password) => {
         const note = notes.find(n => n.id === noteId);
-        let newTitle, newContent;
+        let newTitle, newContent, newIsLocked;
 
         if (note.isLocked) {
-            const current = unlockedNoteData || note;
-            newTitle = decryptData(current.title, password);
+            // Decrypt the note
+            newTitle = decryptData(note.title, password);
             if (newTitle === null) return showNotification("Decryption failed.", "error");
-            newContent = decryptData(current.content, password);
+            newContent = decryptData(note.content, password);
+            newIsLocked = false;
             setUnlockedNoteData({ id: noteId, title: newTitle, content: newContent, tags: note.tags });
             showNotification("Note unlocked.", "success");
         } else {
+            // Encrypt the note
             const current = unlockedNoteData || note;
             newTitle = encryptData(current.title, password);
             newContent = encryptData(current.content || '', password);
-            setUnlockedNoteData(null);
+            newIsLocked = true;
+            setUnlockedNoteData(null); // Clear temporary unlocked data
             showNotification("Note locked.", "success");
         }
         
-        const updatedDbData = { title: newTitle, content: newContent, isLocked: !note.isLocked, updatedAt: new Date() };
+        const updatedDbData = { title: newTitle, content: newContent, isLocked: newIsLocked, updatedAt: new Date() };
         await db.notes.update(noteId, updatedDbData);
         setNotes(notes.map(n => n.id === noteId ? { ...n, ...updatedDbData } : n));
     };
@@ -170,7 +176,6 @@ function App() {
         document.documentElement.classList.toggle('dark', newTheme === 'dark');
     };
     
-    // [NEW] Filtered notes based on activeTag
     const filteredNotes = activeTag ? notes.filter(note => note.tags && note.tags.includes(activeTag)) : notes;
 
     if (!isInitialised) return <div className="flex items-center justify-center h-screen text-gray-500 bg-gray-100 dark:bg-gray-900">Loading Shiro-Notes...</div>;
@@ -186,13 +191,11 @@ function App() {
 
     return (
         <div className="flex h-screen font-sans text-gray-900 dark:text-gray-100 overflow-hidden">
-            {/* Desktop: Sidebar */}
             <aside className="hidden md:flex w-64 bg-gray-200 dark:bg-gray-800 p-4 flex-col flex-shrink-0">
                  <div className="flex items-center mb-6"><svg className="w-8 h-8 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg><h1 className="text-2xl font-bold">Shiro-Notes</h1></div>
                 <div className="mt-auto"><button onClick={() => setIsSettingsOpen(true)} className="w-full text-left p-2 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-700">Settings</button><button onClick={toggleTheme} className="w-full text-left p-2 mt-2 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-700">{theme === 'light' ? '🌙 Dark Mode' : '☀️ Light Mode'}</button></div>
             </aside>
             
-            {/* Desktop: Note List */}
             <main className="hidden md:flex flex-col w-96 p-4 border-l border-r border-gray-300 dark:border-gray-700">
                 <div className="flex justify-between items-center mb-4 flex-shrink-0">
                     <h2 className="text-2xl font-semibold">
@@ -200,17 +203,13 @@ function App() {
                     </h2>
                     <button onClick={handleNewNote} className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 shadow">New Note</button>
                 </div>
-                {/* [NEW] Clear filter button */}
                 {activeTag && <button onClick={() => setActiveTag(null)} className="text-sm text-blue-500 hover:underline mb-2">Clear filter</button>}
                 <div className="overflow-y-auto">{filteredNotes.map(note => <NoteCard key={note.id} note={note} isActive={note.id === activeNoteId} onClick={() => handleSelectNote(note.id)} onTagClick={setActiveTag} />)}</div>
             </main>
 
-            {/* Desktop: Editor */}
             <section className="hidden md:flex flex-1 p-6 flex-col bg-white dark:bg-gray-800"><Editor activeNote={editorNote} onUpdate={handleUpdateNote} onDelete={() => setIsDeleting(true)} onToggleLock={handleToggleLock} hasPassword={!!masterPasswordHash} onBack={() => {}} /></section>
             
-            {/* Mobile View Container */}
             <div className="md:hidden flex flex-1 relative overflow-hidden bg-gray-100 dark:bg-gray-900">
-                {/* Mobile: Note List Panel */}
                 <div className={`mobile-panel absolute inset-0 w-full p-4 flex flex-col ${listPanelClasses}`}>
                     <div className="flex justify-between items-center mb-4"><h1 className="text-2xl font-bold">Shiro-Notes</h1><button onClick={toggleTheme} className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">{theme === 'light' ? '🌙' : '☀️'}</button></div>
                     <div className="flex justify-between items-center mb-4">
@@ -223,13 +222,11 @@ function App() {
                     <div className="flex-1 overflow-y-auto -mr-4 pr-4">{filteredNotes.map(note => <NoteCard key={note.id} note={note} isActive={false} onClick={() => handleSelectNote(note.id)} onTagClick={setActiveTag}/>)}</div>
                     <button onClick={() => setIsSettingsOpen(true)} className="w-full flex items-center justify-center p-2 mt-2 text-base rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600">Settings</button>
                 </div>
-                {/* Mobile: Editor Panel */}
                 <div className={`mobile-panel absolute inset-0 w-full p-4 flex flex-col bg-white dark:bg-gray-800 ${editorPanelClasses}`}>
                    <Editor activeNote={editorNote} onUpdate={handleUpdateNote} onDelete={() => setIsDeleting(true)} onToggleLock={handleToggleLock} hasPassword={!!masterPasswordHash} onBack={() => setMobileView('list')} />
                 </div>
             </div>
 
-            {/* Modals */}
             {isSettingsOpen && <SettingsModal onClose={() => setIsSettingsOpen(false)} onSetPassword={handleSetPassword} hasPassword={!!masterPasswordHash} showNotification={showNotification} />}
             {isDeleting && <ConfirmDeleteModal onConfirm={handleDeleteNote} onCancel={() => setIsDeleting(false)} />}
             {isPasswordPrompting && <PasswordPromptModal onConfirm={handlePasswordConfirm} onCancel={() => {setIsPasswordPrompting(false); setPasswordAttempt(null);}} showNotification={showNotification} />}
