@@ -3,7 +3,6 @@ const { useEditor, EditorContent } = TiptapReact;
 const StarterKit = TiptapStarterKit.default;
 const Placeholder = TiptapPlaceholder.default;
 
-// --- All Modal and UI components are here ---
 function Notification({ message, type, onClear }) {
     useEffect(() => { const timer = setTimeout(() => onClear(), 4000); return () => clearTimeout(timer); }, [onClear]);
     const bgColor = type === 'success' ? 'bg-green-500' : 'bg-red-500';
@@ -136,7 +135,6 @@ function Editor({ activeNote, onUpdate, onDelete, onToggleLock, hasPassword, onB
         debouncedUpdate({ content: newContent, contentPlainText: newContentPlainText });
     };
 
-    // This is the crucial fix. If there's no active note, render nothing.
     if (!activeNote) {
         return <div className="hidden md:flex text-center text-gray-400 dark:text-gray-500 h-full items-center justify-center"><p>Select a note to view</p></div>;
     }
