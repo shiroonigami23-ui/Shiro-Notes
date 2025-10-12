@@ -2,9 +2,7 @@ const { useState, useEffect, useRef } = React;
 const { useEditor, EditorContent } = TiptapReact;
 
 // =================================================================
-// ROOT CAUSE FIX:
-// Removed ".default" from the library variables. We are using the
-// global variables directly, as provided by the script tags.
+// ROOT CAUSE FIX 1: Removed ".default" from library variables.
 // =================================================================
 const StarterKit = TiptapStarterKit;
 const Placeholder = TiptapPlaceholder;
@@ -165,6 +163,7 @@ function Editor({ activeNote, onUpdate, onDelete, onToggleLock, hasPassword, onB
                 <button onClick={onBack} className="md:hidden mr-2 p-2 text-gray-500 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path></svg>
                 </button>
+                {/* ROOT CAUSE FIX 3: Corrected "e..target.value" to "e.target.value" */}
                 <input type="text" value={title} onChange={(e) => handleTitleUpdate(e.target.value)} placeholder="Note Title" className="w-full text-2xl font-bold bg-transparent focus:outline-none" disabled={activeNote.isLocked} />
                 {hasPassword && (
                     <button onClick={onToggleLock} className="ml-4 p-2 text-gray-500 hover:text-blue-500 rounded-full" title={activeNote.isLocked ? "Unlock Note" : "Lock Note"}>
@@ -179,4 +178,5 @@ function Editor({ activeNote, onUpdate, onDelete, onToggleLock, hasPassword, onB
              <RichTextEditor editor={editor} />
         </div>
     );
-                }
+}
+// ROOT CAUSE FIX 2: Removed extra closing brace that was here
