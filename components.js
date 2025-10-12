@@ -130,7 +130,6 @@ function NoteCard({ note, isActive, isSelected, onClick, onLongPress, onTagClick
                         checked={!!isSelected} 
                         readOnly 
                         className="selection-checkbox"
-                        // Prevent click event from bubbling up to the parent div
                         onClick={(e) => e.stopPropagation()} 
                     />
                  </div>
