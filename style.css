@@ -4,14 +4,46 @@ body {
     -moz-osx-font-smoothing: grayscale;
 }
 
-::-webkit-scrollbar { width: 8px; height: 8px; }
-::-webkit-scrollbar-track { background: #f1f1f1; }
-::-webkit-scrollbar-thumb { background: #888; border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: #555; }
+/* [UPDATED] Invisible but functional scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
 
-.dark ::-webkit-scrollbar-track { background: #2d3748; }
-.dark ::-webkit-scrollbar-thumb { background: #718096; }
-.dark ::-webkit-scrollbar-thumb:hover { background: #a0aec0; }
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(136, 136, 136, 0.5); /* Semi-transparent on hover */
+    border-radius: 4px;
+    background-clip: padding-box;
+    border: 3px solid transparent;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(136, 136, 136, 0.7);
+    background-clip: padding-box;
+    border: 3px solid transparent;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+    background: rgba(113, 128, 150, 0.5); /* Semi-transparent for dark mode */
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+    background: rgba(113, 128, 150, 0.7);
+}
+
+/* Fallback for Firefox to have a thin scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #888 transparent;
+}
+
+.dark * {
+    scrollbar-color: #718096 transparent;
+}
 
 @keyframes fadeInOut {
     0%, 100% { opacity: 0; transform: translateY(20px); }
@@ -25,7 +57,7 @@ body {
 .mobile-panel {
     transition: transform 0.3s ease-in-out;
 }
-/* [NEW] Simple styles for tags */
+
 .tag {
     display: inline-block;
     padding: 2px 8px;
