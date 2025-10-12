@@ -5,43 +5,34 @@ body {
     -moz-osx-font-smoothing: grayscale;
 }
 
-/* [CORRECTED] Simple and reliable scrollbar styling */
+/* [CORRECTED] Simple, reliable, and standard scrollbar */
 ::-webkit-scrollbar { 
     width: 8px; 
     height: 8px; 
 }
 ::-webkit-scrollbar-track { 
-    background: transparent; /* Make the track invisible */
+    background: transparent;
 }
 ::-webkit-scrollbar-thumb { 
-    background: #888; 
+    background: #a0aec0; /* gray-400 */
     border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover { 
-    background: #555; 
+    background: #718096; /* gray-500 */
 }
-
-/* Dark mode scrollbar styles */
-.dark ::-webkit-scrollbar-thumb { 
-    background: #718096; 
+.dark ::-webkit-scrollbar-thumb {
+    background: #4a5568; /* dark:gray-600 */
 }
-.dark ::-webkit-scrollbar-thumb:hover { 
-    background: #a0aec0; 
+.dark ::-webkit-scrollbar-thumb:hover {
+    background: #718096; /* dark:gray-500 */
 }
 
 
 /* Animation for the notification pop-up */
 @keyframes fadeInOut {
-    0%, 100% { 
-        opacity: 0; 
-        transform: translateY(20px); 
-    }
-    10%, 90% { 
-        opacity: 1; 
-        transform: translateY(0); 
-    }
+    0%, 100% { opacity: 0; transform: translateY(20px); }
+    10%, 90% { opacity: 1; transform: translateY(0); }
 }
-
 .notification-animation {
     animation: fadeInOut 4s ease-in-out forwards;
 }
@@ -62,15 +53,15 @@ body {
     padding: 8px;
     text-align: right;
     font-size: 0.8rem;
-    color: #6b7280; /* text-gray-500 */
-    background-color: #f9fafb; /* bg-gray-50 */
-    border-top: 1px solid #e5e7eb; /* border-gray-200 */
+    color: #6b7280;
+    background-color: #f9fafb;
+    border-top: 1px solid #e5e7eb;
     flex-shrink: 0;
 }
 .dark .editor-footer {
-    color: #9ca3af; /* dark:text-gray-400 */
-    background-color: #1f2937; /* dark:bg-gray-800 */
-    border-top-color: #4b5563; /* dark:border-gray-600 */
+    color: #9ca3af;
+    background-color: #1f2937;
+    border-top-color: #4b5563;
 }
 
 /* Transition for a smoother panel sliding effect on mobile */
