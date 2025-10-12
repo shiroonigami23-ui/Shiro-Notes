@@ -1,11 +1,6 @@
 const { useState, useEffect } = React;
 
-// =================================================================
-// MAIN APP COMPONENT
-// =================================================================
-
 function App() {
-    // ... other state variables are unchanged ...
     const [notes, setNotes] = useState([]);
     const [activeNoteId, setActiveNoteId] = useState(null);
     const [isInitialised, setIsInitialised] = useState(false);
@@ -14,86 +9,77 @@ function App() {
     const [isDeleting, setIsDeleting] = useState(false);
     const [theme, setTheme] = useState('light');
     const [notification, setNotification] = useState(null);
-    
-    // [NEW] State for handling password prompts and temporarily storing decrypted data
     const [isPasswordPrompting, setIsPasswordPrompting] = useState(false);
-    const [unlockedNoteData, setUnlockedNoteData] = useState(null); // { id, title, contentPlainText }
-    const [passwordAttempt, setPasswordAttempt] = useState(null); // { id, password }
+    const [unlockedNoteData, setUnlockedNoteData] = useState(null);
+    const [passwordAttempt, setPasswordAttempt] = useState(null);
 
+    useEffect(() => {
+        const init = async () => {
+            const storedHash = await db.settings.get('masterPasswordHash');
+            if (storedHash) setMasterPasswordHash(storedHash.value);
+            const storedTheme = await db.settings.get('theme');
+            setTheme(storedTheme ? storedTheme.value : 'light');
+            const allNotes = await db.notes.orderBy('updatedAt').reverse().toArray();
+            setNotes(allNotes);
+            if (allNotes.length > 0) setActiveNoteId(allNotes[0].id);
+            setIsInitialised(true);
+        };
+        init();
+    }, []);
 
-    useEffect(() => { /* ... init function is unchanged ... */ }, []);
-    useEffect(() => { /* ... theme effect is unchanged ... */ }, [theme]);
+    useEffect(() => {
+        document.documentElement.classList.toggle('dark', theme === 'dark');
+    }, [theme]);
 
     const showNotification = (message, type) => setNotification({ message, type });
 
-    // When a user selects a note, check if it's locked
     const handleSelectNote = (noteId) => {
         const note = notes.find(n => n.id === noteId);
         if (note && note.isLocked) {
-            // If it's locked, prompt for password instead of making it active
             setIsPasswordPrompting(true);
-            setPasswordAttempt({ id: noteId });
+            setPasswordAttempt({ id: noteId, isToggle: false });
         } else {
-            // If not locked, make it active and clear any unlocked data
             setActiveNoteId(noteId);
             setUnlockedNoteData(null);
         }
     };
     
-    // Decrypt the note if the password is correct
-    const handlePasswordConfirm = (password) => {
-        const enteredPasswordHash = hashPassword(password);
-        if (enteredPasswordHash !== masterPasswordHash) {
-            showNotification("Incorrect password.", "error");
-            return;
-        }
-
-        const noteToUnlock = notes.find(n => n.id === passwordAttempt.id);
-        if (noteToUnlock) {
-            const title = decryptData(noteToUnlock.title, password);
-            const contentPlainText = decryptData(noteToUnlock.contentPlainText, password);
-
-            if (title === null || contentPlainText === null) {
-                showNotification("Decryption failed. The data might be corrupt or password is wrong.", "error");
-            } else {
-                 // Store the decrypted data temporarily in state
-                setUnlockedNoteData({ id: noteToUnlock.id, title, contentPlainText });
-                setActiveNoteId(noteToUnlock.id); // Now make it the active note
-            }
-        }
-        
-        setIsPasswordPrompting(false);
-        setPasswordAttempt(null);
+    const handleNewNote = async () => {
+        const newNote = {
+            title: 'Untitled Note',
+            content: '', // HTML content
+            contentPlainText: '', // Plain text for search/snippets
+            tags: [],
+            isPinned: false,
+            isLocked: false,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+        };
+        const id = await db.notes.add(newNote);
+        const newNotesList = [{...newNote, id}, ...notes];
+        setNotes(newNotesList);
+        setActiveNoteId(id);
     };
 
-    // --- Note CRUD Handlers (Updated for Encryption) ---
-
-    const handleNewNote = async () => { /* ... unchanged ... */ };
-    
-    // handleUpdateNote now encrypts data if the note is locked
     const handleUpdateNote = async (updatedFields) => {
         if (!activeNoteId) return;
-
         const noteToUpdate = notes.find(n => n.id === activeNoteId);
         if (!noteToUpdate) return;
         
         let dataToSave = { ...updatedFields };
-
-        // If the note is locked, encrypt the data before saving
+        
         if (noteToUpdate.isLocked) {
-            const password = passwordAttempt?.password || prompt("This should not happen: password not found for locked note update. Please provide it again.");
-            if (updatedFields.title) {
-                dataToSave.title = encryptData(updatedFields.title, password);
+            const password = passwordAttempt?.password;
+            if (!password) {
+                 showNotification("Error: Password session expired. Please re-open the note.", "error");
+                return;
             }
-            if (updatedFields.contentPlainText) {
-                const plainText = updatedFields.contentPlainText;
-                dataToSave.content = encryptData(plainText, password); // For now, content is same as plaintext
-                dataToSave.contentPlainText = encryptData(plainText, password);
-            }
+            if (updatedFields.title) dataToSave.title = encryptData(updatedFields.title, password);
+            if (updatedFields.content) dataToSave.content = encryptData(updatedFields.content, password);
+            if (updatedFields.contentPlainText) dataToSave.contentPlainText = encryptData(updatedFields.contentPlainText, password);
         } else {
-            // Update temporary decrypted data if it exists
-            if(unlockedNoteData && unlockedNoteData.id === activeNoteId){
-                setUnlockedNoteData(prev => ({...prev, ...updatedFields}));
+            if (unlockedNoteData && unlockedNoteData.id === activeNoteId) {
+                setUnlockedNoteData(prev => ({ ...prev, ...updatedFields }));
             }
         }
         
@@ -105,91 +91,103 @@ function App() {
         ).sort((a, b) => b.updatedAt - a.updatedAt);
         setNotes(newNotesList);
     };
-
-    const handleDeleteNote = async () => { /* ... unchanged ... */ };
     
-    // [NEW] Handles toggling the lock state of the active note
-    const handleToggleLock = () => {
+    const handleDeleteNote = async () => {
         if (!activeNoteId) return;
-
-        setIsPasswordPrompting(true);
-        setPasswordAttempt({ id: activeNoteId, isToggle: true }); // 'isToggle' marks it as a lock/unlock action
+        await db.notes.delete(activeNoteId);
+        const newNotesList = notes.filter(note => note.id !== activeNoteId);
+        setNotes(newNotesList);
+        setActiveNoteId(newNotesList.length > 0 ? newNotesList[0].id : null);
+        setIsDeleting(false);
+        showNotification("Note deleted successfully.", "success");
     };
 
-    const performToggleLock = async (password) => {
-        const noteToToggle = notes.find(n => n.id === activeNoteId);
-        if (!noteToToggle) return;
+    const handleSetPassword = async (newPassword) => {
+        const newHash = hashPassword(newPassword);
+        await db.settings.put({ key: 'masterPasswordHash', value: newHash });
+        setMasterPasswordHash(newHash);
+        setIsSettingsOpen(false);
+        showNotification("Master password has been set!", "success");
+    };
 
+    const handleToggleLock = () => {
+        if (!activeNoteId) return;
+        setIsPasswordPrompting(true);
+        setPasswordAttempt({ id: activeNoteId, isToggle: true });
+    };
+
+    const handlePasswordConfirm = (password) => {
+        const enteredPasswordHash = hashPassword(password);
+        if (enteredPasswordHash !== masterPasswordHash) {
+            showNotification("Incorrect password.", "error");
+            return;
+        }
+
+        const { id, isToggle } = passwordAttempt;
+
+        if (isToggle) {
+            performToggleLock(id, password);
+        } else {
+            performUnlock(id, password);
+        }
+
+        setIsPasswordPrompting(false);
+        setPasswordAttempt(null);
+    };
+    
+    const performUnlock = (noteId, password) => {
+        const noteToUnlock = notes.find(n => n.id === noteId);
+        const title = decryptData(noteToUnlock.title, password);
+        const content = decryptData(noteToUnlock.content, password);
+        const contentPlainText = decryptData(noteToUnlock.contentPlainText, password);
+
+        if (title === null || content === null) {
+            showNotification("Decryption failed.", "error");
+        } else {
+            setUnlockedNoteData({ id: noteId, title, content, contentPlainText });
+            setActiveNoteId(noteId);
+            setPasswordAttempt(prev => ({ ...prev, password })); // Store password for this session
+        }
+    };
+    
+    const performToggleLock = async (noteId, password) => {
+        const noteToToggle = notes.find(n => n.id === noteId);
         const isCurrentlyLocked = noteToToggle.isLocked;
         let newTitle, newContent, newContentPlainText;
 
         if (isCurrentlyLocked) { // UNLOCKING
             newTitle = decryptData(noteToToggle.title, password);
+            newContent = decryptData(noteToToggle.content, password);
             newContentPlainText = decryptData(noteToToggle.contentPlainText, password);
-            if (newTitle === null || newContentPlainText === null) {
-                showNotification("Decryption failed. Incorrect password.", "error");
-                return;
-            }
-            newContent = newContentPlainText; // Simple content for now
-            setUnlockedNoteData({id: activeNoteId, title: newTitle, contentPlainText: newContentPlainText});
+            if (newTitle === null) return showNotification("Decryption failed.", "error");
+            setUnlockedNoteData({ id: noteId, title: newTitle, content: newContent, contentPlainText: newContentPlainText });
             showNotification("Note unlocked.", "success");
         } else { // LOCKING
             const currentNoteData = unlockedNoteData || noteToToggle;
             newTitle = encryptData(currentNoteData.title, password);
+            newContent = encryptData(currentNoteData.content, password);
             newContentPlainText = encryptData(currentNoteData.contentPlainText, password);
-            newContent = newContentPlainText;
-            setUnlockedNoteData(null); // Clear unlocked data after locking
+            setUnlockedNoteData(null);
             showNotification("Note locked.", "success");
         }
         
-        const updatedNoteData = { 
-            title: newTitle, 
-            content: newContent, 
-            contentPlainText: newContentPlainText, 
-            isLocked: !isCurrentlyLocked,
-            updatedAt: new Date()
-        };
-
-        await db.notes.update(activeNoteId, updatedNoteData);
-        const newNotesList = notes.map(n => n.id === activeNoteId ? { ...n, ...updatedNoteData } : n);
+        const updatedDbData = { title: newTitle, content: newContent, contentPlainText: newContentPlainText, isLocked: !isCurrentlyLocked, updatedAt: new Date() };
+        await db.notes.update(noteId, updatedDbData);
+        
+        const newNotesList = notes.map(n => n.id === noteId ? { ...n, ...updatedDbData } : n);
         setNotes(newNotesList);
     };
 
-    // Extend password confirmation to handle locking/unlocking
-    const handlePasswordConfirmV2 = (password) => {
-        const enteredPasswordHash = hashPassword(password);
-        if (enteredPasswordHash !== masterPasswordHash) {
-            showNotification("Incorrect password.", "error");
-            setIsPasswordPrompting(false);
-            setPasswordAttempt(null);
-            return;
-        }
+    const toggleTheme = async () => {
+        const newTheme = theme === 'light' ? 'dark' : 'light';
+        await db.settings.put({ key: 'theme', value: newTheme });
+        setTheme(newTheme);
+    };
 
-        if (passwordAttempt.isToggle) {
-            performToggleLock(password);
-        } else {
-            // Original decryption logic
-            const noteToUnlock = notes.find(n => n.id === passwordAttempt.id);
-            const title = decryptData(noteToUnlock.title, password);
-            const contentPlainText = decryptData(noteToUnlock.contentPlainText, password);
-            if (title === null) {
-                 showNotification("Decryption failed.", "error");
-            } else {
-                setUnlockedNoteData({ id: noteToUnlock.id, title, contentPlainText });
-                setActiveNoteId(noteToUnlock.id);
-            }
-        }
-
-        setIsPasswordPrompting(false);
-        setPasswordAttempt(null);
+    if (!isInitialised) {
+        return <div className="flex items-center justify-center h-screen text-xl text-gray-500 dark:text-gray-400">Loading Shiro-Notes...</div>;
     }
 
-    const handleSetPassword = async (newPassword) => { /* ... unchanged ... */ };
-    const toggleTheme = async () => { /* ... unchanged ... */ };
-
-    if (!isInitialised) { /* ... */ }
-
-    // Check if the active note is unlocked to pass decrypted content to the editor
     const activeNote = notes.find(note => note.id === activeNoteId);
     let editorNote = activeNote;
     if (activeNote && unlockedNoteData && unlockedNoteData.id === activeNote.id) {
@@ -198,10 +196,24 @@ function App() {
 
     return (
         <div className="flex h-screen font-sans text-gray-900 dark:text-gray-100">
-            {/* Sidebar and Note List */}
-            {/* ... JSX is mostly the same, just updated handlers ... */}
-            <aside className="w-64 bg-gray-200 dark:bg-gray-800 p-4 flex flex-col flex-shrink-0">{/* ... */}</aside>
-
+            <aside className="w-64 bg-gray-200 dark:bg-gray-800 p-4 flex flex-col flex-shrink-0">
+                <div className="flex items-center mb-6">
+                    <svg className="w-8 h-8 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>
+                    <h1 className="text-2xl font-bold">Shiro-Notes</h1>
+                </div>
+                <nav className="flex-1 space-y-2">
+                     <a href="#" className="flex items-center p-2 text-base font-normal rounded-lg dark:text-white bg-gray-300 dark:bg-gray-700">All Notes</a>
+                </nav>
+                <div className="mt-auto">
+                    <button onClick={() => setIsSettingsOpen(true)} className="w-full flex items-center p-2 text-base font-normal rounded-lg dark:text-white hover:bg-gray-300 dark:hover:bg-gray-700 transition-colors">
+                        <svg className="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                        Settings
+                    </button>
+                    <button onClick={toggleTheme} className="w-full flex items-center p-2 mt-2 text-base font-normal rounded-lg dark:text-white hover:bg-gray-300 dark:hover:bg-gray-700 transition-colors">
+                        {theme === 'light' ? '🌙 Dark Mode' : '☀️ Light Mode'}
+                    </button>
+                </div>
+            </aside>
             <main className="w-1/3 p-6 border-l border-r border-gray-300 dark:border-gray-700 overflow-y-auto">
                 <div className="flex justify-between items-center mb-4">
                     <h2 className="text-2xl font-semibold">All Notes ({notes.length})</h2>
@@ -215,32 +227,17 @@ function App() {
                     ) : ( <div className="text-center text-gray-500 pt-10">No notes yet.</div> )}
                 </div>
             </main>
-
-            <section className="flex-1 bg-white dark:bg-gray-800 p-6 overflow-y-auto">
-                <Editor 
-                    activeNote={editorNote}
-                    onUpdate={handleUpdateNote}
-                    onDelete={() => setIsDeleting(true)}
-                    onToggleLock={handleToggleLock}
-                    hasPassword={!!masterPasswordHash}
-                />
+            <section className="flex-1 bg-white dark:bg-gray-800 p-6 flex flex-col overflow-y-auto">
+                <Editor activeNote={editorNote} onUpdate={handleUpdateNote} onDelete={() => setIsDeleting(true)} onToggleLock={handleToggleLock} hasPassword={!!masterPasswordHash} />
             </section>
             
-            {/* Modals and Notifications */}
-            {isSettingsOpen && <SettingsModal /* ... */ />}
-            {isDeleting && <ConfirmDeleteModal /* ... */ />}
-            {isPasswordPrompting && <PasswordPromptModal 
-                onConfirm={handlePasswordConfirmV2}
-                onCancel={() => {setIsPasswordPrompting(false); setPasswordAttempt(null);}}
-                showNotification={showNotification}
-            />}
-            {notification && <Notification /* ... */ />}
+            {isSettingsOpen && <SettingsModal onClose={() => setIsSettingsOpen(false)} onSetPassword={handleSetPassword} hasPassword={!!masterPasswordHash} showNotification={showNotification} />}
+            {isDeleting && <ConfirmDeleteModal onConfirm={handleDeleteNote} onCancel={() => setIsDeleting(false)} />}
+            {isPasswordPrompting && <PasswordPromptModal onConfirm={handlePasswordConfirm} onCancel={() => {setIsPasswordPrompting(false); setPasswordAttempt(null);}} showNotification={showNotification} />}
+            {notification && <Notification message={notification.message} type={notification.type} onClear={() => setNotification(null)} />}
         </div>
     );
 }
 
-// =================================================================
-// RENDER THE APP
-// =================================================================
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(<App />);
