@@ -70,6 +70,22 @@ function PasswordPromptModal({ onConfirm, onCancel, showNotification }) {
     );
 }
 
+// [NEW] Dropdown menu for mobile view
+function DropdownMenu({ onSettingsClick, onThemeClick, theme, onClose }) {
+    return (
+        <>
+            <div onClick={onClose} className="fixed inset-0 z-40"></div>
+            <div className="absolute top-12 right-4 bg-white dark:bg-gray-700 rounded-lg shadow-xl w-48 z-50 border dark:border-gray-600">
+                <a href="#" onClick={(e) => { e.preventDefault(); onSettingsClick(); }} className="block px-4 py-2 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600">Settings</a>
+                <a href="#" onClick={(e) => { e.preventDefault(); onThemeClick(); }} className="block px-4 py-2 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600">{theme === 'light' ? '🌙 Dark Mode' : '☀️ Light Mode'}</a>
+                 <div className="border-t dark:border-gray-600 my-1"></div>
+                <a href="#" className="block px-4 py-2 text-gray-500 dark:text-gray-400 cursor-not-allowed">Profile (soon)</a>
+                <a href="#" className="block px-4 py-2 text-gray-500 dark:text-gray-400 cursor-not-allowed">Help (soon)</a>
+            </div>
+        </>
+    );
+}
+
 function NoteCard({ note, isActive, onClick, onTagClick }) {
     const title = note.isLocked ? "Locked Note" : (note.title || 'Untitled Note');
     const contentSnippet = note.isLocked ? 'This note is encrypted.' : (note.content || '').substring(0, 80) + '...';
@@ -164,7 +180,6 @@ function Editor({ activeNote, onUpdate, onDelete, onToggleLock, hasPassword, onB
                 <input type="text" value={title} onChange={(e) => handleTitleChange(e.target.value)} placeholder="Note Title" className="w-full text-2xl font-bold bg-transparent focus:outline-none" disabled={activeNote.isLocked} />
                 {hasPassword && (
                     <button onClick={onToggleLock} className="ml-4 p-2 text-gray-500 hover:text-blue-500 rounded-full" title={activeNote.isLocked ? "Unlock Note" : "Lock Note"}>
-                        {/* [UPDATED] Icon now changes based on lock state */}
                         {activeNote.isLocked 
                             ? <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" /></svg>
                             : <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
@@ -191,4 +206,4 @@ function Editor({ activeNote, onUpdate, onDelete, onToggleLock, hasPassword, onB
             <textarea value={content} onChange={(e) => handleContentChange(e.target.value)} disabled={activeNote.isLocked} placeholder="Start writing..." className="flex-1 w-full p-2 text-lg bg-transparent focus:outline-none resize-none border rounded-md dark:border-gray-700"></textarea>
         </div>
     );
-                    }
+            }
