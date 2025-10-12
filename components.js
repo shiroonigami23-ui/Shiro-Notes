@@ -1,6 +1,6 @@
 const { useState, useEffect, useRef } = React;
 const { useEditor, EditorContent } = TiptapReact;
-const StarterKit = TiptapStarter-Kit.default;
+const StarterKit = TiptapStarterKit.default; // CORRECTED TYPO
 const Placeholder = TiptapPlaceholder.default;
 
 function Notification({ message, type, onClear }) {
@@ -100,57 +100,37 @@ function Toolbar({ editor }) {
     );
 }
 
-// RichTextEditor no longer needs its own useEditor hook
-function RichTextEditor({ editor, disabled }) {
-     useEffect(() => {
-        if (editor) {
-            editor.setEditable(!disabled);
-        }
-    }, [disabled, editor]);
-
+function RichTextEditor({ editor }) {
     return <EditorContent editor={editor} className="border border-gray-300 dark:border-gray-600 rounded-b-lg flex-1 overflow-y-auto p-2" />;
 }
-
 
 function Editor({ activeNote, onUpdate, onDelete, onToggleLock, hasPassword, onBack }) {
     const [title, setTitle] = useState('');
     const debounceTimeout = useRef(null);
 
-    // This is the CRITICAL FIX: The TipTap editor instance is now created and managed HERE.
     const editor = useEditor({
-        extensions: [
-            StarterKit,
-            Placeholder.configure({ placeholder: 'Start writing...' }),
-        ],
-        content: activeNote?.content || '',
-        onUpdate: ({ editor }) => {
-            handleContentUpdate(editor.getHTML());
-        },
+        extensions: [ StarterKit, Placeholder.configure({ placeholder: 'Start writing...' }) ],
+        content: '',
+        onUpdate: ({ editor }) => { handleContentUpdate(editor.getHTML()); },
     });
 
-    // Effect to update title and editor content when the active note changes
     useEffect(() => {
         if (activeNote) {
             setTitle(activeNote.title);
-            // Update editor content only if it's different, to avoid resetting cursor
             if (editor && !editor.isDestroyed && editor.getHTML() !== activeNote.content) {
                 editor.commands.setContent(activeNote.content || '', false);
             }
         } else {
             setTitle('');
-            if (editor && !editor.isDestroyed) {
-                 editor.commands.clearContent();
-            }
+            if (editor && !editor.isDestroyed) { editor.commands.clearContent(); }
         }
-    }, [activeNote, editor]);
+    }, [activeNote]);
     
-    // Effect to control if the editor is editable (e.g., when a note is locked)
     useEffect(() => {
         if (editor && !editor.isDestroyed) {
-            editor.setEditable(activeNote && !activeNote.isLocked);
+            editor.setEditable(!!activeNote && !activeNote.isLocked);
         }
     }, [activeNote?.isLocked, editor]);
-
 
     const debouncedUpdate = (updatedFields) => {
         if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
@@ -179,7 +159,8 @@ function Editor({ activeNote, onUpdate, onDelete, onToggleLock, hasPassword, onB
                 <button onClick={onBack} className="md:hidden mr-2 p-2 text-gray-500 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path></svg>
                 </button>
-                <input type="text" value={title} onChange={(e) => handleTitleUpdate(e..target.value)} placeholder="Note Title" className="w-full text-2xl font-bold bg-transparent focus:outline-none" disabled={activeNote.isLocked} />
+                {/* THIS IS THE CORRECTED LINE */}
+                <input type="text" value={title} onChange={(e) => handleTitleUpdate(e.target.value)} placeholder="Note Title" className="w-full text-2xl font-bold bg-transparent focus:outline-none" disabled={activeNote.isLocked} />
                 {hasPassword && (
                     <button onClick={onToggleLock} className="ml-4 p-2 text-gray-500 hover:text-blue-500 rounded-full" title={activeNote.isLocked ? "Unlock Note" : "Lock Note"}>
                         {activeNote.isLocked ? <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"></path></svg> : <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>}
@@ -189,10 +170,8 @@ function Editor({ activeNote, onUpdate, onDelete, onToggleLock, hasPassword, onB
                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                 </button>
             </div>
-             {/* The toolbar is now passed the centrally managed editor instance */}
              <Toolbar editor={editor} />
-             {/* The RichTextEditor is now passed the centrally managed editor instance */}
              <RichTextEditor editor={editor} />
         </div>
     );
-        }
+                }
