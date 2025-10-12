@@ -1,70 +1,79 @@
+/* Global body font and anti-aliasing for better text rendering */
 body {
     font-family: sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
 }
 
-/* [UPDATED] Invisible but functional scrollbar */
-::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+/* Custom, nearly-invisible scrollbar styling */
+::-webkit-scrollbar { 
+    width: 14px; 
+    height: 14px; 
 }
-
-::-webkit-scrollbar-track {
-    background: transparent;
+::-webkit-scrollbar-thumb { 
+    background-clip: content-box;
+    border: 4px solid transparent;
+    border-radius: 7px;
+    box-shadow: inset 0 0 0 10px;
+    color: rgba(0,0,0,.3);
 }
-
-::-webkit-scrollbar-thumb {
-    background: rgba(136, 136, 136, 0.5); /* Semi-transparent on hover */
-    border-radius: 4px;
-    background-clip: padding-box;
-    border: 3px solid transparent;
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background: rgba(136, 136, 136, 0.7);
-    background-clip: padding-box;
-    border: 3px solid transparent;
-}
-
 .dark ::-webkit-scrollbar-thumb {
-    background: rgba(113, 128, 150, 0.5); /* Semi-transparent for dark mode */
+    color: rgba(255,255,255,.3);
+}
+::-webkit-scrollbar-button {
+    width: 0;
+    height: 0;
+    display: none;
+}
+::-webkit-scrollbar-corner {
+    background-color: transparent;
 }
 
-.dark ::-webkit-scrollbar-thumb:hover {
-    background: rgba(113, 128, 150, 0.7);
-}
 
-/* Fallback for Firefox to have a thin scrollbar */
-* {
-  scrollbar-width: thin;
-  scrollbar-color: #888 transparent;
-}
-
-.dark * {
-    scrollbar-color: #718096 transparent;
-}
-
+/* Animation for the notification pop-up */
 @keyframes fadeInOut {
-    0%, 100% { opacity: 0; transform: translateY(20px); }
-    10%, 90% { opacity: 1; transform: translateY(0); }
+    0%, 100% { 
+        opacity: 0; 
+        transform: translateY(20px); 
+    }
+    10%, 90% { 
+        opacity: 1; 
+        transform: translateY(0); 
+    }
 }
 
 .notification-animation {
     animation: fadeInOut 4s ease-in-out forwards;
 }
 
-.mobile-panel {
-    transition: transform 0.3s ease-in-out;
-}
-
+/* Tag Styles */
 .tag {
     display: inline-block;
     padding: 2px 8px;
-    border-radius: 9999px;
-    font-size: 0.75rem;
-    font-weight: 500;
-    margin-right: 4px;
-    margin-bottom: 4px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    margin-right: 6px;
     cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+/* [NEW] Editor Footer styles */
+.editor-footer {
+    padding: 8px;
+    text-align: right;
+    font-size: 0.8rem;
+    color: #6b7280; /* text-gray-500 */
+    background-color: #f9fafb; /* bg-gray-50 */
+    border-top: 1px solid #e5e7eb; /* border-gray-200 */
+    flex-shrink: 0;
+}
+.dark .editor-footer {
+    color: #9ca3af; /* dark:text-gray-400 */
+    background-color: #1f2937; /* dark:bg-gray-800 */
+    border-top-color: #4b5563; /* dark:border-gray-600 */
+}
+
+/* Transition for a smoother panel sliding effect on mobile */
+.mobile-panel {
+    transition: transform 0.3s ease-in-out;
 }
