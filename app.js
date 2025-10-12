@@ -1,6 +1,7 @@
 const { useState, useEffect } = React;
 
 function App() {
+    // ... other state is unchanged ...
     const [notes, setNotes] = useState([]);
     const [activeNoteId, setActiveNoteId] = useState(null);
     const [isInitialised, setIsInitialised] = useState(false);
@@ -13,6 +14,9 @@ function App() {
     const [unlockedNoteData, setUnlockedNoteData] = useState(null);
     const [passwordAttempt, setPasswordAttempt] = useState(null);
     const [mobileView, setMobileView] = useState('list');
+    
+    // [NEW] State for tag filtering
+    const [activeTag, setActiveTag] = useState(null);
 
     useEffect(() => {
         const init = async () => {
@@ -57,6 +61,9 @@ function App() {
     
     const handleNewNote = async () => {
         const newNote = { title: 'Untitled Note', content: '', tags: [], isPinned: false, isLocked: false, createdAt: new Date(), updatedAt: new Date() };
+        if (activeTag) {
+            newNote.tags.push(activeTag);
+        }
         const id = await db.notes.add(newNote);
         const newNotesList = [{...newNote, id}, ...notes];
         setNotes(newNotesList);
@@ -92,7 +99,7 @@ function App() {
         const remainingNotes = notes.filter(note => note.id !== activeNoteId);
         await db.notes.delete(activeNoteId);
         setNotes(remainingNotes);
-        setActiveNoteId(remainingNotes.length > 0 ? remainingNotes[0].id : null);
+        setActiveNoteId(remainingNotes.length > 0 ? remainingNotes.filter(n => !activeTag || n.tags.includes(activeTag))[0]?.id : null);
         setIsDeleting(false);
         setMobileView('list');
         showNotification("Note deleted.", "success");
@@ -109,7 +116,7 @@ function App() {
     const handleToggleLock = () => { if (activeNoteId) { setIsPasswordPrompting(true); setPasswordAttempt({ id: activeNoteId, isToggle: true }); } };
 
     const handlePasswordConfirm = (password) => {
-        if (hashPassword(password) !== masterPasswordHash?.value) return showNotification("Incorrect password.", "error");
+        if (hashPassword(password) !== masterPasswordHash) return showNotification("Incorrect password.", "error");
         
         const { id, isToggle } = passwordAttempt;
         if (isToggle) {
@@ -125,7 +132,8 @@ function App() {
         const title = decryptData(note.title, password);
         if (title === null) return showNotification("Decryption failed. Wrong password?", "error");
         const content = decryptData(note.content, password);
-        setUnlockedNoteData({ id: noteId, title, content });
+        const tags = note.tags;
+        setUnlockedNoteData({ id: noteId, title, content, tags });
         setActiveNoteId(noteId);
         setPasswordAttempt(prev => ({ ...prev, password }));
         setMobileView('editor');
@@ -140,7 +148,7 @@ function App() {
             newTitle = decryptData(current.title, password);
             if (newTitle === null) return showNotification("Decryption failed.", "error");
             newContent = decryptData(current.content, password);
-            setUnlockedNoteData({ id: noteId, title: newTitle, content: newContent });
+            setUnlockedNoteData({ id: noteId, title: newTitle, content: newContent, tags: note.tags });
             showNotification("Note unlocked.", "success");
         } else {
             const current = unlockedNoteData || note;
@@ -161,6 +169,9 @@ function App() {
         setTheme(newTheme);
         document.documentElement.classList.toggle('dark', newTheme === 'dark');
     };
+    
+    // [NEW] Filtered notes based on activeTag
+    const filteredNotes = activeTag ? notes.filter(note => note.tags && note.tags.includes(activeTag)) : notes;
 
     if (!isInitialised) return <div className="flex items-center justify-center h-screen text-gray-500 bg-gray-100 dark:bg-gray-900">Loading Shiro-Notes...</div>;
 
@@ -183,8 +194,15 @@ function App() {
             
             {/* Desktop: Note List */}
             <main className="hidden md:flex flex-col w-96 p-4 border-l border-r border-gray-300 dark:border-gray-700">
-                <div className="flex justify-between items-center mb-4 flex-shrink-0"><h2 className="text-2xl font-semibold">All Notes ({notes.length})</h2><button onClick={handleNewNote} className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 shadow">New Note</button></div>
-                <div className="overflow-y-auto">{notes.map(note => <NoteCard key={note.id} note={note} isActive={note.id === activeNoteId} onClick={() => handleSelectNote(note.id)} />)}</div>
+                <div className="flex justify-between items-center mb-4 flex-shrink-0">
+                    <h2 className="text-2xl font-semibold">
+                        {activeTag ? `#${activeTag}` : `All Notes`} ({filteredNotes.length})
+                    </h2>
+                    <button onClick={handleNewNote} className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 shadow">New Note</button>
+                </div>
+                {/* [NEW] Clear filter button */}
+                {activeTag && <button onClick={() => setActiveTag(null)} className="text-sm text-blue-500 hover:underline mb-2">Clear filter</button>}
+                <div className="overflow-y-auto">{filteredNotes.map(note => <NoteCard key={note.id} note={note} isActive={note.id === activeNoteId} onClick={() => handleSelectNote(note.id)} onTagClick={setActiveTag} />)}</div>
             </main>
 
             {/* Desktop: Editor */}
@@ -195,8 +213,14 @@ function App() {
                 {/* Mobile: Note List Panel */}
                 <div className={`mobile-panel absolute inset-0 w-full p-4 flex flex-col ${listPanelClasses}`}>
                     <div className="flex justify-between items-center mb-4"><h1 className="text-2xl font-bold">Shiro-Notes</h1><button onClick={toggleTheme} className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">{theme === 'light' ? '🌙' : '☀️'}</button></div>
-                    <div className="flex justify-between items-center mb-4"><h2 className="text-xl font-semibold">All Notes ({notes.length})</h2><button onClick={handleNewNote} className="px-3 py-1.5 bg-blue-500 text-white rounded-lg shadow text-sm">New</button></div>
-                    <div className="flex-1 overflow-y-auto -mr-4 pr-4">{notes.map(note => <NoteCard key={note.id} note={note} isActive={false} onClick={() => handleSelectNote(note.id)} />)}</div>
+                    <div className="flex justify-between items-center mb-4">
+                         <h2 className="text-xl font-semibold">
+                            {activeTag ? `#${activeTag}` : `All Notes`} ({filteredNotes.length})
+                        </h2>
+                        <button onClick={handleNewNote} className="px-3 py-1.5 bg-blue-500 text-white rounded-lg shadow text-sm">New</button>
+                    </div>
+                    {activeTag && <button onClick={() => setActiveTag(null)} className="text-sm text-blue-500 hover:underline mb-2 self-start">Clear filter</button>}
+                    <div className="flex-1 overflow-y-auto -mr-4 pr-4">{filteredNotes.map(note => <NoteCard key={note.id} note={note} isActive={false} onClick={() => handleSelectNote(note.id)} onTagClick={setActiveTag}/>)}</div>
                     <button onClick={() => setIsSettingsOpen(true)} className="w-full flex items-center justify-center p-2 mt-2 text-base rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600">Settings</button>
                 </div>
                 {/* Mobile: Editor Panel */}
