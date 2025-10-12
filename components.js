@@ -1,11 +1,4 @@
 const { useState, useEffect, useRef } = React;
-const { useEditor, EditorContent } = TiptapReact;
-
-// =================================================================
-// ROOT CAUSE FIX 1: Removed ".default" from library variables.
-// =================================================================
-const StarterKit = TiptapStarterKit;
-const Placeholder = TiptapPlaceholder;
 
 function Notification({ message, type, onClear }) {
     useEffect(() => { const timer = setTimeout(() => onClear(), 4000); return () => clearTimeout(timer); }, [onClear]);
@@ -79,7 +72,7 @@ function PasswordPromptModal({ onConfirm, onCancel, showNotification }) {
 
 function NoteCard({ note, isActive, onClick }) {
     const title = note.isLocked ? "Locked Note" : (note.title || 'Untitled Note');
-    const contentSnippet = note.isLocked ? 'This note is encrypted.' : (note.contentPlainText || '').substring(0, 80) + '...';
+    const contentSnippet = note.isLocked ? 'This note is encrypted.' : (note.content || '').substring(0, 80) + '...';
     const activeClasses = isActive ? 'bg-blue-200 dark:bg-blue-800' : 'hover:bg-gray-200 dark:hover:bg-gray-700';
     return (
         <div onClick={onClick} className={`p-4 mb-2 rounded-lg cursor-pointer transition-colors ${activeClasses} flex justify-between items-start`}>
@@ -92,79 +85,49 @@ function NoteCard({ note, isActive, onClick }) {
     );
 }
 
-function Toolbar({ editor }) {
-    if (!editor) return null;
-    return (
-        <div className="editor-toolbar border-t border-x border-gray-300 dark:border-gray-600 rounded-t-lg p-2">
-            <button onClick={() => editor.chain().focus().toggleBold().run()} className={editor.isActive('bold') ? 'is-active' : ''}>Bold</button>
-            <button onClick={() => editor.chain().focus().toggleItalic().run()} className={editor.isActive('italic') ? 'is-active' : ''}>Italic</button>
-            <button onClick={() => editor.chain().focus().toggleStrike().run()} className={editor.isActive('strike') ? 'is-active' : ''}>Strike</button>
-            <button onClick={() => editor.chain().focus().toggleBulletList().run()} className={editor.isActive('bulletList') ? 'is-active' : ''}>List</button>
-        </div>
-    );
-}
-
-function RichTextEditor({ editor }) {
-    return <EditorContent editor={editor} className="border border-gray-300 dark:border-gray-600 rounded-b-lg flex-1 overflow-y-auto p-2" />;
-}
-
 function Editor({ activeNote, onUpdate, onDelete, onToggleLock, hasPassword, onBack }) {
     const [title, setTitle] = useState('');
+    const [content, setContent] = useState('');
     const debounceTimeout = useRef(null);
-
-    const editor = useEditor({
-        extensions: [ StarterKit, Placeholder.configure({ placeholder: 'Start writing...' }) ],
-        content: '',
-        onUpdate: ({ editor }) => { handleContentUpdate(editor.getHTML()); },
-    });
 
     useEffect(() => {
         if (activeNote) {
             setTitle(activeNote.title);
-            if (editor && !editor.isDestroyed && editor.getHTML() !== activeNote.content) {
-                editor.commands.setContent(activeNote.content || '', false);
-            }
+            setContent(activeNote.content || '');
         } else {
             setTitle('');
-            if (editor && !editor.isDestroyed) { editor.commands.clearContent(); }
+            setContent('');
         }
-    }, [activeNote, editor]);
-    
-    useEffect(() => {
-        if (editor && !editor.isDestroyed) {
-            editor.setEditable(!!activeNote && !activeNote.isLocked);
-        }
-    }, [activeNote?.isLocked, editor]);
+    }, [activeNote]);
 
-    const debouncedUpdate = (updatedFields) => {
+    const handleUpdate = (updatedFields) => {
         if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
-        debounceTimeout.current = setTimeout(() => { onUpdate(updatedFields); }, 500);
+        debounceTimeout.current = setTimeout(() => {
+            onUpdate(updatedFields);
+        }, 500);
     };
 
-    const handleTitleUpdate = (newTitle) => {
+    const handleTitleChange = (newTitle) => {
         setTitle(newTitle);
-        debouncedUpdate({ title: newTitle });
+        handleUpdate({ title: newTitle, content: content });
     };
 
-    const handleContentUpdate = (newContent) => {
-        const div = document.createElement('div');
-        div.innerHTML = newContent;
-        const newContentPlainText = div.textContent || div.innerText || '';
-        debouncedUpdate({ content: newContent, contentPlainText: newContentPlainText });
+    const handleContentChange = (newContent) => {
+        setContent(newContent);
+        handleUpdate({ title: title, content: newContent });
     };
 
     if (!activeNote) {
-        return <div className="hidden md:flex text-center text-gray-400 dark:text-gray-500 h-full items-center justify-center"><p>Select a note to view</p></div>;
+        return <div className="hidden md:flex flex-col text-center text-gray-400 dark:text-gray-500 h-full items-center justify-center"><svg className="w-16 h-16 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg><p className="text-lg">Select a note to view or create a new one</p></div>;
     }
-    
+
     return (
         <div className="flex flex-col h-full">
             <div className="flex items-center mb-4 flex-shrink-0">
                 <button onClick={onBack} className="md:hidden mr-2 p-2 text-gray-500 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path></svg>
                 </button>
-                {/* ROOT CAUSE FIX 3: Corrected "e..target.value" to "e.target.value" */}
-                <input type="text" value={title} onChange={(e) => handleTitleUpdate(e.target.value)} placeholder="Note Title" className="w-full text-2xl font-bold bg-transparent focus:outline-none" disabled={activeNote.isLocked} />
+                <input type="text" value={title} onChange={(e) => handleTitleChange(e.target.value)} placeholder="Note Title" className="w-full text-2xl font-bold bg-transparent focus:outline-none" disabled={activeNote.isLocked} />
                 {hasPassword && (
                     <button onClick={onToggleLock} className="ml-4 p-2 text-gray-500 hover:text-blue-500 rounded-full" title={activeNote.isLocked ? "Unlock Note" : "Lock Note"}>
                         {activeNote.isLocked ? <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"></path></svg> : <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>}
@@ -174,9 +137,7 @@ function Editor({ activeNote, onUpdate, onDelete, onToggleLock, hasPassword, onB
                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                 </button>
             </div>
-             <Toolbar editor={editor} />
-             <RichTextEditor editor={editor} />
+            <textarea value={content} onChange={(e) => handleContentChange(e.target.value)} disabled={activeNote.isLocked} placeholder="Start writing..." className="flex-1 w-full p-2 text-lg bg-transparent focus:outline-none resize-none border rounded-md dark:border-gray-700"></textarea>
         </div>
     );
-}
-// ROOT CAUSE FIX 2: Removed extra closing brace that was here
+            }
