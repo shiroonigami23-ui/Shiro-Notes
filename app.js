@@ -28,12 +28,11 @@ function App() {
                 setTheme(currentTheme);
                 document.documentElement.classList.toggle('dark', currentTheme === 'dark');
 
-                const allNotes = await db.notes.orderBy('updatedAt').reverse().toArray();
-                setNotes(allNotes);
+                const allNotes = await db.notes.toArray(); // Get all notes first
+                setNotes(sortNotes(allNotes)); // Sort them on initial load
 
                 if (allNotes.length > 0 && window.innerWidth >= 768) {
-                    const filteredNotes = activeTag ? allNotes.filter(note => note.tags && note.tags.includes(activeTag)) : allNotes;
-                    const firstNoteId = (filteredNotes.length > 0 ? filteredNotes[0] : allNotes[0]).id;
+                    const firstNoteId = (sortNotes(filteredNotes).length > 0 ? sortNotes(filteredNotes)[0] : sortNotes(allNotes)[0]).id;
                     setActiveNoteId(firstNoteId);
                 }
             } catch (error) {
@@ -45,6 +44,16 @@ function App() {
         };
         init();
     }, []);
+
+    // [NEW] Centralized sorting function
+    const sortNotes = (notesToSort) => {
+        return [...notesToSort].sort((a, b) => {
+            if (a.isPinned !== b.isPinned) {
+                return a.isPinned ? -1 : 1; // Pinned notes come first
+            }
+            return new Date(b.updatedAt) - new Date(a.updatedAt); // Then sort by date
+        });
+    };
 
     const showNotification = (message, type) => setNotification({ message, type });
 
@@ -71,7 +80,7 @@ function App() {
         }
         const id = await db.notes.add(newNote);
         const newNotesList = [{...newNote, id}, ...notes];
-        setNotes(newNotesList);
+        setNotes(sortNotes(newNotesList));
         setActiveNoteId(id);
         setUnlockedNoteData(null);
         setMobileView('editor');
@@ -94,26 +103,36 @@ function App() {
         const updatedNoteData = { ...dataToSave, updatedAt: new Date() };
         await db.notes.update(activeNoteId, updatedNoteData);
         
-        const sortedNotes = notes.map(n => n.id === activeNoteId ? { ...n, ...updatedNoteData } : n)
-            .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
-        setNotes(sortedNotes);
+        const updatedList = notes.map(n => n.id === activeNoteId ? { ...n, ...updatedNoteData } : n);
+        setNotes(sortNotes(updatedList));
     };
     
+    // [NEW] Function to handle pinning/unpinning a note
+    const handleTogglePin = async () => {
+        if (!activeNoteId) return;
+        const note = notes.find(n => n.id === activeNoteId);
+        const newIsPinned = !note.isPinned;
+        const updatedNoteData = { isPinned: newIsPinned, updatedAt: new Date() };
+        
+        await db.notes.update(activeNoteId, updatedNoteData);
+        const updatedList = notes.map(n => n.id === activeNoteId ? { ...n, ...updatedNoteData } : n);
+        setNotes(sortNotes(updatedList));
+        showNotification(newIsPinned ? "Note pinned." : "Note unpinned.", "success");
+    };
+
     const handleDeleteNote = async () => {
         if (!activeNoteId) return;
         const remainingNotes = notes.filter(note => note.id !== activeNoteId);
         await db.notes.delete(activeNoteId);
-        setNotes(remainingNotes);
-        const nextNote = remainingNotes.filter(n => !activeTag || (n.tags && n.tags.includes(activeTag)))[0];
+        setNotes(sortNotes(remainingNotes));
+        const nextNote = sortNotes(remainingNotes.filter(n => !activeTag || (n.tags && n.tags.includes(activeTag))))[0];
         setActiveNoteId(nextNote ? nextNote.id : null);
         setIsDeleting(false);
         setMobileView('list');
         showNotification("Note deleted.", "success");
     };
 
-    // [UPDATED] This function now includes the security check
     const handleSetPassword = async (newPassword, currentPassword) => {
-        // If a password already exists, we must verify the current one.
         if (masterPasswordHash) {
             if (!currentPassword) {
                 return showNotification("Please enter your current password.", "error");
@@ -123,15 +142,12 @@ function App() {
                 return showNotification("Incorrect current password.", "error");
             }
         }
-
-        // Proceed with setting the new password
         const newHash = hashPassword(newPassword);
         await db.settings.put({ key: 'masterPasswordHash', value: newHash });
         setMasterPasswordHash(newHash);
         setIsSettingsOpen(false);
         showNotification(masterPasswordHash ? "Password changed successfully!" : "Password set successfully!", "success");
     };
-
 
     const handleToggleLock = () => {
         if (!activeNoteId) return;
@@ -148,7 +164,6 @@ function App() {
         if (hashPassword(password) !== masterPasswordHash) {
              return showNotification("Incorrect password.", "error");
         }
-        
         const { id, isToggle } = passwordAttempt;
         if (isToggle) {
             performToggleLock(id, password);
@@ -194,7 +209,8 @@ function App() {
         
         const updatedDbData = { title: newTitle, content: newContent, isLocked: newIsLocked, updatedAt: new Date() };
         await db.notes.update(noteId, updatedDbData);
-        setNotes(notes.map(n => n.id === noteId ? { ...n, ...updatedDbData } : n));
+        const updatedList = notes.map(n => n.id === noteId ? { ...n, ...updatedDbData } : n)
+        setNotes(sortNotes(updatedList));
     };
 
     const toggleTheme = async () => {
@@ -236,7 +252,8 @@ function App() {
                 <div className="overflow-y-auto">{filteredNotes.map(note => <NoteCard key={note.id} note={note} isActive={note.id === activeNoteId} onClick={() => handleSelectNote(note.id)} onTagClick={setActiveTag} />)}</div>
             </main>
 
-            <section className="hidden md:flex flex-1 p-6 flex-col bg-white dark:bg-gray-800"><Editor activeNote={editorNote} onUpdate={handleUpdateNote} onDelete={() => setIsDeleting(true)} onToggleLock={handleToggleLock} hasPassword={!!masterPasswordHash} onBack={() => {}} /></section>
+            {/* [UPDATED] Pass the onTogglePin handler to the Editor */}
+            <section className="hidden md:flex flex-1 p-6 flex-col bg-white dark:bg-gray-800"><Editor activeNote={editorNote} onUpdate={handleUpdateNote} onDelete={() => setIsDeleting(true)} onToggleLock={handleToggleLock} onTogglePin={handleTogglePin} hasPassword={!!masterPasswordHash} onBack={() => {}} /></section>
             
             <div className="md:hidden flex flex-1 relative overflow-hidden bg-gray-100 dark:bg-gray-900">
                 <div className={`mobile-panel absolute inset-0 w-full p-4 flex flex-col ${listPanelClasses}`}>
@@ -246,7 +263,7 @@ function App() {
                             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path></svg>
                         </button>
                     </div>
-                    {isMenuOpen && <DropdownMenu onClose={() => setIsMenuОpen(false)} onSettingsClick={() => {setIsSettingsOpen(true); setIsMenuOpen(false);}} onThemeClick={toggleTheme} theme={theme} />}
+                    {isMenuOpen && <DropdownMenu onClose={() => setIsMenuOpen(false)} onSettingsClick={() => {setIsSettingsOpen(true); setIsMenuOpen(false);}} onThemeClick={toggleTheme} theme={theme} />}
 
                     <div className="flex justify-between items-center mb-4">
                          <h2 className="text-xl font-semibold">
@@ -258,7 +275,8 @@ function App() {
                     <div className="flex-1 overflow-y-auto -mr-4 pr-4">{filteredNotes.map(note => <NoteCard key={note.id} note={note} isActive={false} onClick={() => handleSelectNote(note.id)} onTagClick={setActiveTag}/>)}</div>
                 </div>
                 <div className={`mobile-panel absolute inset-0 w-full p-4 flex flex-col bg-white dark:bg-gray-800 ${editorPanelClasses}`}>
-                   <Editor activeNote={editorNote} onUpdate={handleUpdateNote} onDelete={() => setIsDeleting(true)} onToggleLock={handleToggleLock} hasPassword={!!masterPasswordHash} onBack={() => setMobileView('list')} />
+                   {/* [UPDATED] Pass the onTogglePin handler to the Editor */}
+                   <Editor activeNote={editorNote} onUpdate={handleUpdateNote} onDelete={() => setIsDeleting(true)} onToggleLock={handleToggleLock} onTogglePin={handleTogglePin} hasPassword={!!masterPasswordHash} onBack={() => setMobileView('list')} />
                 </div>
             </div>
 
