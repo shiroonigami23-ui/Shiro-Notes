@@ -3,30 +3,681 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Shiro-Notes</title>
+    <title>Shiro Notes - Advanced Note Taking App</title>
+    <meta name="description" content="Shiro Notes - A comprehensive note-taking app with encryption, canvas drawing, and advanced editing features">
     
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Merriweather:wght@300;400;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     
-    <!-- Custom Stylesheet -->
-    <link rel="stylesheet" href="style.css">
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- External Libraries -->
-    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://unpkg.com/dexie@3/dist/dexie.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
-    
-    <!-- Our Application Scripts (in order of dependency) -->
-    <script type="text/babel" src="db.js"></script>
-    <script type="text/babel" src="utils.js"></script>
-    <script type="text/babel" src="components.js"></script>
-    <script type="text/babel" src="app.js"></script>
+    <!-- Styles -->
+    <link rel="stylesheet" href="styles.css">
 </head>
-<body class="bg-gray-100 dark:bg-gray-900 overflow-hidden">
-    <div id="root"></div>
+<body class="light-theme">
+    <!-- Lock Screen -->
+    <div id="lockScreen" class="lock-screen hidden">
+        <div class="lock-container">
+            <div class="lock-logo">
+                <i class="fas fa-book"></i>
+                <h1>Shiro Notes</h1>
+            </div>
+            <div class="lock-content">
+                <h2 id="lockTitle">Enter Passcode</h2>
+                <div class="passcode-dots">
+                    <span class="dot"></span>
+                    <span class="dot"></span>
+                    <span class="dot"></span>
+                    <span class="dot"></span>
+                    <span class="dot"></span>
+                    <span class="dot"></span>
+                </div>
+                <input type="password" id="passcodeInput" maxlength="6" placeholder="Enter 6-digit passcode">
+                <button id="unlockBtn" class="btn-primary">Unlock</button>
+                <button id="changePassBtn" class="btn-text hidden">Change Passcode</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main App Container -->
+    <div id="appContainer" class="app-container">
+        <!-- Sidebar -->
+        <aside id="sidebar" class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <i class="fas fa-book"></i>
+                    <span>Shiro Notes</span>
+                </div>
+                <button id="sidebarToggle" class="icon-btn">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
+
+            <div class="sidebar-profile">
+                <img id="sidebarAvatar" src="assets/default-avatar.png" alt="Profile" class="avatar-small">
+                <span id="sidebarName">User</span>
+            </div>
+
+            <nav class="sidebar-nav">
+                <button class="nav-item active" data-page="dashboard">
+                    <i class="fas fa-home"></i>
+                    <span>Dashboard</span>
+                </button>
+                <button class="nav-item" data-page="books">
+                    <i class="fas fa-book"></i>
+                    <span>My Books</span>
+                </button>
+                <button class="nav-item" data-page="folders">
+                    <i class="fas fa-folder"></i>
+                    <span>Folders</span>
+                </button>
+                <button class="nav-item" data-page="canvas">
+                    <i class="fas fa-palette"></i>
+                    <span>Canvas</span>
+                </button>
+                <button class="nav-item" data-page="scheduler">
+                    <i class="fas fa-calendar"></i>
+                    <span>Scheduler</span>
+                </button>
+                <button class="nav-item" data-page="tags">
+                    <i class="fas fa-tags"></i>
+                    <span>Tags</span>
+                </button>
+                <button class="nav-item" data-page="encrypted">
+                    <i class="fas fa-lock"></i>
+                    <span>Encrypted</span>
+                </button>
+            </nav>
+
+            <div class="sidebar-footer">
+                <button class="nav-item" data-page="profile">
+                    <i class="fas fa-user"></i>
+                    <span>Profile</span>
+                </button>
+                <button class="nav-item" data-page="settings">
+                    <i class="fas fa-cog"></i>
+                    <span>Settings</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Top Bar -->
+            <header class="top-bar">
+                <div class="search-container">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="globalSearch" placeholder="Search notes, books, chapters...">
+                </div>
+                <div class="top-bar-actions">
+                    <button id="themeToggle" class="icon-btn" title="Toggle theme">
+                        <i class="fas fa-moon"></i>
+                    </button>
+                    <button id="notificationBtn" class="icon-btn" title="Notifications">
+                        <i class="fas fa-bell"></i>
+                        <span class="notification-badge hidden">0</span>
+                    </button>
+                    <div class="user-menu">
+                        <img id="topBarAvatar" src="assets/default-avatar.png" alt="Profile" class="avatar-small">
+                    </div>
+                </div>
+            </header>
+
+            <!-- Page Container -->
+            <div class="page-container">
+                <!-- Dashboard Page -->
+                <div id="dashboardPage" class="page active">
+                    <div class="page-header">
+                        <h1>Dashboard</h1>
+                        <div class="page-actions">
+                            <button class="btn-primary" id="newBookBtn">
+                                <i class="fas fa-plus"></i> New Book
+                            </button>
+                            <button class="btn-secondary" id="newNoteBtn">
+                                <i class="fas fa-file"></i> Quick Note
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <i class="fas fa-book"></i>
+                            <div>
+                                <h3 id="totalBooks">0</h3>
+                                <p>Total Books</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <i class="fas fa-file-alt"></i>
+                            <div>
+                                <h3 id="totalNotes">0</h3>
+                                <p>Total Notes</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <i class="fas fa-palette"></i>
+                            <div>
+                                <h3 id="totalDrawings">0</h3>
+                                <p>Drawings</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <i class="fas fa-lock"></i>
+                            <div>
+                                <h3 id="totalEncrypted">0</h3>
+                                <p>Encrypted</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="recent-section">
+                        <h2>Recent Activity</h2>
+                        <div id="recentList" class="recent-list">
+                            <div class="empty-state">
+                                <i class="fas fa-inbox"></i>
+                                <p>No recent activity</p>
+                                <button class="btn-primary" onclick="showPage('books')">Create Your First Book</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Books Page -->
+                <div id="booksPage" class="page">
+                    <div class="page-header">
+                        <h1>My Books</h1>
+                        <div class="page-actions">
+                            <button class="btn-primary" id="createBookBtn">
+                                <i class="fas fa-plus"></i> Create Book
+                            </button>
+                        </div>
+                    </div>
+                    <div class="filter-bar">
+                        <input type="text" id="bookSearch" placeholder="Search books...">
+                        <select id="bookSort">
+                            <option value="recent">Recently Modified</option>
+                            <option value="name">Name (A-Z)</option>
+                            <option value="created">Date Created</option>
+                        </select>
+                    </div>
+                    <div id="booksList" class="books-grid"></div>
+                </div>
+
+                <!-- Book Detail Page -->
+                <div id="bookDetailPage" class="page">
+                    <div class="page-header">
+                        <button class="btn-back" onclick="showPage('books')">
+                            <i class="fas fa-arrow-left"></i> Back
+                        </button>
+                        <h1 id="bookTitle">Book Title</h1>
+                        <div class="page-actions">
+                            <button class="btn-secondary" id="addChapterBtn">
+                                <i class="fas fa-plus"></i> Add Chapter
+                            </button>
+                            <button class="icon-btn" id="bookOptionsBtn">
+                                <i class="fas fa-ellipsis-v"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="chaptersList" class="chapters-list"></div>
+                </div>
+
+                <!-- Note Editor Page -->
+                <div id="editorPage" class="page">
+                    <div class="editor-header">
+                        <button class="btn-back" id="editorBackBtn">
+                            <i class="fas fa-arrow-left"></i>
+                        </button>
+                        <input type="text" id="noteTitle" class="note-title-input" placeholder="Untitled Note">
+                        <div class="editor-actions">
+                            <button class="icon-btn" id="bookmarkNoteBtn" title="Bookmark">
+                                <i class="far fa-bookmark"></i>
+                            </button>
+                            <button class="icon-btn" id="encryptNoteBtn" title="Encrypt/Decrypt">
+                                <i class="fas fa-lock"></i>
+                            </button>
+                            <button class="icon-btn" id="shareNoteBtn" title="Share">
+                                <i class="fas fa-share-alt"></i>
+                            </button>
+                            <button class="btn-primary" id="saveNoteBtn">
+                                <i class="fas fa-save"></i> Save
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Text Editor Toolbar -->
+                    <div class="editor-toolbar">
+                        <div class="toolbar-group">
+                            <button class="toolbar-btn" data-command="undo" title="Undo">
+                                <i class="fas fa-undo"></i>
+                            </button>
+                            <button class="toolbar-btn" data-command="redo" title="Redo">
+                                <i class="fas fa-redo"></i>
+                            </button>
+                        </div>
+                        <div class="toolbar-separator"></div>
+                        <div class="toolbar-group">
+                            <select id="fontFamily" class="toolbar-select">
+                                <option value="Inter">Inter</option>
+                                <option value="Merriweather">Merriweather</option>
+                                <option value="Arial">Arial</option>
+                                <option value="Georgia">Georgia</option>
+                                <option value="Times New Roman">Times New Roman</option>
+                                <option value="Courier New">Courier New</option>
+                            </select>
+                            <select id="fontSize" class="toolbar-select">
+                                <option value="12px">12</option>
+                                <option value="14px">14</option>
+                                <option value="16px" selected>16</option>
+                                <option value="18px">18</option>
+                                <option value="20px">20</option>
+                                <option value="24px">24</option>
+                                <option value="32px">32</option>
+                                <option value="48px">48</option>
+                            </select>
+                        </div>
+                        <div class="toolbar-separator"></div>
+                        <div class="toolbar-group">
+                            <button class="toolbar-btn" data-command="bold" title="Bold">
+                                <i class="fas fa-bold"></i>
+                            </button>
+                            <button class="toolbar-btn" data-command="italic" title="Italic">
+                                <i class="fas fa-italic"></i>
+                            </button>
+                            <button class="toolbar-btn" data-command="underline" title="Underline">
+                                <i class="fas fa-underline"></i>
+                            </button>
+                            <button class="toolbar-btn" data-command="strikeThrough" title="Strikethrough">
+                                <i class="fas fa-strikethrough"></i>
+                            </button>
+                        </div>
+                        <div class="toolbar-separator"></div>
+                        <div class="toolbar-group">
+                            <input type="color" id="textColor" class="color-picker" title="Text Color">
+                            <input type="color" id="bgColor" class="color-picker" title="Highlight">
+                        </div>
+                        <div class="toolbar-separator"></div>
+                        <div class="toolbar-group">
+                            <button class="toolbar-btn" data-command="justifyLeft" title="Align Left">
+                                <i class="fas fa-align-left"></i>
+                            </button>
+                            <button class="toolbar-btn" data-command="justifyCenter" title="Align Center">
+                                <i class="fas fa-align-center"></i>
+                            </button>
+                            <button class="toolbar-btn" data-command="justifyRight" title="Align Right">
+                                <i class="fas fa-align-right"></i>
+                            </button>
+                            <button class="toolbar-btn" data-command="justifyFull" title="Justify">
+                                <i class="fas fa-align-justify"></i>
+                            </button>
+                        </div>
+                        <div class="toolbar-separator"></div>
+                        <div class="toolbar-group">
+                            <button class="toolbar-btn" data-command="insertUnorderedList" title="Bullet List">
+                                <i class="fas fa-list-ul"></i>
+                            </button>
+                            <button class="toolbar-btn" data-command="insertOrderedList" title="Numbered List">
+                                <i class="fas fa-list-ol"></i>
+                            </button>
+                        </div>
+                        <div class="toolbar-separator"></div>
+                        <div class="toolbar-group">
+                            <button class="toolbar-btn" id="insertImageBtn" title="Insert Image">
+                                <i class="fas fa-image"></i>
+                            </button>
+                            <button class="toolbar-btn" id="insertTableBtn" title="Insert Table">
+                                <i class="fas fa-table"></i>
+                            </button>
+                            <button class="toolbar-btn" id="insertLinkBtn" title="Insert Link">
+                                <i class="fas fa-link"></i>
+                            </button>
+                            <button class="toolbar-btn" id="insertCodeBtn" title="Code Block">
+                                <i class="fas fa-code"></i>
+                            </button>
+                        </div>
+                        <div class="toolbar-separator"></div>
+                        <div class="toolbar-group">
+                            <button class="toolbar-btn" id="recordAudioBtn" title="Record Audio">
+                                <i class="fas fa-microphone"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Editor Content -->
+                    <div id="noteEditor" class="note-editor" contenteditable="true" data-placeholder="Start writing your note..."></div>
+
+                    <!-- Audio Recorder (Hidden by default) -->
+                    <div id="audioRecorder" class="audio-recorder hidden">
+                        <div class="audio-controls">
+                            <button id="startRecordBtn" class="audio-btn">
+                                <i class="fas fa-circle"></i> Record
+                            </button>
+                            <button id="stopRecordBtn" class="audio-btn" disabled>
+                                <i class="fas fa-stop"></i> Stop
+                            </button>
+                            <button id="playAudioBtn" class="audio-btn" disabled>
+                                <i class="fas fa-play"></i> Play
+                            </button>
+                            <span id="recordTimer">00:00</span>
+                            <canvas id="audioWaveform" width="200" height="40"></canvas>
+                        </div>
+                        <div id="audioList" class="audio-list"></div>
+                    </div>
+                </div>
+
+                <!-- Canvas Page -->
+                <div id="canvasPage" class="page">
+                    <div class="canvas-header">
+                        <input type="text" id="canvasTitle" class="canvas-title-input" placeholder="Untitled Drawing">
+                        <div class="canvas-actions">
+                            <button class="btn-secondary" id="saveCanvasBtn">
+                                <i class="fas fa-save"></i> Save
+                            </button>
+                            <button class="btn-secondary" id="exportCanvasBtn">
+                                <i class="fas fa-download"></i> Export
+                            </button>
+                        </div>
+                    </div>
+                    <div class="canvas-container">
+                        <div class="canvas-toolbar">
+                            <div class="tool-group">
+                                <button class="tool-btn active" data-tool="brush">
+                                    <i class="fas fa-paintbrush"></i>
+                                </button>
+                                <button class="tool-btn" data-tool="pen">
+                                    <i class="fas fa-pen"></i>
+                                </button>
+                                <button class="tool-btn" data-tool="eraser">
+                                    <i class="fas fa-eraser"></i>
+                                </button>
+                                <button class="tool-btn" data-tool="line">
+                                    <i class="fas fa-minus"></i>
+                                </button>
+                                <button class="tool-btn" data-tool="rect">
+                                    <i class="fas fa-square"></i>
+                                </button>
+                                <button class="tool-btn" data-tool="circle">
+                                    <i class="fas fa-circle"></i>
+                                </button>
+                                <button class="tool-btn" data-tool="arrow">
+                                    <i class="fas fa-arrow-right"></i>
+                                </button>
+                                <button class="tool-btn" data-tool="text">
+                                    <i class="fas fa-font"></i>
+                                </button>
+                            </div>
+                            <div class="tool-separator"></div>
+                            <div class="tool-group">
+                                <label>Size:</label>
+                                <input type="range" id="brushSize" min="1" max="50" value="2">
+                                <span id="brushSizeValue">2</span>
+                            </div>
+                            <div class="tool-separator"></div>
+                            <div class="tool-group">
+                                <label>Color:</label>
+                                <input type="color" id="brushColor" value="#000000">
+                                <div class="color-palette">
+                                    <button class="color-swatch" style="background: #000000"></button>
+                                    <button class="color-swatch" style="background: #ff0000"></button>
+                                    <button class="color-swatch" style="background: #00ff00"></button>
+                                    <button class="color-swatch" style="background: #0000ff"></button>
+                                    <button class="color-swatch" style="background: #ffff00"></button>
+                                    <button class="color-swatch" style="background: #ff00ff"></button>
+                                    <button class="color-swatch" style="background: #00ffff"></button>
+                                    <button class="color-swatch" style="background: #ffffff"></button>
+                                </div>
+                            </div>
+                            <div class="tool-separator"></div>
+                            <div class="tool-group">
+                                <button class="tool-btn" id="undoCanvasBtn">
+                                    <i class="fas fa-undo"></i>
+                                </button>
+                                <button class="tool-btn" id="redoCanvasBtn">
+                                    <i class="fas fa-redo"></i>
+                                </button>
+                                <button class="tool-btn" id="clearCanvasBtn">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="canvas-workspace">
+                            <canvas id="drawingCanvas" width="1200" height="800"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Scheduler Page -->
+                <div id="schedulerPage" class="page">
+                    <div class="page-header">
+                        <h1>Event Scheduler</h1>
+                        <div class="page-actions">
+                            <button class="btn-primary" id="addEventBtn">
+                                <i class="fas fa-plus"></i> Add Event
+                            </button>
+                        </div>
+                    </div>
+                    <div class="calendar-container">
+                        <div class="calendar-header">
+                            <button id="prevMonth" class="icon-btn">
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                            <h2 id="currentMonth">Month Year</h2>
+                            <button id="nextMonth" class="icon-btn">
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
+                        <div class="calendar-grid" id="calendarGrid"></div>
+                        <div class="events-list">
+                            <h3>Upcoming Events</h3>
+                            <div id="eventsList"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Folders Page -->
+                <div id="foldersPage" class="page">
+                    <div class="page-header">
+                        <h1>Folders</h1>
+                        <div class="page-actions">
+                            <button class="btn-primary" id="createFolderBtn">
+                                <i class="fas fa-folder-plus"></i> Create Folder
+                            </button>
+                        </div>
+                    </div>
+                    <div id="foldersList" class="folders-grid"></div>
+                </div>
+
+                <!-- Tags Page -->
+                <div id="tagsPage" class="page">
+                    <div class="page-header">
+                        <h1>Tags</h1>
+                        <div class="page-actions">
+                            <button class="btn-primary" id="createTagBtn">
+                                <i class="fas fa-tag"></i> Create Tag
+                            </button>
+                        </div>
+                    </div>
+                    <div id="tagsList" class="tags-grid"></div>
+                </div>
+
+                <!-- Encrypted Items Page -->
+                <div id="encryptedPage" class="page">
+                    <div class="page-header">
+                        <h1>Encrypted Items</h1>
+                    </div>
+                    <div id="encryptedList" class="encrypted-list"></div>
+                </div>
+
+                <!-- Profile Page -->
+                <div id="profilePage" class="page">
+                    <div class="page-header">
+                        <h1>Profile</h1>
+                    </div>
+                    <div class="profile-container">
+                        <div class="profile-avatar-section">
+                            <img id="profileAvatar" src="assets/default-avatar.png" alt="Profile" class="avatar-large">
+                            <input type="file" id="avatarUpload" accept="image/*" hidden>
+                            <button class="btn-primary" id="uploadAvatarBtn">
+                                <i class="fas fa-camera"></i> Upload Photo
+                            </button>
+                            <button class="btn-secondary" id="chooseAvatarBtn">
+                                <i class="fas fa-images"></i> Choose Avatar
+                            </button>
+                        </div>
+                        <div class="profile-info">
+                            <div class="form-group">
+                                <label>Name</label>
+                                <input type="text" id="userName" placeholder="Your name">
+                            </div>
+                            <div class="form-group">
+                                <label>Email</label>
+                                <input type="email" id="userEmail" placeholder="your.email@example.com">
+                            </div>
+                            <div class="form-group">
+                                <label>Bio</label>
+                                <textarea id="userBio" rows="4" placeholder="Tell us about yourself..."></textarea>
+                            </div>
+                            <button class="btn-primary" id="saveProfileBtn">
+                                <i class="fas fa-save"></i> Save Profile
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Settings Page -->
+                <div id="settingsPage" class="page">
+                    <div class="page-header">
+                        <h1>Settings</h1>
+                    </div>
+                    <div class="settings-container">
+                        <div class="setting-group">
+                            <h3>Security</h3>
+                            <div class="setting-item">
+                                <label>App Lock</label>
+                                <button class="btn-secondary" id="setPasscodeBtn">
+                                    <i class="fas fa-lock"></i> Set Passcode
+                                </button>
+                            </div>
+                        </div>
+                        <div class="setting-group">
+                            <h3>Appearance</h3>
+                            <div class="setting-item">
+                                <label>Theme</label>
+                                <select id="themeSelect">
+                                    <option value="light">Light</option>
+                                    <option value="dark">Dark</option>
+                                    <option value="auto">Auto</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="setting-group">
+                            <h3>Data</h3>
+                            <div class="setting-item">
+                                <label>Export All Data</label>
+                                <button class="btn-secondary" id="exportDataBtn">
+                                    <i class="fas fa-download"></i> Export
+                                </button>
+                            </div>
+                            <div class="setting-item">
+                                <label>Import Data</label>
+                                <input type="file" id="importDataInput" accept=".json" hidden>
+                                <button class="btn-secondary" id="importDataBtn">
+                                    <i class="fas fa-upload"></i> Import
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <!-- Encryption Modal -->
+    <div id="encryptModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="encryptModalTitle">Encrypt Note</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="encryptPassword" placeholder="Enter password">
+                </div>
+                <div class="password-strength">
+                    <div class="strength-bar">
+                        <div class="strength-fill"></div>
+                    </div>
+                    <span class="strength-text">Enter a strong password</span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary cancel-modal">Cancel</button>
+                <button class="btn-primary" id="confirmEncryptBtn">Encrypt</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export Modal -->
+    <div id="exportModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Export Options</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="export-options">
+                    <button class="export-option" data-format="pdf">
+                        <i class="fas fa-file-pdf"></i>
+                        <span>Export as PDF</span>
+                    </button>
+                    <button class="export-option" data-format="png">
+                        <i class="fas fa-file-image"></i>
+                        <span>Export as PNG</span>
+                    </button>
+                    <button class="export-option" data-format="jpg">
+                        <i class="fas fa-file-image"></i>
+                        <span>Export as JPG</span>
+                    </button>
+                    <button class="export-option" data-format="txt">
+                        <i class="fas fa-file-alt"></i>
+                        <span>Export as Text</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Avatar Selection Modal -->
+    <div id="avatarModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Choose Avatar</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="avatar-grid" id="avatarGrid"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
+    <script src="app.js"></script>
+    <script src="editor.js"></script>
+    <script src="canvas.js"></script>
+    <script src="crypto.js"></script>
+    <script src="export.js"></script>
+    <script src="audio.js"></script>
+    <script src="scheduler.js"></script>
+    <script src="security.js"></script>
+    <script src="profile.js"></script>
 </body>
 </html>
-
-
