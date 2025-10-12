@@ -12,7 +12,7 @@ function App() {
     const [isPasswordPrompting, setIsPasswordPrompting] = useState(false);
     const [unlockedNoteData, setUnlockedNoteData] = useState(null);
     const [passwordAttempt, setPasswordAttempt] = useState(null);
-    const [mobileView, setMobileView] = useState('list'); // 'list' or 'editor'
+    const [mobileView, setMobileView] = useState('list');
 
     useEffect(() => {
         const init = async () => {
@@ -22,7 +22,7 @@ function App() {
             setTheme(storedTheme ? storedTheme.value : 'light');
             const allNotes = await db.notes.orderBy('updatedAt').reverse().toArray();
             setNotes(allNotes);
-            if (allNotes.length > 0 && window.innerWidth >= 768) { // Only auto-select on desktop
+            if (allNotes.length > 0 && window.innerWidth >= 768) {
                 setActiveNoteId(allNotes[0].id);
             }
             setIsInitialised(true);
@@ -52,17 +52,17 @@ function App() {
         const newNotesList = [{...newNote, id}, ...notes];
         setNotes(newNotesList);
         setActiveNoteId(id);
+        setUnlockedNoteData(null); // Ensure no old unlocked data persists
         setMobileView('editor');
     };
 
     const handleUpdateNote = async (updatedFields) => {
         if (!activeNoteId) return;
         const noteToUpdate = notes.find(n => n.id === activeNoteId);
-        if (!noteToUpdate) return;
         let dataToSave = { ...updatedFields };
         if (noteToUpdate.isLocked) {
             const password = passwordAttempt?.password;
-            if (!password) { showNotification("Error: Password session expired.", "error"); return; }
+            if (!password) { return showNotification("Password session expired.", "error"); }
             if (updatedFields.title) dataToSave.title = encryptData(updatedFields.title, password);
             if (updatedFields.content) dataToSave.content = encryptData(updatedFields.content, password);
             if (updatedFields.contentPlainText) dataToSave.contentPlainText = encryptData(updatedFields.contentPlainText, password);
@@ -71,16 +71,15 @@ function App() {
         }
         const updatedNoteData = { ...dataToSave, updatedAt: new Date() };
         await db.notes.update(activeNoteId, updatedNoteData);
-        const newNotesList = notes.map(n => n.id === activeNoteId ? { ...n, ...updatedNoteData } : n).sort((a, b) => b.updatedAt - a.updatedAt);
-        setNotes(newNotesList);
+        setNotes(notes.map(n => n.id === activeNoteId ? { ...n, ...updatedNoteData } : n).sort((a, b) => b.updatedAt - a.updatedAt));
     };
     
     const handleDeleteNote = async () => {
         if (!activeNoteId) return;
-        const nextActiveId = notes.length > 1 ? notes.find(n => n.id !== activeNoteId).id : null;
+        const remainingNotes = notes.filter(note => note.id !== activeNoteId);
+        const nextActiveId = remainingNotes.length > 0 ? remainingNotes[0].id : null;
         await db.notes.delete(activeNoteId);
-        const newNotesList = notes.filter(note => note.id !== activeNoteId);
-        setNotes(newNotesList);
+        setNotes(remainingNotes);
         setActiveNoteId(nextActiveId);
         setIsDeleting(false);
         setMobileView('list');
@@ -109,8 +108,8 @@ function App() {
     const performUnlock = (noteId, password) => {
         const note = notes.find(n => n.id === noteId);
         const title = decryptData(note.title, password);
-        const content = decryptData(note.content, password);
         if (title === null) return showNotification("Decryption failed.", "error");
+        const content = decryptData(note.content, password);
         const contentPlainText = decryptData(note.contentPlainText, password);
         setUnlockedNoteData({ id: noteId, title, content, contentPlainText });
         setActiveNoteId(noteId);
@@ -132,8 +131,8 @@ function App() {
         } else {
             const current = unlockedNoteData || note;
             newTitle = encryptData(current.title, password);
-            newContent = encryptData(current.content, password);
-            newContentPlainText = encryptData(current.contentPlainText, password);
+            newContent = encryptData(current.content || '', password);
+            newContentPlainText = encryptData(current.contentPlainText || '', password);
             setUnlockedNoteData(null);
             showNotification("Note locked.", "success");
         }
@@ -148,7 +147,7 @@ function App() {
         setTheme(newTheme);
     };
 
-    if (!isInitialised) return <div className="flex items-center justify-center h-screen">Loading...</div>;
+    if (!isInitialised) return <div className="flex items-center justify-center h-screen text-gray-500">Loading Shiro-Notes...</div>;
 
     const activeNote = notes.find(note => note.id === activeNoteId);
     let editorNote = activeNote;
@@ -162,25 +161,14 @@ function App() {
     return (
         <div className="flex h-screen font-sans text-gray-900 dark:text-gray-100 overflow-hidden">
             <aside className="hidden md:flex w-64 bg-gray-200 dark:bg-gray-800 p-4 flex-col flex-shrink-0">
-                <div className="flex items-center mb-6">
-                    <svg className="w-8 h-8 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>
-                    <h1 className="text-2xl font-bold">Shiro-Notes</h1>
-                </div>
-                <div className="mt-auto">
-                    <button onClick={() => setIsSettingsOpen(true)} className="w-full flex items-center p-2 text-base rounded-lg hover:bg-gray-300 dark:hover:bg-gray-700">Settings</button>
-                    <button onClick={toggleTheme} className="w-full flex items-center p-2 mt-2 text-base rounded-lg hover:bg-gray-300 dark:hover:bg-gray-700">{theme === 'light' ? '🌙 Dark Mode' : '☀️ Light Mode'}</button>
-                </div>
+                <div className="flex items-center mb-6"><svg className="w-8 h-8 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg><h1 className="text-2xl font-bold">Shiro-Notes</h1></div>
+                <div className="mt-auto"><button onClick={() => setIsSettingsOpen(true)} className="w-full flex items-center p-2 text-base rounded-lg hover:bg-gray-300 dark:hover:bg-gray-700">Settings</button><button onClick={toggleTheme} className="w-full flex items-center p-2 mt-2 text-base rounded-lg hover:bg-gray-300 dark:hover:bg-gray-700">{theme === 'light' ? '🌙 Dark Mode' : '☀️ Light Mode'}</button></div>
             </aside>
             <main className="hidden md:block w-1/3 p-6 border-l border-r border-gray-300 dark:border-gray-700 overflow-y-auto">
-                <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-2xl font-semibold">Notes ({notes.length})</h2>
-                    <button onClick={handleNewNote} className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 shadow">New Note</button>
-                </div>
+                <div className="flex justify-between items-center mb-4"><h2 className="text-2xl font-semibold">Notes ({notes.length})</h2><button onClick={handleNewNote} className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 shadow">New Note</button></div>
                 <div>{notes.map(note => <NoteCard key={note.id} note={note} isActive={note.id === activeNoteId} onClick={() => handleSelectNote(note.id)} />)}</div>
             </main>
-            <section className="hidden md:flex flex-1 bg-white dark:bg-gray-800 p-6 flex-col overflow-y-auto">
-                <Editor activeNote={editorNote} onUpdate={handleUpdateNote} onDelete={() => setIsDeleting(true)} onToggleLock={handleToggleLock} hasPassword={!!masterPasswordHash} onBack={() => {}} />
-            </section>
+            <section className="hidden md:flex flex-1 bg-white dark:bg-gray-800 p-6 flex-col"><Editor activeNote={editorNote} onUpdate={handleUpdateNote} onDelete={() => setIsDeleting(true)} onToggleLock={handleToggleLock} hasPassword={!!masterPasswordHash} onBack={() => {}} /></section>
             
             <div className="md:hidden flex flex-1 relative overflow-hidden">
                 <div className={`mobile-panel absolute inset-0 w-full bg-gray-100 dark:bg-gray-900 p-4 flex flex-col ${listPanelClasses}`}>
@@ -190,7 +178,7 @@ function App() {
                     <button onClick={() => setIsSettingsOpen(true)} className="w-full flex items-center justify-center p-2 mt-2 text-base rounded-lg hover:bg-gray-300 dark:hover:bg-gray-700">Settings</button>
                 </div>
                 <div className={`mobile-panel absolute inset-0 w-full bg-white dark:bg-gray-800 p-4 flex flex-col ${editorPanelClasses}`}>
-                   {activeNoteId && <Editor activeNote={editorNote} onUpdate={handleUpdateNote} onDelete={() => setIsDeleting(true)} onToggleLock={handleToggleLock} hasPassword={!!masterPasswordHash} onBack={() => setMobileView('list')} />}
+                   <Editor activeNote={editorNote} onUpdate={handleUpdateNote} onDelete={() => setIsDeleting(true)} onToggleLock={handleToggleLock} hasPassword={!!masterPasswordHash} onBack={() => setMobileView('list')} />
                 </div>
             </div>
 
