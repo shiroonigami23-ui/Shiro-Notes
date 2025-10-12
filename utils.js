@@ -6,6 +6,7 @@ const KEY_SIZE = 256 / 32;
 const ITERATIONS = 1000;
 
 function hashPassword(password) {
+    // CRITICAL BUG FIX: Corrected "PBDF2" to "PBKDF2"
     const key = CryptoJS.PBKDF2(password, SALT, {
         keySize: KEY_SIZE,
         iterations: ITERATIONS
