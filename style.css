@@ -1,84 +1,27 @@
-/* Global body font and anti-aliasing for better text rendering */
 body {
     font-family: sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
 }
 
-/* Custom scrollbar styling for a consistent look */
-::-webkit-scrollbar { 
-    width: 8px; 
-    height: 8px; 
-}
-::-webkit-scrollbar-track { 
-    background: #f1f1f1; 
-}
-::-webkit-scrollbar-thumb { 
-    background: #888; 
-    border-radius: 4px;
-}
-::-webkit-scrollbar-thumb:hover { 
-    background: #555; 
-}
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: #f1f1f1; }
+::-webkit-scrollbar-thumb { background: #888; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #555; }
 
-/* Dark mode scrollbar styles */
-.dark ::-webkit-scrollbar-track { 
-    background: #2d3748; 
-}
-.dark ::-webkit-scrollbar-thumb { 
-    background: #718096; 
-}
-.dark ::-webkit-scrollbar-thumb:hover { 
-    background: #a0aec0; 
-}
+.dark ::-webkit-scrollbar-track { background: #2d3748; }
+.dark ::-webkit-scrollbar-thumb { background: #718096; }
+.dark ::-webkit-scrollbar-thumb:hover { background: #a0aec0; }
 
-/* Animation for the notification pop-up */
 @keyframes fadeInOut {
-    0%, 100% { 
-        opacity: 0; 
-        transform: translateY(20px); 
-    }
-    10%, 90% { 
-        opacity: 1; 
-        transform: translateY(0); 
-    }
+    0%, 100% { opacity: 0; transform: translateY(20px); }
+    10%, 90% { opacity: 1; transform: translateY(0); }
 }
 
 .notification-animation {
     animation: fadeInOut 4s ease-in-out forwards;
 }
 
-/* TIPTAP EDITOR STYLES */
-.ProseMirror {
-    min-height: 150px;
-    padding: 8px;
-    outline: none !important;
-}
-.ProseMirror p { margin: 0; }
-.ProseMirror p.is-editor-empty:first-child::before {
-  content: attr(data-placeholder);
-  float: left;
-  color: #adb5bd;
-  pointer-events: none;
-  height: 0;
-}
-.editor-toolbar button {
-    padding: 0.25rem 0.5rem;
-    border-radius: 4px;
-    margin-right: 0.25rem;
-    transition: background-color 0.2s;
-    font-weight: 500;
-}
-.editor-toolbar button.is-active {
-    background-color: #3b82f6;
-    color: white;
-}
-.dark .editor-toolbar button.is-active { background-color: #2563eb; }
-.dark .editor-toolbar button:not(.is-active) { color: #d1d5db; }
-.editor-toolbar button:not(.is-active):hover { background-color: #e5e7eb; }
-.dark .editor-toolbar button:not(.is-active):hover { background-color: #4b5563; }
-
-/* Transition for a smoother panel sliding effect on mobile */
 .mobile-panel {
     transition: transform 0.3s ease-in-out;
 }
