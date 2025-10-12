@@ -6,7 +6,7 @@ function App() {
     const [isInitialised, setIsInitialised] = useState(false);
     const [masterPasswordHash, setMasterPasswordHash] = useState(null);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-    const [noteToDelete, setNoteToDelete] = useState(null); // Replaces isDeleting for more robust logic
+    const [noteToDelete, setNoteToDelete] = useState(null);
     const [theme, setTheme] = useState('light');
     const [notification, setNotification] = useState(null);
     const [isPasswordPrompting, setIsPasswordPrompting] = useState(false);
@@ -119,11 +119,10 @@ function App() {
     };
     
     const handleDeleteNote = async (noteId) => {
-        setNoteToDelete(null); // Close the confirmation modal
+        setNoteToDelete(null);
         await db.notes.delete(noteId);
         const remainingNotes = notes.filter(note => note.id !== noteId);
         setNotes(sortNotes(remainingNotes));
-        // If the deleted note was the active one, select the next available note
         if (activeNoteId === noteId) {
             const nextNote = (activeTag ? remainingNotes.filter(n => n.tags?.includes(activeTag)) : remainingNotes)[0];
             setActiveNoteId(nextNote?.id || null);
@@ -133,7 +132,7 @@ function App() {
     };
 
     const handleDeleteSelected = async () => {
-        setNoteToDelete(null); // Close the confirmation modal
+        setNoteToDelete(null);
         await db.notes.bulkDelete(selectedIds);
         const remainingNotes = notes.filter(note => !selectedIds.includes(note.id));
         setNotes(sortNotes(remainingNotes));
