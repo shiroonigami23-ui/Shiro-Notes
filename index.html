@@ -5,10 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Shiro-Notes</title>
     
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Custom Stylesheet -->
     <link rel="stylesheet" href="style.css">
     
     <!-- External Libraries -->
@@ -18,13 +15,18 @@
     <script src="https://unpkg.com/dexie@3/dist/dexie.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
     
-    <!-- Our Application Scripts (in order of dependency) -->
+    <!-- [NEW] Tiptap Libraries -->
+    <script src="https://unpkg.com/@tiptap/core@2/dist/tiptap-core.umd.js"></script>
+    <script src="https://unpkg.com/@tiptap/react@2/dist/tiptap-react.umd.js"></script>
+    <script src="https://unpkg.com/@tiptap/extension-placeholder@2/dist/tiptap-extension-placeholder.umd.js"></script>
+    <script src="https://unpkg.com/@tiptap/starter-kit@2/dist/tiptap-starter-kit.umd.js"></script>
+
+    <!-- Our Application Scripts -->
     <script type="text/babel" src="db.js"></script>
     <script type="text/babel" src="utils.js"></script>
     <script type="text/babel" src="components.js"></script>
     <script type="text/babel" src="app.js"></script>
 </head>
-<!-- [CORRECTED] Removed overflow-hidden from the body -->
 <body class="bg-gray-100 dark:bg-gray-900">
     <div id="root"></div>
 </body>
