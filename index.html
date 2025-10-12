@@ -3,64 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Shiro Notes</title>
+    <title>Shiro-Notes</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-        }
-    </script>
     
-    <!-- Custom Styles -->
+    <!-- Custom Stylesheet -->
     <link rel="stylesheet" href="style.css">
-</head>
-<body class="bg-gray-100 dark:bg-gray-900">
-    <div id="root"></div>
-
-    <!-- React and Libraries -->
+    
+    <!-- External Libraries -->
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
-    
-    <!-- Tiptap Editor -->
-    <script src="https://unpkg.com/@tiptap/core@2.0.3/dist/tiptap-core.umd.js"></script>
-    <script src="https://unpkg.com/@tiptap/react@2.0.3/dist/tiptap-react.umd.js"></script>
-    <script src="https://unpkg.com/@tiptap/starter-kit@2.0.3/dist/tiptap-starter-kit.umd.js"></script>
-    <script src="https://unpkg.com/@tiptap/extension-placeholder@2.0.3/dist/tiptap-extension-placeholder.umd.js"></script>
-    
-    <!-- Database and Crypto -->
-    <script src="https://unpkg.com/dexie@3.2.2/dist/dexie.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/dexie@3/dist/dexie.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
-
-    <!-- App Setup (DB, Crypto) -->
-    <script type="text/babel">
-        const db = new Dexie('ShiroNotesDB');
-        // [CORRECTED] The schema now includes all fields used by the application.
-        db.version(1).stores({
-            notes: '++id, title, content, contentPlainText, tags, isPinned, isLocked, createdAt, updatedAt',
-            settings: 'key'
-        });
-
-        const hashPassword = (password) => CryptoJS.SHA256(password).toString();
-        const encryptData = (data, password) => CryptoJS.AES.encrypt(data, password).toString();
-        const decryptData = (ciphertext, password) => {
-            try {
-                const bytes = CryptoJS.AES.decrypt(ciphertext, password);
-                const originalText = bytes.toString(CryptoJS.enc.Utf8);
-                // Return null if decryption results in an empty string, indicating a likely failure
-                return originalText ? originalText : null;
-            } catch (e) {
-                console.error("Decryption error:", e);
-                return null;
-            }
-        };
-    </script>
-
-    <!-- App Components and Logic -->
+    
+    <!-- Our Application Scripts (in order of dependency) -->
+    <script type="text/babel" src="db.js"></script>
+    <script type="text/babel" src="utils.js"></script>
     <script type="text/babel" src="components.js"></script>
     <script type="text/babel" src="app.js"></script>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 overflow-hidden">
+    <div id="root"></div>
 </body>
 </html>
 
