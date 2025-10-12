@@ -16,36 +16,26 @@ function App() {
     const [mobileView, setMobileView] = useState('list');
     const [activeTag, setActiveTag] = useState(null);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
-
-    // [NEW] State for selection mode
     const [selectionMode, setSelectionMode] = useState(false);
     const [selectedIds, setSelectedIds] = useState([]);
 
-
-    // ... useEffect and sortNotes are unchanged ...
     useEffect(() => { const init = async () => { try { const storedHash = await db.settings.get('masterPasswordHash'); if (storedHash) setMasterPasswordHash(storedHash.value); const storedTheme = await db.settings.get('theme'); const currentTheme = storedTheme ? storedTheme.value : 'light'; setTheme(currentTheme); document.documentElement.classList.toggle('dark', currentTheme === 'dark'); const allNotes = await db.notes.toArray(); setNotes(sortNotes(allNotes)); if (allNotes.length > 0 && window.innerWidth >= 768) { const firstNoteId = (sortNotes(allNotes)[0])?.id; if (firstNoteId) setActiveNoteId(firstNoteId); } } catch (error) { console.error("Initialization failed:", error); } finally { setIsInitialised(true); } }; init(); }, []);
+    
     const sortNotes = (notesToSort) => [...notesToSort].sort((a, b) => (a.isPinned !== b.isPinned) ? (a.isPinned ? -1 : 1) : (new Date(b.updatedAt) - new Date(a.updatedAt)));
     const showNotification = (message, type) => setNotification({ message, type });
 
-    // [UPDATED] handleSelectNote now checks for selection mode
     const handleNoteClick = (noteId) => {
         if (selectionMode) {
-            // If in selection mode, toggle selection
             const newSelectedIds = selectedIds.includes(noteId)
                 ? selectedIds.filter(id => id !== noteId)
                 : [...selectedIds, noteId];
             setSelectedIds(newSelectedIds);
-            // If no notes are selected anymore, exit selection mode
-            if (newSelectedIds.length === 0) {
-                setSelectionMode(false);
-            }
+            if (newSelectedIds.length === 0) setSelectionMode(false);
         } else {
-            // If not in selection mode, open the note
             openNote(noteId);
         }
     };
 
-    // [NEW] Function to handle entering selection mode
     const handleNoteLongPress = (noteId) => {
         setSelectionMode(true);
         setSelectedIds([noteId]);
@@ -63,14 +53,15 @@ function App() {
         }
     };
     
-    // ... handleNewNote, handleUpdateNote, handleTogglePin are unchanged ...
     const handleNewNote = async () => { const newNote = { title: 'Untitled Note', content: '', contentPlainText: '', tags: activeTag ? [activeTag] : [], isPinned: false, isLocked: false, createdAt: new Date(), updatedAt: new Date() }; const id = await db.notes.add(newNote); const newNotesList = [{...newNote, id}, ...notes]; setNotes(sortNotes(newNotesList)); setActiveNoteId(id); setUnlockedNoteData(null); setMobileView('editor'); };
-    const handleUpdateNote = async (updatedFields) => { if (!activeNoteId) return; const noteToUpdate = notes.find(n => n.id === activeNoteId); let dataToSave = { ...updatedFields }; if (noteToUpdate.isLocked) { const password = passwordAttempt?.password; if (!password) return showNotification("Password session expired.", "error"); const currentUnlocked = unlockedNoteData || noteToUpdate; if (updatedFields.title) dataToSave.title = encryptData(updatedFields.title, password); if (updatedFields.content) { dataToSave.content = encryptData(updatedFields.content, password); dataToSave.contentPlainText = encryptData(updatedFields.contentPlainText, password); } } else if (unlockedNoteData?.id === activeNoteId) { setUnlockedNoteData(prev => ({ ...prev, ...updatedFields })); } const updatedNoteData = { ...dataToSave, updatedAt: new Date() }; await db.notes.update(activeNoteId, updatedNoteData); setNotes(sortNotes(notes.map(n => n.id === activeNoteId ? { ...n, ...updatedNoteData } : n))); };
+    
+    const handleUpdateNote = async (updatedFields) => { if (!activeNoteId) return; const noteToUpdate = notes.find(n => n.id === activeNoteId); let dataToSave = { ...updatedFields }; if (noteToUpdate.isLocked) { const password = passwordAttempt?.password; if (!password) return showNotification("Password session expired.", "error"); if (updatedFields.title) dataToSave.title = encryptData(updatedFields.title, password); if (updatedFields.content) { dataToSave.content = encryptData(updatedFields.content, password); dataToSave.contentPlainText = encryptData(updatedFields.contentPlainText, password); } } else if (unlockedNoteData?.id === activeNoteId) { setUnlockedNoteData(prev => ({ ...prev, ...updatedFields })); } const updatedNoteData = { ...dataToSave, updatedAt: new Date() }; await db.notes.update(activeNoteId, updatedNoteData); setNotes(sortNotes(notes.map(n => n.id === activeNoteId ? { ...n, ...updatedNoteData } : n))); };
+    
     const handleTogglePin = async () => { if (!activeNoteId) return; const note = notes.find(n => n.id === activeNoteId); const updatedNoteData = { isPinned: !note.isPinned, updatedAt: new Date() }; await db.notes.update(activeNoteId, updatedNoteData); setNotes(sortNotes(notes.map(n => n.id === activeNoteId ? { ...n, ...updatedNoteData } : n))); showNotification(updatedNoteData.isPinned ? "Note pinned." : "Note unpinned.", "success"); };
     
     const handleDeleteNote = async () => {
         if (!activeNoteId) return;
-        setIsDeleting(false); // Close confirmation modal
+        setIsDeleting(false);
         await db.notes.delete(activeNoteId);
         const remainingNotes = notes.filter(note => note.id !== activeNoteId);
         setNotes(sortNotes(remainingNotes));
@@ -80,7 +71,6 @@ function App() {
         showNotification("Note deleted.", "success");
     };
 
-    // [NEW] Function to delete all selected notes
     const handleDeleteSelected = async () => {
         await db.notes.bulkDelete(selectedIds);
         const remainingNotes = notes.filter(note => !selectedIds.includes(note.id));
@@ -88,30 +78,34 @@ function App() {
         showNotification(`${selectedIds.length} note(s) deleted.`, "success");
         setSelectionMode(false);
         setSelectedIds([]);
-        // If the active note was deleted, select a new one
         if (selectedIds.includes(activeNoteId)) {
             const nextNote = (activeTag ? remainingNotes.filter(n => n.tags?.includes(activeTag)) : remainingNotes)[0];
             setActiveNoteId(nextNote?.id || null);
         }
     };
     
-    // ... all other functions are unchanged ...
     const handleSetPassword = async (newPassword, currentPassword) => { if (masterPasswordHash) { if (!currentPassword || hashPassword(currentPassword) !== masterPasswordHash) return showNotification("Incorrect current password.", "error"); } const newHash = hashPassword(newPassword); await db.settings.put({ key: 'masterPasswordHash', value: newHash }); setMasterPasswordHash(newHash); setIsSettingsOpen(false); showNotification("Password changed successfully!", "success"); };
+    
     const handleToggleLock = () => { if (!activeNoteId) return; const note = notes.find(n => n.id === activeNoteId); if (note.isLocked && passwordAttempt?.id === activeNoteId && passwordAttempt.password) { performToggleLock(activeNoteId, passwordAttempt.password); } else { setIsPasswordPrompting(true); setPasswordAttempt({ id: activeNoteId, isToggle: true }); } };
+    
     const handlePasswordConfirm = (password) => { if (hashPassword(password) !== masterPasswordHash) return showNotification("Incorrect password.", "error"); const { id, isToggle } = passwordAttempt; if (isToggle) performToggleLock(id, password); else performUnlock(id, password); setIsPasswordPrompting(false); };
+    
     const performUnlock = (noteId, password) => { const note = notes.find(n => n.id === noteId); const title = decryptData(note.title, password); if (title === null) return showNotification("Decryption failed.", "error"); const content = decryptData(note.content, password); const contentPlainText = decryptData(note.contentPlainText, password); setUnlockedNoteData({ id: noteId, title, content, contentPlainText, tags: note.tags }); setActiveNoteId(noteId); setPasswordAttempt({ id: noteId, password, isToggle: false }); setMobileView('editor'); };
+    
     const performToggleLock = async (noteId, password) => { const note = notes.find(n => n.id === noteId); let newTitle, newContent, newContentPlainText, newIsLocked; if (note.isLocked) { const currentUnlocked = unlockedNoteData; newTitle = decryptData(currentUnlocked.title, password); newContent = decryptData(currentUnlocked.content, password); newContentPlainText = decryptData(currentUnlocked.contentPlainText, password); if (newTitle === null) return showNotification("Decryption failed.", "error"); newIsLocked = false; setUnlockedNoteData({ id: noteId, title: newTitle, content: newContent, contentPlainText, tags: note.tags }); showNotification("Note unlocked.", "success"); } else { const current = unlockedNoteData || note; newTitle = encryptData(current.title, password); newContent = encryptData(current.content || '', password); newContentPlainText = encryptData(current.contentPlainText || '', password); newIsLocked = true; setUnlockedNoteData(null); setPasswordAttempt(null); showNotification("Note locked.", "success"); } const updatedDbData = { title: newTitle, content: newContent, contentPlainText, isLocked: newIsLocked, updatedAt: new Date() }; await db.notes.update(noteId, updatedDbData); setNotes(sortNotes(notes.map(n => n.id === noteId ? { ...n, ...updatedDbData } : n))); };
+    
     const toggleTheme = async () => { const newTheme = theme === 'light' ? 'dark' : 'light'; await db.settings.put({ key: 'theme', value: newTheme }); setTheme(newTheme); document.documentElement.classList.toggle('dark', newTheme === 'dark'); setIsMenuOpen(false); };
+    
     const filteredNotes = activeTag ? notes.filter(note => note.tags?.includes(activeTag)) : notes;
+    
     if (!isInitialised) return <div className="flex items-center justify-center h-screen text-gray-500 bg-gray-100 dark:bg-gray-900">Loading Shiro-Notes...</div>;
+    
     const activeNote = notes.find(note => note.id === activeNoteId);
     let editorNote = activeNote;
     if (activeNote && unlockedNoteData?.id === activeNote.id) editorNote = { ...activeNote, ...unlockedNoteData };
     
-    // ... JSX for rendering is updated ...
     return (
         <div className="h-screen flex flex-col md:flex-row font-sans text-gray-900 dark:text-gray-100 bg-gray-100 dark:bg-gray-900">
-            {/* --- DESKTOP --- */}
             <aside className="hidden md:flex w-64 bg-gray-200 dark:bg-gray-800 p-4 flex-col flex-shrink-0">
                 <h1 className="text-2xl font-bold mb-6">Shiro-Notes</h1>
                 <div className="mt-auto">
@@ -121,7 +115,7 @@ function App() {
             </aside>
             <main className={`hidden md:flex flex-col w-96 p-4 border-l border-r dark:border-gray-700 relative ${mobileView === 'list' ? 'flex' : 'hidden'}`}>
                 {selectionMode && <SelectionActionBar count={selectedIds.length} onCancel={() => { setSelectionMode(false); setSelectedIds([]); }} onDelete={handleDeleteSelected} />}
-                <div className="flex-shrink-0" style={{ paddingTop: selectionMode ? '4rem' : '0' }}>
+                <div className="flex-shrink-0 note-list-container" style={{ paddingTop: selectionMode ? '4rem' : '0' }}>
                     <div className="flex justify-between items-center mb-4"><h2 className="text-2xl font-semibold">{activeTag ? `#${activeTag}` : `All Notes`} ({filteredNotes.length})</h2><button onClick={handleNewNote} className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 shadow">New</button></div>
                     {activeTag && <button onClick={() => setActiveTag(null)} className="text-sm text-blue-500 hover:underline mb-2">Clear filter</button>}
                 </div>
@@ -130,11 +124,9 @@ function App() {
             <section className={`flex-1 flex-col bg-white dark:bg-gray-800 md:flex ${mobileView === 'editor' ? 'flex' : 'hidden'}`}>
                 <Editor activeNote={editorNote} onUpdate={handleUpdateNote} onDelete={() => setIsDeleting(true)} onToggleLock={handleToggleLock} onTogglePin={handleTogglePin} hasPassword={!!masterPasswordHash} onBack={() => setMobileView('list')} />
             </section>
-
-            {/* --- MOBILE --- */}
-             <div className={`md:hidden w-full h-full flex flex-col p-4 bg-gray-100 dark:bg-gray-900 relative ${mobileView === 'list' ? 'flex' : 'hidden'}`}>
+            <div className={`md:hidden w-full h-full flex flex-col p-4 bg-gray-100 dark:bg-gray-900 relative ${mobileView === 'list' ? 'flex' : 'hidden'}`}>
                 {selectionMode && <SelectionActionBar count={selectedIds.length} onCancel={() => { setSelectionMode(false); setSelectedIds([]); }} onDelete={handleDeleteSelected} />}
-                <div className="flex-shrink-0" style={{ paddingTop: selectionMode ? '4rem' : '0' }}>
+                <div className="flex-shrink-0 note-list-container" style={{ paddingTop: selectionMode ? '4rem' : '0' }}>
                     <div className="flex justify-between items-center mb-4"><h1 className="text-2xl font-bold">Shiro-Notes</h1><button onClick={() => !selectionMode && setIsMenuOpen(true)} className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"><svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path></svg></button></div>
                     {isMenuOpen && <DropdownMenu onClose={() => setIsMenuOpen(false)} onSettingsClick={() => {setIsSettingsOpen(true); setIsMenuOpen(false);}} onThemeClick={toggleTheme} theme={theme} />}
                     <div className="flex justify-between items-center mb-4"><h2 className="text-xl font-semibold">{activeTag ? `#${activeTag}` : `All Notes`} ({filteredNotes.length})</h2><button onClick={handleNewNote} className="px-3 py-1.5 bg-blue-500 text-white rounded-lg shadow text-sm">New</button></div>
@@ -147,7 +139,8 @@ function App() {
             </div>
 
             {isSettingsOpen && <SettingsModal onClose={() => setIsSettingsOpen(false)} onSetPassword={handleSetPassword} hasPassword={!!masterPasswordHash} showNotification={showNotification} />}
-            {isDeleting && <ConfirmDeleteModal onConfirm={handleDeleteSelected} onCancel={() => setIsDeleting(false)} />}
+            {/* [CORRECTED] This modal now correctly calls handleDeleteNote for single deletions */}
+            {isDeleting && <ConfirmDeleteModal onConfirm={handleDeleteNote} onCancel={() => setIsDeleting(false)} />}
             {isPasswordPrompting && <PasswordPromptModal onConfirm={handlePasswordConfirm} onCancel={() => {setIsPasswordPrompting(false); setPasswordAttempt(null);}} showNotification={showNotification} />}
             {notification && <Notification message={notification.message} type={notification.type} onClear={() => setNotification(null)} />}
         </div>
