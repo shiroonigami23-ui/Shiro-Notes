@@ -30,7 +30,7 @@ body {
 .editor-toolbar button:not(.is-active):hover { background-color: #e5e7eb; }
 .dark .editor-toolbar button:not(.is-active):hover { background-color: #4b5563; }
 
-/* [CORRECTED & COMPLETE] Styles for Selection Mode */
+/* Styles for Selection Mode */
 .selection-checkbox {
     width: 20px;
     height: 20px;
@@ -61,3 +61,4 @@ body {
 .selection-mode-active .note-list-container {
     padding-top: 4rem; /* Height of the action bar */
 }
+/* [CORRECTED] Removed the extra closing brace that was here */
