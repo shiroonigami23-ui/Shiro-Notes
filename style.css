@@ -25,3 +25,14 @@ body {
 .mobile-panel {
     transition: transform 0.3s ease-in-out;
 }
+/* [NEW] Simple styles for tags */
+.tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    margin-right: 4px;
+    margin-bottom: 4px;
+    cursor: pointer;
+}
