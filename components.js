@@ -110,7 +110,6 @@ function NoteCard({ note, isActive, onClick, onTagClick }) {
                     <h3 className="font-bold truncate">{title}</h3>
                     <p className="text-sm text-gray-600 dark:text-gray-400 truncate">{contentSnippet}</p>
                 </div>
-                {/* [UPDATED] Show both lock and pin icons */}
                 <div className="flex items-center flex-shrink-0 ml-2 mt-1">
                     {note.isPinned && <svg className="w-5 h-5 text-yellow-500 dark:text-yellow-400" fill="currentColor" viewBox="0 0 20 20"><path d="M10.894 2.553a1 1 0 00-1.788 0l-2 4A1 1 0 008 8h4a1 1 0 00.894-1.447l-2-4zM10 18a1 1 0 01-1-1v-6a1 1 0 112 0v6a1 1 0 01-1 1z" clipRule="evenodd" fillRule="evenodd"></path></svg>}
                     {note.isLocked && <svg className="w-5 h-5 text-gray-500 dark:text-gray-400 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>}
@@ -129,7 +128,6 @@ function NoteCard({ note, isActive, onClick, onTagClick }) {
     );
 }
 
-// [UPDATED] Editor component now gets an onTogglePin handler
 function Editor({ activeNote, onUpdate, onDelete, onToggleLock, onTogglePin, hasPassword, onBack }) {
     const [title, setTitle] = useState('');
     const [content, setContent] = useState('');
@@ -137,17 +135,31 @@ function Editor({ activeNote, onUpdate, onDelete, onToggleLock, onTogglePin, has
     const [currentTag, setCurrentTag] = useState('');
     const debounceTimeout = useRef(null);
 
+    // [NEW] State for word/character count
+    const [stats, setStats] = useState({ words: 0, chars: 0 });
+
     useEffect(() => {
         if (activeNote) {
             setTitle(activeNote.title);
-            setContent(activeNote.content || '');
+            const noteContent = activeNote.content || '';
+            setContent(noteContent);
             setTags(activeNote.tags || []);
+            // [NEW] Calculate stats when note changes
+            calculateStats(noteContent);
         } else {
             setTitle('');
             setContent('');
             setTags([]);
+            setStats({ words: 0, chars: 0 }); // Reset stats
         }
     }, [activeNote]);
+
+    // [NEW] Function to calculate statistics
+    const calculateStats = (text) => {
+        const charCount = text.length;
+        const wordCount = text.trim().split(/\s+/).filter(Boolean).length;
+        setStats({ words: wordCount, chars: charCount });
+    };
 
     const handleUpdate = (updatedFields) => {
         if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
@@ -164,6 +176,8 @@ function Editor({ activeNote, onUpdate, onDelete, onToggleLock, onTogglePin, has
     const handleContentChange = (newContent) => {
         setContent(newContent);
         handleUpdate({ title, content: newContent, tags });
+        // [NEW] Update stats on every content change
+        calculateStats(newContent);
     };
 
     const handleTagKeyDown = (e) => {
@@ -196,12 +210,9 @@ function Editor({ activeNote, onUpdate, onDelete, onToggleLock, onTogglePin, has
                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path></svg>
                 </button>
                 <input type="text" value={title} onChange={(e) => handleTitleChange(e.target.value)} placeholder="Note Title" className="w-full text-2xl font-bold bg-transparent focus:outline-none" disabled={activeNote.isLocked} />
-                
-                {/* [NEW] Pin button in the editor header */}
                 <button onClick={onTogglePin} className={`ml-4 p-2 rounded-full ${activeNote.isPinned ? 'text-yellow-500' : 'text-gray-500 hover:text-yellow-500'}`} title={activeNote.isPinned ? "Unpin Note" : "Pin Note"}>
                      <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path d="M10.894 2.553a1 1 0 00-1.788 0l-2 4A1 1 0 008 8h4a1 1 0 00.894-1.447l-2-4zM10 18a1 1 0 01-1-1v-6a1 1 0 112 0v6a1 1 0 01-1 1z" clipRule="evenodd" fillRule="evenodd"></path></svg>
                 </button>
-
                 {hasPassword && (
                     <button onClick={onToggleLock} className="ml-2 p-2 text-gray-500 hover:text-blue-500 rounded-full" title={activeNote.isLocked ? "Unlock Note" : "Lock Note"}>
                         {activeNote.isLocked 
@@ -227,7 +238,14 @@ function Editor({ activeNote, onUpdate, onDelete, onToggleLock, onTogglePin, has
                     <input type="text" value={currentTag} onChange={(e) => setCurrentTag(e.target.value)} onKeyDown={handleTagKeyDown} placeholder="Add a tag..." className="flex-1 bg-transparent focus:outline-none text-sm" />
                 </div>
             )}
-            <textarea value={content} onChange={(e) => handleContentChange(e.target.value)} disabled={activeNote.isLocked} placeholder="Start writing..." className="flex-1 w-full p-2 text-lg bg-transparent focus:outline-none resize-none border rounded-md dark:border-gray-700"></textarea>
+            <textarea value={content} onChange={(e) => handleContentChange(e.target.value)} disabled={activeNote.isLocked} placeholder="Start writing..." className="flex-1 w-full p-2 text-lg bg-transparent focus:outline-none resize-none border-t-0 border rounded-b-md dark:border-gray-700"></textarea>
+            {/* [NEW] Word and Character count footer */}
+            {!activeNote.isLocked && (
+                <div className="editor-footer">
+                    <span>Words: {stats.words}</span>
+                    <span className="ml-4">Characters: {stats.chars}</span>
+                </div>
+            )}
         </div>
     );
-    }
+        }
