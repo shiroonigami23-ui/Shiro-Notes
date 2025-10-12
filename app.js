@@ -1,6 +1,7 @@
 const { useState, useEffect } = React;
 
 function App() {
+    // ... other state is unchanged ...
     const [notes, setNotes] = useState([]);
     const [activeNoteId, setActiveNoteId] = useState(null);
     const [isInitialised, setIsInitialised] = useState(false);
@@ -14,6 +15,9 @@ function App() {
     const [passwordAttempt, setPasswordAttempt] = useState(null);
     const [mobileView, setMobileView] = useState('list');
     const [activeTag, setActiveTag] = useState(null);
+
+    // [NEW] State for the mobile dropdown menu
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
 
     useEffect(() => {
         const init = async () => {
@@ -48,8 +52,13 @@ function App() {
     const handleSelectNote = (noteId) => {
         const note = notes.find(n => n.id === noteId);
         if (note.isLocked) {
-            setIsPasswordPrompting(true);
-            setPasswordAttempt({ id: noteId, isToggle: false });
+            // If we already have the password for this session, don't ask again
+            if (passwordAttempt?.id === noteId && passwordAttempt.password) {
+                 performUnlock(noteId, passwordAttempt.password);
+            } else {
+                setIsPasswordPrompting(true);
+                setPasswordAttempt({ id: noteId, isToggle: false });
+            }
         } else {
             setActiveNoteId(noteId);
             setUnlockedNoteData(null);
@@ -112,7 +121,20 @@ function App() {
         showNotification("Master password set!", "success");
     };
 
-    const handleToggleLock = () => { if (activeNoteId) { setIsPasswordPrompting(true); setPasswordAttempt({ id: activeNoteId, isToggle: true }); } };
+    // [UPDATED] Smarter lock toggle logic
+    const handleToggleLock = () => {
+        if (!activeNoteId) return;
+        const note = notes.find(n => n.id === activeNoteId);
+
+        // If unlocking and we already have the password for this session, don't ask again.
+        if (note.isLocked && passwordAttempt?.id === activeNoteId && passwordAttempt.password) {
+            performToggleLock(activeNoteId, passwordAttempt.password);
+        } else {
+            // Otherwise, always ask for password to confirm lock/unlock action.
+            setIsPasswordPrompting(true);
+            setPasswordAttempt({ id: activeNoteId, isToggle: true });
+        }
+    };
 
     const handlePasswordConfirm = (password) => {
         if (hashPassword(password) !== masterPasswordHash) {
@@ -126,7 +148,8 @@ function App() {
             performUnlock(id, password);
         }
         setIsPasswordPrompting(false);
-        setPasswordAttempt(null);
+        // Do not clear password attempt if it was a successful unlock, so we can use it again
+        if(isToggle) setPasswordAttempt(null);
     };
     
     const performUnlock = (noteId, password) => {
@@ -137,17 +160,16 @@ function App() {
         const tags = note.tags;
         setUnlockedNoteData({ id: noteId, title, content, tags });
         setActiveNoteId(noteId);
+        // Keep the password for this session
         setPasswordAttempt({ id: noteId, password: password, isToggle: false });
         setMobileView('editor');
     };
     
-    // [UPDATED] This function now handles both locking and unlocking
     const performToggleLock = async (noteId, password) => {
         const note = notes.find(n => n.id === noteId);
         let newTitle, newContent, newIsLocked;
 
         if (note.isLocked) {
-            // Decrypt the note
             newTitle = decryptData(note.title, password);
             if (newTitle === null) return showNotification("Decryption failed.", "error");
             newContent = decryptData(note.content, password);
@@ -155,12 +177,12 @@ function App() {
             setUnlockedNoteData({ id: noteId, title: newTitle, content: newContent, tags: note.tags });
             showNotification("Note unlocked.", "success");
         } else {
-            // Encrypt the note
             const current = unlockedNoteData || note;
             newTitle = encryptData(current.title, password);
             newContent = encryptData(current.content || '', password);
             newIsLocked = true;
-            setUnlockedNoteData(null); // Clear temporary unlocked data
+            setUnlockedNoteData(null); 
+            setPasswordAttempt(null); // Clear session password when note is locked
             showNotification("Note locked.", "success");
         }
         
@@ -174,6 +196,7 @@ function App() {
         await db.settings.put({ key: 'theme', value: newTheme });
         setTheme(newTheme);
         document.documentElement.classList.toggle('dark', newTheme === 'dark');
+        setIsMenuOpen(false); // Close menu on action
     };
     
     const filteredNotes = activeTag ? notes.filter(note => note.tags && note.tags.includes(activeTag)) : notes;
@@ -191,11 +214,13 @@ function App() {
 
     return (
         <div className="flex h-screen font-sans text-gray-900 dark:text-gray-100 overflow-hidden">
+            {/* Desktop: Sidebar */}
             <aside className="hidden md:flex w-64 bg-gray-200 dark:bg-gray-800 p-4 flex-col flex-shrink-0">
                  <div className="flex items-center mb-6"><svg className="w-8 h-8 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg><h1 className="text-2xl font-bold">Shiro-Notes</h1></div>
                 <div className="mt-auto"><button onClick={() => setIsSettingsOpen(true)} className="w-full text-left p-2 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-700">Settings</button><button onClick={toggleTheme} className="w-full text-left p-2 mt-2 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-700">{theme === 'light' ? '🌙 Dark Mode' : '☀️ Light Mode'}</button></div>
             </aside>
             
+            {/* Desktop: Note List */}
             <main className="hidden md:flex flex-col w-96 p-4 border-l border-r border-gray-300 dark:border-gray-700">
                 <div className="flex justify-between items-center mb-4 flex-shrink-0">
                     <h2 className="text-2xl font-semibold">
@@ -207,11 +232,22 @@ function App() {
                 <div className="overflow-y-auto">{filteredNotes.map(note => <NoteCard key={note.id} note={note} isActive={note.id === activeNoteId} onClick={() => handleSelectNote(note.id)} onTagClick={setActiveTag} />)}</div>
             </main>
 
+            {/* Desktop: Editor */}
             <section className="hidden md:flex flex-1 p-6 flex-col bg-white dark:bg-gray-800"><Editor activeNote={editorNote} onUpdate={handleUpdateNote} onDelete={() => setIsDeleting(true)} onToggleLock={handleToggleLock} hasPassword={!!masterPasswordHash} onBack={() => {}} /></section>
             
+            {/* Mobile View Container */}
             <div className="md:hidden flex flex-1 relative overflow-hidden bg-gray-100 dark:bg-gray-900">
+                {/* Mobile: Note List Panel */}
                 <div className={`mobile-panel absolute inset-0 w-full p-4 flex flex-col ${listPanelClasses}`}>
-                    <div className="flex justify-between items-center mb-4"><h1 className="text-2xl font-bold">Shiro-Notes</h1><button onClick={toggleTheme} className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">{theme === 'light' ? '🌙' : '☀️'}</button></div>
+                    {/* [UPDATED] Mobile header with dropdown menu */}
+                    <div className="flex justify-between items-center mb-4">
+                        <h1 className="text-2xl font-bold">Shiro-Notes</h1>
+                        <button onClick={() => setIsMenuOpen(true)} className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
+                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path></svg>
+                        </button>
+                    </div>
+                    {isMenuOpen && <DropdownMenu onClose={() => setIsMenuOpen(false)} onSettingsClick={() => {setIsSettingsOpen(true); setIsMenuOpen(false);}} onThemeClick={toggleTheme} theme={theme} />}
+
                     <div className="flex justify-between items-center mb-4">
                          <h2 className="text-xl font-semibold">
                             {activeTag ? `#${activeTag}` : `All Notes`} ({filteredNotes.length})
@@ -220,13 +256,15 @@ function App() {
                     </div>
                     {activeTag && <button onClick={() => setActiveTag(null)} className="text-sm text-blue-500 hover:underline mb-2 self-start">Clear filter</button>}
                     <div className="flex-1 overflow-y-auto -mr-4 pr-4">{filteredNotes.map(note => <NoteCard key={note.id} note={note} isActive={false} onClick={() => handleSelectNote(note.id)} onTagClick={setActiveTag}/>)}</div>
-                    <button onClick={() => setIsSettingsOpen(true)} className="w-full flex items-center justify-center p-2 mt-2 text-base rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600">Settings</button>
+                    {/* [REMOVED] Old settings button */}
                 </div>
+                {/* Mobile: Editor Panel */}
                 <div className={`mobile-panel absolute inset-0 w-full p-4 flex flex-col bg-white dark:bg-gray-800 ${editorPanelClasses}`}>
                    <Editor activeNote={editorNote} onUpdate={handleUpdateNote} onDelete={() => setIsDeleting(true)} onToggleLock={handleToggleLock} hasPassword={!!masterPasswordHash} onBack={() => setMobileView('list')} />
                 </div>
             </div>
 
+            {/* Modals */}
             {isSettingsOpen && <SettingsModal onClose={() => setIsSettingsOpen(false)} onSetPassword={handleSetPassword} hasPassword={!!masterPasswordHash} showNotification={showNotification} />}
             {isDeleting && <ConfirmDeleteModal onConfirm={handleDeleteNote} onCancel={() => setIsDeleting(false)} />}
             {isPasswordPrompting && <PasswordPromptModal onConfirm={handlePasswordConfirm} onCancel={() => {setIsPasswordPrompting(false); setPasswordAttempt(null);}} showNotification={showNotification} />}
