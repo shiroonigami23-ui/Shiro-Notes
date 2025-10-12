@@ -6,7 +6,6 @@ function Notification({ message, type, onClear }) {
     return <div className={`notification-animation fixed bottom-5 right-5 ${bgColor} text-white py-3 px-5 rounded-lg shadow-xl z-50`}>{message}</div>;
 }
 
-// [UPDATED] SettingsModal now requires current password to change.
 function SettingsModal({ onClose, onSetPassword, hasPassword, showNotification }) {
     const [currentPassword, setCurrentPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
@@ -22,7 +21,6 @@ function SettingsModal({ onClose, onSetPassword, hasPassword, showNotification }
         if (newPassword !== confirmPassword) {
             return showNotification("New passwords do not match.", "error");
         }
-        // Pass both old (if exists) and new passwords to the handler
         onSetPassword(newPassword, hasPassword ? currentPassword : null);
     };
 
@@ -112,7 +110,11 @@ function NoteCard({ note, isActive, onClick, onTagClick }) {
                     <h3 className="font-bold truncate">{title}</h3>
                     <p className="text-sm text-gray-600 dark:text-gray-400 truncate">{contentSnippet}</p>
                 </div>
-                {note.isLocked && <svg className="w-5 h-5 text-gray-500 dark:text-gray-400 flex-shrink-0 ml-2 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>}
+                {/* [UPDATED] Show both lock and pin icons */}
+                <div className="flex items-center flex-shrink-0 ml-2 mt-1">
+                    {note.isPinned && <svg className="w-5 h-5 text-yellow-500 dark:text-yellow-400" fill="currentColor" viewBox="0 0 20 20"><path d="M10.894 2.553a1 1 0 00-1.788 0l-2 4A1 1 0 008 8h4a1 1 0 00.894-1.447l-2-4zM10 18a1 1 0 01-1-1v-6a1 1 0 112 0v6a1 1 0 01-1 1z" clipRule="evenodd" fillRule="evenodd"></path></svg>}
+                    {note.isLocked && <svg className="w-5 h-5 text-gray-500 dark:text-gray-400 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>}
+                </div>
             </div>
             {!note.isLocked && note.tags && note.tags.length > 0 && (
                 <div className="mt-2">
@@ -127,7 +129,8 @@ function NoteCard({ note, isActive, onClick, onTagClick }) {
     );
 }
 
-function Editor({ activeNote, onUpdate, onDelete, onToggleLock, hasPassword, onBack }) {
+// [UPDATED] Editor component now gets an onTogglePin handler
+function Editor({ activeNote, onUpdate, onDelete, onToggleLock, onTogglePin, hasPassword, onBack }) {
     const [title, setTitle] = useState('');
     const [content, setContent] = useState('');
     const [tags, setTags] = useState([]);
@@ -193,8 +196,14 @@ function Editor({ activeNote, onUpdate, onDelete, onToggleLock, hasPassword, onB
                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path></svg>
                 </button>
                 <input type="text" value={title} onChange={(e) => handleTitleChange(e.target.value)} placeholder="Note Title" className="w-full text-2xl font-bold bg-transparent focus:outline-none" disabled={activeNote.isLocked} />
+                
+                {/* [NEW] Pin button in the editor header */}
+                <button onClick={onTogglePin} className={`ml-4 p-2 rounded-full ${activeNote.isPinned ? 'text-yellow-500' : 'text-gray-500 hover:text-yellow-500'}`} title={activeNote.isPinned ? "Unpin Note" : "Pin Note"}>
+                     <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path d="M10.894 2.553a1 1 0 00-1.788 0l-2 4A1 1 0 008 8h4a1 1 0 00.894-1.447l-2-4zM10 18a1 1 0 01-1-1v-6a1 1 0 112 0v6a1 1 0 01-1 1z" clipRule="evenodd" fillRule="evenodd"></path></svg>
+                </button>
+
                 {hasPassword && (
-                    <button onClick={onToggleLock} className="ml-4 p-2 text-gray-500 hover:text-blue-500 rounded-full" title={activeNote.isLocked ? "Unlock Note" : "Lock Note"}>
+                    <button onClick={onToggleLock} className="ml-2 p-2 text-gray-500 hover:text-blue-500 rounded-full" title={activeNote.isLocked ? "Unlock Note" : "Lock Note"}>
                         {activeNote.isLocked 
                             ? <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" /></svg>
                             : <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
@@ -221,4 +230,4 @@ function Editor({ activeNote, onUpdate, onDelete, onToggleLock, hasPassword, onB
             <textarea value={content} onChange={(e) => handleContentChange(e.target.value)} disabled={activeNote.isLocked} placeholder="Start writing..." className="flex-1 w-full p-2 text-lg bg-transparent focus:outline-none resize-none border rounded-md dark:border-gray-700"></textarea>
         </div>
     );
-            }
+    }
