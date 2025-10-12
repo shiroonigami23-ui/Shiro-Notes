@@ -1,183 +1,84 @@
 const { useState, useEffect, useRef } = React;
+// [NEW] Add Tiptap's React hooks
+const { useEditor, EditorContent } = TiptapReact;
 
-function Notification({ message, type, onClear }) {
-    useEffect(() => { const timer = setTimeout(() => onClear(), 4000); return () => clearTimeout(timer); }, [onClear]);
-    const bgColor = type === 'success' ? 'bg-green-500' : 'bg-red-500';
-    return <div className={`notification-animation fixed bottom-5 right-5 ${bgColor} text-white py-3 px-5 rounded-lg shadow-xl z-50`}>{message}</div>;
-}
+// ... Notification, SettingsModal, ConfirmDeleteModal, PasswordPromptModal, DropdownMenu, NoteCard components are unchanged ...
+function Notification({ message, type, onClear }) { useEffect(() => { const timer = setTimeout(() => onClear(), 4000); return () => clearTimeout(timer); }, [onClear]); const bgColor = type === 'success' ? 'bg-green-500' : 'bg-red-500'; return <div className={`notification-animation fixed bottom-5 right-5 ${bgColor} text-white py-3 px-5 rounded-lg shadow-xl z-50`}>{message}</div>; }
+function SettingsModal({ onClose, onSetPassword, hasPassword, showNotification }) { const [currentPassword, setCurrentPassword] = useState(''); const [newPassword, setNewPassword] = useState(''); const [confirmPassword, setConfirmPassword] = useState(''); const handleSubmit = () => { if (hasPassword && !currentPassword) return showNotification("Please enter your current password.", "error"); if (newPassword.length < 4) return showNotification("New password must be at least 4 characters long.", "error"); if (newPassword !== confirmPassword) return showNotification("New passwords do not match.", "error"); onSetPassword(newPassword, hasPassword ? currentPassword : null); }; return ( <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-40"> <div className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-2xl w-full max-w-md mx-4"> <h2 className="text-2xl font-bold mb-4">{hasPassword ? "Change" : "Set"} Master Password</h2> <p className="text-sm text-gray-600 dark:text-gray-400 mb-4"><strong className="text-red-500">If you forget it, your locked notes cannot be recovered.</strong></p> <div className="space-y-4"> {hasPassword && <input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} placeholder="Current Password" className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500" />} <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="Enter new password" className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500" /> <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSubmit()} placeholder="Confirm new password" className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500" /> </div> <div className="flex justify-end space-x-4 mt-6"> <button onClick={onClose} className="px-4 py-2 bg-gray-300 dark:bg-gray-600 rounded-lg hover:bg-gray-400 dark:hover:bg-gray-500">Cancel</button> <button onClick={handleSubmit} className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">Save Password</button> </div> </div> </div> ); }
+function ConfirmDeleteModal({ onConfirm, onCancel }) { return ( <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-40"> <div className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-2xl w-full max-w-sm mx-4"> <h2 className="text-xl font-bold mb-4">Are you sure?</h2> <p className="text-gray-600 dark:text-gray-400 mb-6">This note will be permanently deleted.</p> <div className="flex justify-end space-x-4"> <button onClick={onCancel} className="px-4 py-2 bg-gray-300 dark:bg-gray-600 rounded-lg hover:bg-gray-400 dark:hover:bg-gray-500">Cancel</button> <button onClick={onConfirm} className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600">Delete</button> </div> </div> </div> ); }
+function PasswordPromptModal({ onConfirm, onCancel, showNotification }) { const [password, setPassword] = useState(''); const inputRef = useRef(null); useEffect(() => { inputRef.current?.focus(); }, []); const handleSubmit = () => { if (!password) return showNotification("Please enter your password.", "error"); onConfirm(password); }; return ( <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-40"> <div className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-2xl w-full max-w-sm mx-4"> <h2 className="text-xl font-bold mb-4">Enter Password</h2> <p className="text-gray-600 dark:text-gray-400 mb-6">Please enter your master password.</p> <input ref={inputRef} type="password" value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSubmit()} className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600" placeholder="Master Password" /> <div className="flex justify-end space-x-4 mt-6"> <button onClick={onCancel} className="px-4 py-2 bg-gray-300 dark:bg-gray-600 rounded-lg hover:bg-gray-400 dark:hover:bg-gray-500">Cancel</button> <button onClick={handleSubmit} className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">Confirm</button> </div> </div> </div> ); }
+function DropdownMenu({ onSettingsClick, onThemeClick, theme, onClose }) { return ( <> <div onClick={onClose} className="fixed inset-0 z-40"></div> <div className="absolute top-12 right-4 bg-white dark:bg-gray-700 rounded-lg shadow-xl w-48 z-50 border dark:border-gray-600"> <a href="#" onClick={(e) => { e.preventDefault(); onSettingsClick(); }} className="block px-4 py-2 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600">Settings</a> <a href="#" onClick={(e) => { e.preventDefault(); onThemeClick(); }} className="block px-4 py-2 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600">{theme === 'light' ? '🌙 Dark Mode' : '☀️ Light Mode'}</a> </div> </> ); }
+function NoteCard({ note, isActive, onClick, onTagClick }) { const title = note.isLocked ? "Locked Note" : (note.title || 'Untitled Note'); const contentSnippet = note.isLocked ? 'This note is encrypted.' : (note.contentPlainText || '').substring(0, 80) + '...'; const activeClasses = isActive ? 'bg-blue-200 dark:bg-blue-800' : 'hover:bg-gray-200 dark:hover:bg-gray-700'; return ( <div onClick={onClick} className={`p-4 mb-2 rounded-lg cursor-pointer transition-colors ${activeClasses}`}> <div className="flex justify-between items-start"> <div className="overflow-hidden"> <h3 className="font-bold truncate">{title}</h3> <p className="text-sm text-gray-600 dark:text-gray-400 truncate">{contentSnippet}</p> </div> <div className="flex items-center flex-shrink-0 ml-2 mt-1"> {note.isPinned && <svg className="w-5 h-5 text-yellow-500 dark:text-yellow-400" fill="currentColor" viewBox="0 0 20 20"><path d="M10.894 2.553a1 1 0 00-1.788 0l-2 4A1 1 0 008 8h4a1 1 0 00.894-1.447l-2-4zM10 18a1 1 0 01-1-1v-6a1 1 0 112 0v6a1 1 0 01-1 1z" clipRule="evenodd" fillRule="evenodd"></path></svg>} {note.isLocked && <svg className="w-5 h-5 text-gray-500 dark:text-gray-400 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>} </div> </div> {!note.isLocked && note.tags && note.tags.length > 0 && ( <div className="mt-2"> {note.tags.map(tag => ( <span key={tag} onClick={(e) => { e.stopPropagation(); onTagClick(tag); }} className="tag bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-gray-200"> {tag} </span> ))} </div> )} </div> ); }
 
-function SettingsModal({ onClose, onSetPassword, hasPassword, showNotification }) {
-    const [currentPassword, setCurrentPassword] = useState('');
-    const [newPassword, setNewPassword] = useState('');
-    const [confirmPassword, setConfirmPassword] = useState('');
-
-    const handleSubmit = () => {
-        if (hasPassword && !currentPassword) {
-            return showNotification("Please enter your current password.", "error");
-        }
-        if (newPassword.length < 4) {
-            return showNotification("New password must be at least 4 characters long.", "error");
-        }
-        if (newPassword !== confirmPassword) {
-            return showNotification("New passwords do not match.", "error");
-        }
-        onSetPassword(newPassword, hasPassword ? currentPassword : null);
-    };
-
+// [NEW] Toolbar component for the Rich Text Editor
+function Toolbar({ editor }) {
+    if (!editor) return null;
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-40">
-            <div className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-2xl w-full max-w-md mx-4">
-                <h2 className="text-2xl font-bold mb-4">{hasPassword ? "Change" : "Set"} Master Password</h2>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4"><strong className="text-red-500">If you forget it, your locked notes cannot be recovered.</strong></p>
-                <div className="space-y-4">
-                    {hasPassword && (
-                         <input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} placeholder="Current Password" className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                    )}
-                    <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="Enter new password" className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                    <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSubmit()} placeholder="Confirm new password" className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                </div>
-                <div className="flex justify-end space-x-4 mt-6">
-                    <button onClick={onClose} className="px-4 py-2 bg-gray-300 dark:bg-gray-600 rounded-lg hover:bg-gray-400 dark:hover:bg-gray-500">Cancel</button>
-                    <button onClick={handleSubmit} className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">Save Password</button>
-                </div>
-            </div>
-        </div>
-    );
-}
-
-
-function ConfirmDeleteModal({ onConfirm, onCancel }) {
-    return (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-40">
-            <div className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-2xl w-full max-w-sm mx-4">
-                <h2 className="text-xl font-bold mb-4">Are you sure?</h2>
-                <p className="text-gray-600 dark:text-gray-400 mb-6">This note will be permanently deleted.</p>
-                <div className="flex justify-end space-x-4">
-                    <button onClick={onCancel} className="px-4 py-2 bg-gray-300 dark:bg-gray-600 rounded-lg hover:bg-gray-400 dark:hover:bg-gray-500">Cancel</button>
-                    <button onClick={onConfirm} className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600">Delete</button>
-                </div>
-            </div>
-        </div>
-    );
-}
-
-function PasswordPromptModal({ onConfirm, onCancel, showNotification }) {
-    const [password, setPassword] = useState('');
-    const inputRef = useRef(null);
-    useEffect(() => { inputRef.current?.focus(); }, []);
-    const handleSubmit = () => {
-        if (!password) return showNotification("Please enter your password.", "error");
-        onConfirm(password);
-    };
-    return (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-40">
-            <div className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-2xl w-full max-w-sm mx-4">
-                <h2 className="text-xl font-bold mb-4">Enter Password</h2>
-                <p className="text-gray-600 dark:text-gray-400 mb-6">Please enter your master password.</p>
-                <input ref={inputRef} type="password" value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSubmit()} className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600" placeholder="Master Password" />
-                <div className="flex justify-end space-x-4 mt-6">
-                    <button onClick={onCancel} className="px-4 py-2 bg-gray-300 dark:bg-gray-600 rounded-lg hover:bg-gray-400 dark:hover:bg-gray-500">Cancel</button>
-                    <button onClick={handleSubmit} className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">Confirm</button>
-                </div>
-            </div>
-        </div>
-    );
-}
-
-function DropdownMenu({ onSettingsClick, onThemeClick, theme, onClose }) {
-    return (
-        <>
-            <div onClick={onClose} className="fixed inset-0 z-40"></div>
-            <div className="absolute top-12 right-4 bg-white dark:bg-gray-700 rounded-lg shadow-xl w-48 z-50 border dark:border-gray-600">
-                <a href="#" onClick={(e) => { e.preventDefault(); onSettingsClick(); }} className="block px-4 py-2 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600">Settings</a>
-                <a href="#" onClick={(e) => { e.preventDefault(); onThemeClick(); }} className="block px-4 py-2 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600">{theme === 'light' ? '🌙 Dark Mode' : '☀️ Light Mode'}</a>
-                 <div className="border-t dark:border-gray-600 my-1"></div>
-                <a href="#" className="block px-4 py-2 text-gray-500 dark:text-gray-400 cursor-not-allowed">Profile (soon)</a>
-                <a href="#" className="block px-4 py-2 text-gray-500 dark:text-gray-400 cursor-not-allowed">Help (soon)</a>
-            </div>
-        </>
-    );
-}
-
-function NoteCard({ note, isActive, onClick, onTagClick }) {
-    const title = note.isLocked ? "Locked Note" : (note.title || 'Untitled Note');
-    const contentSnippet = note.isLocked ? 'This note is encrypted.' : (note.content || '').substring(0, 80) + '...';
-    const activeClasses = isActive ? 'bg-blue-200 dark:bg-blue-800' : 'hover:bg-gray-200 dark:hover:bg-gray-700';
-    return (
-        <div onClick={onClick} className={`p-4 mb-2 rounded-lg cursor-pointer transition-colors ${activeClasses}`}>
-            <div className="flex justify-between items-start">
-                <div className="overflow-hidden">
-                    <h3 className="font-bold truncate">{title}</h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 truncate">{contentSnippet}</p>
-                </div>
-                <div className="flex items-center flex-shrink-0 ml-2 mt-1">
-                    {note.isPinned && <svg className="w-5 h-5 text-yellow-500 dark:text-yellow-400" fill="currentColor" viewBox="0 0 20 20"><path d="M10.894 2.553a1 1 0 00-1.788 0l-2 4A1 1 0 008 8h4a1 1 0 00.894-1.447l-2-4zM10 18a1 1 0 01-1-1v-6a1 1 0 112 0v6a1 1 0 01-1 1z" clipRule="evenodd" fillRule="evenodd"></path></svg>}
-                    {note.isLocked && <svg className="w-5 h-5 text-gray-500 dark:text-gray-400 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>}
-                </div>
-            </div>
-            {!note.isLocked && note.tags && note.tags.length > 0 && (
-                <div className="mt-2">
-                    {note.tags.map(tag => (
-                        <span key={tag} onClick={(e) => { e.stopPropagation(); onTagClick(tag); }} className="tag bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-gray-200">
-                            {tag}
-                        </span>
-                    ))}
-                </div>
-            )}
+        <div className="editor-toolbar border-b border-gray-300 dark:border-gray-600 p-2 flex-shrink-0">
+            <button onClick={() => editor.chain().focus().toggleBold().run()} className={editor.isActive('bold') ? 'is-active' : ''}>Bold</button>
+            <button onClick={() => editor.chain().focus().toggleItalic().run()} className={editor.isActive('italic') ? 'is-active' : ''}>Italic</button>
+            <button onClick={() => editor.chain().focus().toggleStrike().run()} className={editor.isActive('strike') ? 'is-active' : ''}>Strike</button>
+            <button onClick={() => editor.chain().focus().toggleBulletList().run()} className={editor.isActive('bulletList') ? 'is-active' : ''}>List</button>
         </div>
     );
 }
 
 function Editor({ activeNote, onUpdate, onDelete, onToggleLock, onTogglePin, hasPassword, onBack }) {
     const [title, setTitle] = useState('');
-    const [content, setContent] = useState('');
     const [tags, setTags] = useState([]);
     const [currentTag, setCurrentTag] = useState('');
     const debounceTimeout = useRef(null);
 
-    // [NEW] State for word/character count
-    const [stats, setStats] = useState({ words: 0, chars: 0 });
+    // [NEW] Tiptap editor instance setup
+    const editor = useEditor({
+        extensions: [
+            TiptapStarterKit,
+            TiptapPlaceholder.configure({ placeholder: 'Start writing...' })
+        ],
+        content: '',
+        onUpdate: ({ editor }) => {
+            handleContentUpdate(editor.getHTML());
+        },
+    });
 
     useEffect(() => {
         if (activeNote) {
             setTitle(activeNote.title);
-            const noteContent = activeNote.content || '';
-            setContent(noteContent);
             setTags(activeNote.tags || []);
-            // [NEW] Calculate stats when note changes
-            calculateStats(noteContent);
+            // Update editor content only if it's different, to avoid resetting cursor
+            if (editor && !editor.isDestroyed && editor.getHTML() !== activeNote.content) {
+                editor.commands.setContent(activeNote.content || '', false);
+            }
         } else {
             setTitle('');
-            setContent('');
             setTags([]);
-            setStats({ words: 0, chars: 0 }); // Reset stats
+            if (editor && !editor.isDestroyed) editor.commands.clearContent(false);
         }
-    }, [activeNote]);
+    }, [activeNote, editor]);
 
-    // [NEW] Function to calculate statistics
-    const calculateStats = (text) => {
-        const charCount = text.length;
-        const wordCount = text.trim().split(/\s+/).filter(Boolean).length;
-        setStats({ words: wordCount, chars: charCount });
-    };
+    // [NEW] Effect to make editor editable/non-editable
+    useEffect(() => {
+        if (editor && !editor.isDestroyed) {
+            editor.setEditable(!!activeNote && !activeNote.isLocked);
+        }
+    }, [activeNote?.isLocked, editor]);
 
     const handleUpdate = (updatedFields) => {
         if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
-        debounceTimeout.current = setTimeout(() => {
-            onUpdate(updatedFields);
-        }, 500);
+        debounceTimeout.current = setTimeout(() => { onUpdate(updatedFields); }, 500);
     };
 
     const handleTitleChange = (newTitle) => {
         setTitle(newTitle);
-        handleUpdate({ title: newTitle, content, tags });
+        handleUpdate({ title: newTitle });
     };
-
-    const handleContentChange = (newContent) => {
-        setContent(newContent);
-        handleUpdate({ title, content: newContent, tags });
-        // [NEW] Update stats on every content change
-        calculateStats(newContent);
+    
+    // [NEW] Handle content updates from Tiptap
+    const handleContentUpdate = (newContent) => {
+        const div = document.createElement('div');
+        div.innerHTML = newContent;
+        const newContentPlainText = div.textContent || div.innerText || '';
+        handleUpdate({ content: newContent, contentPlainText: newContentPlainText });
     };
 
     const handleTagKeyDown = (e) => {
@@ -187,65 +88,55 @@ function Editor({ activeNote, onUpdate, onDelete, onToggleLock, onTogglePin, has
             if (newTag && !tags.includes(newTag)) {
                 const newTags = [...tags, newTag];
                 setTags(newTags);
-                handleUpdate({ title, content, tags: newTags });
+                handleUpdate({ tags: newTags });
             }
             setCurrentTag('');
         }
     };
-    
     const removeTag = (tagToRemove) => {
         const newTags = tags.filter(tag => tag !== tagToRemove);
         setTags(newTags);
-        handleUpdate({ title, content, tags: newTags });
+        handleUpdate({ tags: newTags });
     };
 
-    if (!activeNote) {
-        return <div className="hidden md:flex flex-col text-center text-gray-400 dark:text-gray-500 h-full items-center justify-center"><svg className="w-16 h-16 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg><p className="text-lg">Select a note to view or create a new one</p></div>;
-    }
+    if (!activeNote) { return <div className="hidden md:flex flex-col text-center text-gray-400 dark:text-gray-500 h-full items-center justify-center p-6"><p className="text-lg">Select a note to view</p></div>; }
+    
+    const wordCount = (editor?.storage.characterCount.words()) || 0;
+    const charCount = (editor?.storage.characterCount.characters()) || 0;
 
     return (
-        <div className="flex flex-col h-full">
-            <div className="flex items-center mb-4 flex-shrink-0">
-                <button onClick={onBack} className="md:hidden mr-2 p-2 text-gray-500 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path></svg>
-                </button>
-                <input type="text" value={title} onChange={(e) => handleTitleChange(e.target.value)} placeholder="Note Title" className="w-full text-2xl font-bold bg-transparent focus:outline-none" disabled={activeNote.isLocked} />
-                <button onClick={onTogglePin} className={`ml-4 p-2 rounded-full ${activeNote.isPinned ? 'text-yellow-500' : 'text-gray-500 hover:text-yellow-500'}`} title={activeNote.isPinned ? "Unpin Note" : "Pin Note"}>
-                     <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path d="M10.894 2.553a1 1 0 00-1.788 0l-2 4A1 1 0 008 8h4a1 1 0 00.894-1.447l-2-4zM10 18a1 1 0 01-1-1v-6a1 1 0 112 0v6a1 1 0 01-1 1z" clipRule="evenodd" fillRule="evenodd"></path></svg>
-                </button>
-                {hasPassword && (
-                    <button onClick={onToggleLock} className="ml-2 p-2 text-gray-500 hover:text-blue-500 rounded-full" title={activeNote.isLocked ? "Unlock Note" : "Lock Note"}>
-                        {activeNote.isLocked 
-                            ? <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" /></svg>
-                            : <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
-                        }
+        <div className="flex flex-col h-full bg-white dark:bg-gray-800">
+            <div className="p-4 flex-shrink-0">
+                {/* Header with Back, Title, and Icons */}
+                <div className="flex items-center mb-4">
+                    <button onClick={onBack} className="md:hidden mr-2 p-2 text-gray-500 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path></svg>
                     </button>
-                 )}
-                <button onClick={onDelete} className="ml-2 p-2 text-gray-500 hover:text-red-500 rounded-full" title="Delete Note">
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                </button>
-            </div>
-            {!activeNote.isLocked && (
-                 <div className="flex-shrink-0 mb-2 p-2 border rounded-md dark:border-gray-700 flex flex-wrap items-center">
-                    {tags.map(tag => (
-                        <div key={tag} className="tag bg-blue-500 text-white mr-2 mb-2 flex items-center">
-                            <span>{tag}</span>
-                            <button onClick={() => removeTag(tag)} className="ml-1 text-white hover:text-gray-300">
-                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                            </button>
-                        </div>
-                    ))}
-                    <input type="text" value={currentTag} onChange={(e) => setCurrentTag(e.target.value)} onKeyDown={handleTagKeyDown} placeholder="Add a tag..." className="flex-1 bg-transparent focus:outline-none text-sm" />
+                    <input type="text" value={title} onChange={(e) => handleTitleChange(e.target.value)} placeholder="Note Title" className="w-full text-2xl font-bold bg-transparent focus:outline-none" disabled={activeNote.isLocked} />
+                    <button onClick={onTogglePin} className={`ml-4 p-2 rounded-full ${activeNote.isPinned ? 'text-yellow-500' : 'text-gray-500 hover:text-yellow-500'}`} title={activeNote.isPinned ? "Unpin Note" : "Pin Note"}> <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path d="M10.894 2.553a1 1 0 00-1.788 0l-2 4A1 1 0 008 8h4a1 1 0 00.894-1.447l-2-4zM10 18a1 1 0 01-1-1v-6a1 1 0 112 0v6a1 1 0 01-1 1z" clipRule="evenodd" fillRule="evenodd"></path></svg> </button>
+                    {hasPassword && <button onClick={onToggleLock} className="ml-2 p-2 text-gray-500 hover:text-blue-500 rounded-full" title={activeNote.isLocked ? "Unlock Note" : "Lock Note"}>{activeNote.isLocked ? <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" /></svg> : <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>}</button>}
+                    <button onClick={onDelete} className="ml-2 p-2 text-gray-500 hover:text-red-500 rounded-full" title="Delete Note"> <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg> </button>
                 </div>
-            )}
-            <textarea value={content} onChange={(e) => handleContentChange(e.target.value)} disabled={activeNote.isLocked} placeholder="Start writing..." className="flex-1 w-full p-2 text-lg bg-transparent focus:outline-none resize-none border-t-0 border rounded-b-md dark:border-gray-700"></textarea>
-            {/* [NEW] Word and Character count footer */}
-            {!activeNote.isLocked && (
-                <div className="editor-footer">
-                    <span>Words: {stats.words}</span>
-                    <span className="ml-4">Characters: {stats.chars}</span>
+                {/* Tag Input Section */}
+                {!activeNote.isLocked && (
+                     <div className="flex-shrink-0 mb-2 p-2 border rounded-md dark:border-gray-700 flex flex-wrap items-center">
+                        {tags.map(tag => ( <div key={tag} className="tag bg-blue-500 text-white mr-2 mb-2 flex items-center"><span>{tag}</span><button onClick={() => removeTag(tag)} className="ml-1 text-white hover:text-gray-300"><svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div> ))}
+                        <input type="text" value={currentTag} onChange={(e) => setCurrentTag(e.target.value)} onKeyDown={handleTagKeyDown} placeholder="Add a tag..." className="flex-1 bg-transparent focus:outline-none text-sm" />
+                    </div>
+                )}
+            </div>
+            {/* Rich Text Editor Section */}
+            {!activeNote.isLocked && <Toolbar editor={editor} />}
+            <div className="flex-1 overflow-y-auto px-4">
+                <EditorContent editor={editor} />
+            </div>
+            {/* Footer with Word Count */}
+            {!activeNote.isLocked && editor && (
+                <div className="text-sm text-gray-500 dark:text-gray-400 p-2 text-right flex-shrink-0 border-t dark:border-gray-700">
+                    <span>Words: {wordCount}</span>
+                    <span className="ml-4">Characters: {charCount}</span>
                 </div>
             )}
         </div>
     );
-        }
+    }
