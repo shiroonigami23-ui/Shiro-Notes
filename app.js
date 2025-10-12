@@ -1,7 +1,7 @@
 const { useState, useEffect } = React;
 
 function App() {
-    // ... other state is unchanged ...
+    // ... all state variables are unchanged ...
     const [notes, setNotes] = useState([]);
     const [activeNoteId, setActiveNoteId] = useState(null);
     const [isInitialised, setIsInitialised] = useState(false);
@@ -16,7 +16,8 @@ function App() {
     const [mobileView, setMobileView] = useState('list');
     const [activeTag, setActiveTag] = useState(null);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
-
+    
+    // ... all functions from useEffect down to handleTogglePin are unchanged ...
     useEffect(() => {
         const init = async () => {
             try {
@@ -28,11 +29,11 @@ function App() {
                 setTheme(currentTheme);
                 document.documentElement.classList.toggle('dark', currentTheme === 'dark');
 
-                const allNotes = await db.notes.toArray(); // Get all notes first
-                setNotes(sortNotes(allNotes)); // Sort them on initial load
+                const allNotes = await db.notes.toArray();
+                setNotes(sortNotes(allNotes));
 
                 if (allNotes.length > 0 && window.innerWidth >= 768) {
-                    const firstNoteId = (sortNotes(filteredNotes).length > 0 ? sortNotes(filteredNotes)[0] : sortNotes(allNotes)[0]).id;
+                    const firstNoteId = (sortNotes(allNotes).length > 0 ? sortNotes(allNotes)[0] : null)?.id;
                     setActiveNoteId(firstNoteId);
                 }
             } catch (error) {
@@ -45,13 +46,10 @@ function App() {
         init();
     }, []);
 
-    // [NEW] Centralized sorting function
     const sortNotes = (notesToSort) => {
         return [...notesToSort].sort((a, b) => {
-            if (a.isPinned !== b.isPinned) {
-                return a.isPinned ? -1 : 1; // Pinned notes come first
-            }
-            return new Date(b.updatedAt) - new Date(a.updatedAt); // Then sort by date
+            if (a.isPinned !== b.isPinned) return a.isPinned ? -1 : 1;
+            return new Date(b.updatedAt) - new Date(a.updatedAt);
         });
     };
 
@@ -75,9 +73,7 @@ function App() {
     
     const handleNewNote = async () => {
         const newNote = { title: 'Untitled Note', content: '', tags: [], isPinned: false, isLocked: false, createdAt: new Date(), updatedAt: new Date() };
-        if (activeTag) {
-            newNote.tags.push(activeTag);
-        }
+        if (activeTag) newNote.tags.push(activeTag);
         const id = await db.notes.add(newNote);
         const newNotesList = [{...newNote, id}, ...notes];
         setNotes(sortNotes(newNotesList));
@@ -90,30 +86,25 @@ function App() {
         if (!activeNoteId) return;
         const noteToUpdate = notes.find(n => n.id === activeNoteId);
         let dataToSave = { ...updatedFields };
-
         if (noteToUpdate.isLocked) {
             const password = passwordAttempt?.password;
-            if (!password) { return showNotification("Password session expired.", "error"); }
+            if (!password) return showNotification("Password session expired.", "error");
             if (updatedFields.title) dataToSave.title = encryptData(updatedFields.title, password);
             if (updatedFields.content) dataToSave.content = encryptData(updatedFields.content, password);
         } else if (unlockedNoteData?.id === activeNoteId) {
             setUnlockedNoteData(prev => ({ ...prev, ...updatedFields }));
         }
-
         const updatedNoteData = { ...dataToSave, updatedAt: new Date() };
         await db.notes.update(activeNoteId, updatedNoteData);
-        
         const updatedList = notes.map(n => n.id === activeNoteId ? { ...n, ...updatedNoteData } : n);
         setNotes(sortNotes(updatedList));
     };
     
-    // [NEW] Function to handle pinning/unpinning a note
     const handleTogglePin = async () => {
         if (!activeNoteId) return;
         const note = notes.find(n => n.id === activeNoteId);
         const newIsPinned = !note.isPinned;
         const updatedNoteData = { isPinned: newIsPinned, updatedAt: new Date() };
-        
         await db.notes.update(activeNoteId, updatedNoteData);
         const updatedList = notes.map(n => n.id === activeNoteId ? { ...n, ...updatedNoteData } : n);
         setNotes(sortNotes(updatedList));
@@ -125,7 +116,8 @@ function App() {
         const remainingNotes = notes.filter(note => note.id !== activeNoteId);
         await db.notes.delete(activeNoteId);
         setNotes(sortNotes(remainingNotes));
-        const nextNote = sortNotes(remainingNotes.filter(n => !activeTag || (n.tags && n.tags.includes(activeTag))))[0];
+        const filtered = remainingNotes.filter(n => !activeTag || (n.tags && n.tags.includes(activeTag)));
+        const nextNote = sortNotes(filtered)[0];
         setActiveNoteId(nextNote ? nextNote.id : null);
         setIsDeleting(false);
         setMobileView('list');
@@ -134,13 +126,8 @@ function App() {
 
     const handleSetPassword = async (newPassword, currentPassword) => {
         if (masterPasswordHash) {
-            if (!currentPassword) {
-                return showNotification("Please enter your current password.", "error");
-            }
-            const currentPasswordHash = hashPassword(currentPassword);
-            if (currentPasswordHash !== masterPasswordHash) {
-                return showNotification("Incorrect current password.", "error");
-            }
+            if (!currentPassword) return showNotification("Please enter your current password.", "error");
+            if (hashPassword(currentPassword) !== masterPasswordHash) return showNotification("Incorrect current password.", "error");
         }
         const newHash = hashPassword(newPassword);
         await db.settings.put({ key: 'masterPasswordHash', value: newHash });
@@ -161,15 +148,10 @@ function App() {
     };
 
     const handlePasswordConfirm = (password) => {
-        if (hashPassword(password) !== masterPasswordHash) {
-             return showNotification("Incorrect password.", "error");
-        }
+        if (hashPassword(password) !== masterPasswordHash) return showNotification("Incorrect password.", "error");
         const { id, isToggle } = passwordAttempt;
-        if (isToggle) {
-            performToggleLock(id, password);
-        } else {
-            performUnlock(id, password);
-        }
+        if (isToggle) performToggleLock(id, password);
+        else performUnlock(id, password);
         setIsPasswordPrompting(false);
         if(isToggle) setPasswordAttempt(null);
     };
@@ -179,8 +161,7 @@ function App() {
         const title = decryptData(note.title, password);
         if (title === null) return showNotification("Decryption failed. Wrong password?", "error");
         const content = decryptData(note.content, password);
-        const tags = note.tags;
-        setUnlockedNoteData({ id: noteId, title, content, tags });
+        setUnlockedNoteData({ id: noteId, title, content, tags: note.tags });
         setActiveNoteId(noteId);
         setPasswordAttempt({ id: noteId, password: password, isToggle: false });
         setMobileView('editor');
@@ -189,7 +170,6 @@ function App() {
     const performToggleLock = async (noteId, password) => {
         const note = notes.find(n => n.id === noteId);
         let newTitle, newContent, newIsLocked;
-
         if (note.isLocked) {
             newTitle = decryptData(note.title, password);
             if (newTitle === null) return showNotification("Decryption failed.", "error");
@@ -206,7 +186,6 @@ function App() {
             setPasswordAttempt(null);
             showNotification("Note locked.", "success");
         }
-        
         const updatedDbData = { title: newTitle, content: newContent, isLocked: newIsLocked, updatedAt: new Date() };
         await db.notes.update(noteId, updatedDbData);
         const updatedList = notes.map(n => n.id === noteId ? { ...n, ...updatedDbData } : n)
@@ -227,55 +206,44 @@ function App() {
 
     const activeNote = notes.find(note => note.id === activeNoteId);
     let editorNote = activeNote;
-    if (activeNote && unlockedNoteData?.id === activeNote.id) {
-        editorNote = { ...activeNote, ...unlockedNoteData };
-    }
+    if (activeNote && unlockedNoteData?.id === activeNote.id) editorNote = { ...activeNote, ...unlockedNoteData };
     
     const listPanelClasses = mobileView === 'list' ? 'translate-x-0' : '-translate-x-full';
     const editorPanelClasses = mobileView === 'editor' ? 'translate-x-0' : 'translate-x-full';
 
+    // [CORRECTED] The main div now has h-screen and no overflow-hidden.
+    // Each child panel is responsible for its own scrolling.
     return (
-        <div className="flex h-screen font-sans text-gray-900 dark:text-gray-100 overflow-hidden">
+        <div className="flex h-screen font-sans text-gray-900 dark:text-gray-100 bg-gray-100 dark:bg-gray-900">
+            {/* --- DESKTOP VIEW --- */}
             <aside className="hidden md:flex w-64 bg-gray-200 dark:bg-gray-800 p-4 flex-col flex-shrink-0">
                  <div className="flex items-center mb-6"><svg className="w-8 h-8 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg><h1 className="text-2xl font-bold">Shiro-Notes</h1></div>
                 <div className="mt-auto"><button onClick={() => setIsSettingsOpen(true)} className="w-full text-left p-2 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-700">Settings</button><button onClick={toggleTheme} className="w-full text-left p-2 mt-2 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-700">{theme === 'light' ? '🌙 Dark Mode' : '☀️ Light Mode'}</button></div>
             </aside>
             
+            {/* [CORRECTED] Note List Panel: Uses flex-col and overflow-y-auto on the child */}
             <main className="hidden md:flex flex-col w-96 p-4 border-l border-r border-gray-300 dark:border-gray-700">
-                <div className="flex justify-between items-center mb-4 flex-shrink-0">
-                    <h2 className="text-2xl font-semibold">
-                        {activeTag ? `#${activeTag}` : `All Notes`} ({filteredNotes.length})
-                    </h2>
-                    <button onClick={handleNewNote} className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 shadow">New Note</button>
+                <div className="flex-shrink-0">
+                    <div className="flex justify-between items-center mb-4"><h2 className="text-2xl font-semibold">{activeTag ? `#${activeTag}` : `All Notes`} ({filteredNotes.length})</h2><button onClick={handleNewNote} className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 shadow">New Note</button></div>
+                    {activeTag && <button onClick={() => setActiveTag(null)} className="text-sm text-blue-500 hover:underline mb-2">Clear filter</button>}
                 </div>
-                {activeTag && <button onClick={() => setActiveTag(null)} className="text-sm text-blue-500 hover:underline mb-2">Clear filter</button>}
-                <div className="overflow-y-auto">{filteredNotes.map(note => <NoteCard key={note.id} note={note} isActive={note.id === activeNoteId} onClick={() => handleSelectNote(note.id)} onTagClick={setActiveTag} />)}</div>
+                <div className="flex-1 overflow-y-auto">{filteredNotes.map(note => <NoteCard key={note.id} note={note} isActive={note.id === activeNoteId} onClick={() => handleSelectNote(note.id)} onTagClick={setActiveTag} />)}</div>
             </main>
 
-            {/* [UPDATED] Pass the onTogglePin handler to the Editor */}
             <section className="hidden md:flex flex-1 p-6 flex-col bg-white dark:bg-gray-800"><Editor activeNote={editorNote} onUpdate={handleUpdateNote} onDelete={() => setIsDeleting(true)} onToggleLock={handleToggleLock} onTogglePin={handleTogglePin} hasPassword={!!masterPasswordHash} onBack={() => {}} /></section>
             
-            <div className="md:hidden flex flex-1 relative overflow-hidden bg-gray-100 dark:bg-gray-900">
+            {/* --- MOBILE VIEW --- */}
+            <div className="md:hidden flex flex-1 relative overflow-x-hidden">
                 <div className={`mobile-panel absolute inset-0 w-full p-4 flex flex-col ${listPanelClasses}`}>
-                    <div className="flex justify-between items-center mb-4">
-                        <h1 className="text-2xl font-bold">Shiro-Notes</h1>
-                        <button onClick={() => setIsMenuOpen(true)} className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
-                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path></svg>
-                        </button>
+                    <div className="flex-shrink-0">
+                        <div className="flex justify-between items-center mb-4"><h1 className="text-2xl font-bold">Shiro-Notes</h1><button onClick={() => setIsMenuOpen(true)} className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"><svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path></svg></button></div>
+                        {isMenuOpen && <DropdownMenu onClose={() => setIsMenuOpen(false)} onSettingsClick={() => {setIsSettingsOpen(true); setIsMenuOpen(false);}} onThemeClick={toggleTheme} theme={theme} />}
+                        <div className="flex justify-between items-center mb-4"><h2 className="text-xl font-semibold">{activeTag ? `#${activeTag}` : `All Notes`} ({filteredNotes.length})</h2><button onClick={handleNewNote} className="px-3 py-1.5 bg-blue-500 text-white rounded-lg shadow text-sm">New</button></div>
+                        {activeTag && <button onClick={() => setActiveTag(null)} className="text-sm text-blue-500 hover:underline mb-2 self-start">Clear filter</button>}
                     </div>
-                    {isMenuOpen && <DropdownMenu onClose={() => setIsMenuOpen(false)} onSettingsClick={() => {setIsSettingsOpen(true); setIsMenuOpen(false);}} onThemeClick={toggleTheme} theme={theme} />}
-
-                    <div className="flex justify-between items-center mb-4">
-                         <h2 className="text-xl font-semibold">
-                            {activeTag ? `#${activeTag}` : `All Notes`} ({filteredNotes.length})
-                        </h2>
-                        <button onClick={handleNewNote} className="px-3 py-1.5 bg-blue-500 text-white rounded-lg shadow text-sm">New</button>
-                    </div>
-                    {activeTag && <button onClick={() => setActiveTag(null)} className="text-sm text-blue-500 hover:underline mb-2 self-start">Clear filter</button>}
                     <div className="flex-1 overflow-y-auto -mr-4 pr-4">{filteredNotes.map(note => <NoteCard key={note.id} note={note} isActive={false} onClick={() => handleSelectNote(note.id)} onTagClick={setActiveTag}/>)}</div>
                 </div>
                 <div className={`mobile-panel absolute inset-0 w-full p-4 flex flex-col bg-white dark:bg-gray-800 ${editorPanelClasses}`}>
-                   {/* [UPDATED] Pass the onTogglePin handler to the Editor */}
                    <Editor activeNote={editorNote} onUpdate={handleUpdateNote} onDelete={() => setIsDeleting(true)} onToggleLock={handleToggleLock} onTogglePin={handleTogglePin} hasPassword={!!masterPasswordHash} onBack={() => setMobileView('list')} />
                 </div>
             </div>
