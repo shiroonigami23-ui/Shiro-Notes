@@ -6,22 +6,37 @@ function Notification({ message, type, onClear }) {
     return <div className={`notification-animation fixed bottom-5 right-5 ${bgColor} text-white py-3 px-5 rounded-lg shadow-xl z-50`}>{message}</div>;
 }
 
+// [UPDATED] SettingsModal now requires current password to change.
 function SettingsModal({ onClose, onSetPassword, hasPassword, showNotification }) {
-    const [password, setPassword] = useState('');
-    const [confirm, setConfirm] = useState('');
+    const [currentPassword, setCurrentPassword] = useState('');
+    const [newPassword, setNewPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+
     const handleSubmit = () => {
-        if (password.length < 4) return showNotification("Password must be at least 4 characters long.", "error");
-        if (password !== confirm) return showNotification("Passwords do not match.", "error");
-        onSetPassword(password);
+        if (hasPassword && !currentPassword) {
+            return showNotification("Please enter your current password.", "error");
+        }
+        if (newPassword.length < 4) {
+            return showNotification("New password must be at least 4 characters long.", "error");
+        }
+        if (newPassword !== confirmPassword) {
+            return showNotification("New passwords do not match.", "error");
+        }
+        // Pass both old (if exists) and new passwords to the handler
+        onSetPassword(newPassword, hasPassword ? currentPassword : null);
     };
+
     return (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-40">
             <div className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-2xl w-full max-w-md mx-4">
                 <h2 className="text-2xl font-bold mb-4">{hasPassword ? "Change" : "Set"} Master Password</h2>
                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-4"><strong className="text-red-500">If you forget it, your locked notes cannot be recovered.</strong></p>
                 <div className="space-y-4">
-                    <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Enter new password" className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                    <input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSubmit()} placeholder="Confirm new password" className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    {hasPassword && (
+                         <input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} placeholder="Current Password" className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    )}
+                    <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="Enter new password" className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSubmit()} placeholder="Confirm new password" className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500" />
                 </div>
                 <div className="flex justify-end space-x-4 mt-6">
                     <button onClick={onClose} className="px-4 py-2 bg-gray-300 dark:bg-gray-600 rounded-lg hover:bg-gray-400 dark:hover:bg-gray-500">Cancel</button>
@@ -31,6 +46,7 @@ function SettingsModal({ onClose, onSetPassword, hasPassword, showNotification }
         </div>
     );
 }
+
 
 function ConfirmDeleteModal({ onConfirm, onCancel }) {
     return (
@@ -70,7 +86,6 @@ function PasswordPromptModal({ onConfirm, onCancel, showNotification }) {
     );
 }
 
-// [NEW] Dropdown menu for mobile view
 function DropdownMenu({ onSettingsClick, onThemeClick, theme, onClose }) {
     return (
         <>
