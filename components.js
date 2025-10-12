@@ -70,17 +70,29 @@ function PasswordPromptModal({ onConfirm, onCancel, showNotification }) {
     );
 }
 
-function NoteCard({ note, isActive, onClick }) {
+function NoteCard({ note, isActive, onClick, onTagClick }) {
     const title = note.isLocked ? "Locked Note" : (note.title || 'Untitled Note');
     const contentSnippet = note.isLocked ? 'This note is encrypted.' : (note.content || '').substring(0, 80) + '...';
     const activeClasses = isActive ? 'bg-blue-200 dark:bg-blue-800' : 'hover:bg-gray-200 dark:hover:bg-gray-700';
     return (
-        <div onClick={onClick} className={`p-4 mb-2 rounded-lg cursor-pointer transition-colors ${activeClasses} flex justify-between items-start`}>
-            <div className="overflow-hidden">
-                <h3 className="font-bold truncate">{title}</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400 truncate">{contentSnippet}</p>
+        <div onClick={onClick} className={`p-4 mb-2 rounded-lg cursor-pointer transition-colors ${activeClasses}`}>
+            <div className="flex justify-between items-start">
+                <div className="overflow-hidden">
+                    <h3 className="font-bold truncate">{title}</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 truncate">{contentSnippet}</p>
+                </div>
+                {note.isLocked && <svg className="w-5 h-5 text-gray-500 dark:text-gray-400 flex-shrink-0 ml-2 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>}
             </div>
-            {note.isLocked && <svg className="w-5 h-5 text-gray-500 dark:text-gray-400 flex-shrink-0 ml-2 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>}
+            {/* [NEW] Display tags */}
+            {!note.isLocked && note.tags && note.tags.length > 0 && (
+                <div className="mt-2">
+                    {note.tags.map(tag => (
+                        <span key={tag} onClick={(e) => { e.stopPropagation(); onTagClick(tag); }} className="tag bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-gray-200">
+                            {tag}
+                        </span>
+                    ))}
+                </div>
+            )}
         </div>
     );
 }
@@ -88,15 +100,19 @@ function NoteCard({ note, isActive, onClick }) {
 function Editor({ activeNote, onUpdate, onDelete, onToggleLock, hasPassword, onBack }) {
     const [title, setTitle] = useState('');
     const [content, setContent] = useState('');
+    const [tags, setTags] = useState([]);
+    const [currentTag, setCurrentTag] = useState('');
     const debounceTimeout = useRef(null);
 
     useEffect(() => {
         if (activeNote) {
             setTitle(activeNote.title);
             setContent(activeNote.content || '');
+            setTags(activeNote.tags || []);
         } else {
             setTitle('');
             setContent('');
+            setTags([]);
         }
     }, [activeNote]);
 
@@ -109,12 +125,31 @@ function Editor({ activeNote, onUpdate, onDelete, onToggleLock, hasPassword, onB
 
     const handleTitleChange = (newTitle) => {
         setTitle(newTitle);
-        handleUpdate({ title: newTitle, content: content });
+        handleUpdate({ title: newTitle, content, tags });
     };
 
     const handleContentChange = (newContent) => {
         setContent(newContent);
-        handleUpdate({ title: title, content: newContent });
+        handleUpdate({ title, content: newContent, tags });
+    };
+
+    const handleTagKeyDown = (e) => {
+        if (e.key === 'Enter' && currentTag) {
+            e.preventDefault();
+            const newTag = currentTag.trim();
+            if (newTag && !tags.includes(newTag)) {
+                const newTags = [...tags, newTag];
+                setTags(newTags);
+                handleUpdate({ title, content, tags: newTags });
+            }
+            setCurrentTag('');
+        }
+    };
+    
+    const removeTag = (tagToRemove) => {
+        const newTags = tags.filter(tag => tag !== tagToRemove);
+        setTags(newTags);
+        handleUpdate({ title, content, tags: newTags });
     };
 
     if (!activeNote) {
@@ -137,7 +172,21 @@ function Editor({ activeNote, onUpdate, onDelete, onToggleLock, hasPassword, onB
                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                 </button>
             </div>
+            {/* [NEW] Tag input and display */}
+            {!activeNote.isLocked && (
+                 <div className="flex-shrink-0 mb-2 p-2 border rounded-md dark:border-gray-700 flex flex-wrap items-center">
+                    {tags.map(tag => (
+                        <div key={tag} className="tag bg-blue-500 text-white mr-2 mb-2 flex items-center">
+                            <span>{tag}</span>
+                            <button onClick={() => removeTag(tag)} className="ml-1 text-white hover:text-gray-300">
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                            </button>
+                        </div>
+                    ))}
+                    <input type="text" value={currentTag} onChange={(e) => setCurrentTag(e.target.value)} onKeyDown={handleTagKeyDown} placeholder="Add a tag..." className="flex-1 bg-transparent focus:outline-none text-sm" />
+                </div>
+            )}
             <textarea value={content} onChange={(e) => handleContentChange(e.target.value)} disabled={activeNote.isLocked} placeholder="Start writing..." className="flex-1 w-full p-2 text-lg bg-transparent focus:outline-none resize-none border rounded-md dark:border-gray-700"></textarea>
         </div>
     );
-            }
+        }
