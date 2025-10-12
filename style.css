@@ -3,6 +3,7 @@ body {
     font-family: sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    overflow: hidden; /* Prevent body from scrolling */
 }
 
 /* Simple, reliable, and standard scrollbar */
@@ -13,7 +14,7 @@ body {
 .dark ::-webkit-scrollbar-thumb { background: #4a5568; }
 .dark ::-webkit-scrollbar-thumb:hover { background: #718096; }
 
-/* Notification, Tag, and Editor Styles (unchanged) */
+/* Notification, Tag, and Editor Styles */
 @keyframes fadeInOut {
     0%, 100% { opacity: 0; transform: translateY(20px); }
     10%, 90% { opacity: 1; transform: translateY(0); }
@@ -21,7 +22,7 @@ body {
 .notification-animation { animation: fadeInOut 4s ease-in-out forwards; }
 .tag { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 0.8rem; margin-right: 6px; cursor: pointer; transition: background-color 0.2s; }
 .mobile-panel { transition: transform 0.3s ease-in-out; }
-.ProseMirror { flex-grow: 1; padding: 0.5rem; outline: none !important; }
+.ProseMirror { flex-grow: 1; padding: 0.5rem; outline: none !important; min-height: 100px; }
 .ProseMirror p.is-editor-empty:first-child::before { content: attr(data-placeholder); float: left; color: #adb5bd; pointer-events: none; height: 0; }
 .editor-toolbar button { padding: 0.25rem 0.5rem; border-radius: 4px; margin-right: 0.25rem; transition: background-color 0.2s; font-weight: 500; }
 .editor-toolbar button.is-active { background-color: #3b82f6; color: white; }
@@ -40,6 +41,7 @@ body {
     -webkit-appearance: none;
     border: 2px solid #9ca3af; /* gray-400 */
     transition: background-color 0.2s, border-color 0.2s;
+    cursor: pointer;
 }
 
 .dark .selection-checkbox {
@@ -61,4 +63,3 @@ body {
 .selection-mode-active .note-list-container {
     padding-top: 4rem; /* Height of the action bar */
 }
-/* [CORRECTED] Removed the extra closing brace that was here */
