@@ -13,7 +13,7 @@ body {
 .dark ::-webkit-scrollbar-thumb { background: #4a5568; }
 .dark ::-webkit-scrollbar-thumb:hover { background: #718096; }
 
-/* Notification and Tag Styles (unchanged) */
+/* Notification, Tag, and Editor Styles (unchanged) */
 @keyframes fadeInOut {
     0%, 100% { opacity: 0; transform: translateY(20px); }
     10%, 90% { opacity: 1; transform: translateY(0); }
@@ -21,32 +21,18 @@ body {
 .notification-animation { animation: fadeInOut 4s ease-in-out forwards; }
 .tag { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 0.8rem; margin-right: 6px; cursor: pointer; transition: background-color 0.2s; }
 .mobile-panel { transition: transform 0.3s ease-in-out; }
+.ProseMirror { flex-grow: 1; padding: 0.5rem; outline: none !important; }
+.ProseMirror p.is-editor-empty:first-child::before { content: attr(data-placeholder); float: left; color: #adb5bd; pointer-events: none; height: 0; }
+.editor-toolbar button { padding: 0.25rem 0.5rem; border-radius: 4px; margin-right: 0.25rem; transition: background-color 0.2s; font-weight: 500; }
+.editor-toolbar button.is-active { background-color: #3b82f6; color: white; }
+.dark .editor-toolbar button.is-active { background-color: #2563eb; }
+.dark .editor-toolbar button:not(.is-active) { color: #d1d5db; }
+.editor-toolbar button:not(.is-active):hover { background-color: #e5e7eb; }
+.dark .editor-toolbar button:not(.is-active):hover { background-color: #4b5563; }
 
-/* [NEW] TIPTAP EDITOR STYLES */
-.ProseMirror {
-    flex-grow: 1; /* Allows editor to fill space */
-    padding: 0.5rem;
-    outline: none !important;
+/* [NEW] Styles for Selection Mode */
+.selection-checkbox {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
 }
-.ProseMirror p.is-editor-empty:first-child::before {
-  content: attr(data-placeholder);
-  float: left;
-  color: #adb5bd;
-  pointer-events: none;
-  height: 0;
-}
-.editor-toolbar button {
-    padding: 0.25rem 0.5rem;
-    border-radius: 4px;
-    margin-right: 0.25rem;
-    transition: background-color 0.2s;
-    font-weight: 500;
-}
-.editor-toolbar button.is-active {
-    background-color: #3b82f6; /* bg-blue-500 */
-    color: white;
-}
-.dark .editor-toolbar button.is-active { background-color: #2563eb; } /* dark:bg-blue-600 */
-.dark .editor-toolbar button:not(.is-active) { color: #d1d5db; } /* dark:text-gray-300 */
-.editor-toolbar button:not(.is-active):hover { background-color: #e5e7eb; } /* hover:bg-gray-200 */
-.dark .editor-toolbar button:not(.is-active):hover { background-color: #4b5563; } /* dark:hover:bg-gray-600 */
