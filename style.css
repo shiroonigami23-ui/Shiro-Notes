@@ -47,3 +47,60 @@ body {
 .notification-animation {
     animation: fadeInOut 4s ease-in-out forwards;
 }
+/* ... (previous styles are unchanged) ... */
+body {
+    font-family: sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+/* ... scrollbar styles ... */
+/* ... notification animation ... */
+
+/* =================================================================
+   [NEW] TIPTAP EDITOR STYLES
+   ================================================================= */
+
+/* This is the main editor content area */
+.ProseMirror {
+    min-height: 150px;
+    padding: 8px;
+    outline: none;
+}
+.ProseMirror p {
+    margin: 0;
+}
+.ProseMirror-focused {
+    outline: none;
+}
+/* Placeholder text style */
+.ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: #adb5bd;
+  pointer-events: none;
+  height: 0;
+}
+
+/* Toolbar button styles */
+.editor-toolbar button {
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    margin-right: 0.25rem;
+    transition: background-color 0.2s;
+}
+.editor-toolbar button.is-active {
+    background-color: #3b82f6; /* bg-blue-500 */
+    color: white;
+}
+.dark .editor-toolbar button.is-active {
+    background-color: #2563eb; /* bg-blue-600 */
+}
+.dark .editor-toolbar button:not(.is-active) {
+    color: #d1d5db; /* text-gray-300 */
+}
+.editor-toolbar button:not(.is-active):hover {
+    background-color: #e5e7eb; /* bg-gray-200 */
+}
+.dark .editor-toolbar button:not(.is-active):hover {
+    background-color: #4b5563; /* bg-gray-600 */
+}
