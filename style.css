@@ -104,3 +104,13 @@ body {
 .dark .editor-toolbar button:not(.is-active):hover {
     background-color: #4b5563; /* bg-gray-600 */
 }
+/* ... (previous styles are unchanged) ... */
+body {
+    font-family: sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+.mobile-panel {
+    transition: transform 0.3s ease-in-out;
+}
