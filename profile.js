@@ -1,115 +1,83 @@
-// ===== Profile Management =====
+// Profile Management Module for Shiro Notes
+class ProfileModule {
+  constructor(app) {
+    this.app = app;
+  }
 
-class ProfileManager {
-    constructor() {
-        this.init();
+  // Update a profile field
+  updateProfile(field, value) {
+    if (this.app.data.settings.profile.hasOwnProperty(field)) {
+      this.app.data.settings.profile[field] = value;
+      this.app.saveData();
+      this.app.showToast('Profile updated!', 'success');
+
+      // Update UI elements like sidebar avatar if name changes
+      if (field === 'name') {
+        this.updateSidebarProfile();
+      }
     }
+  }
 
-    init() {
-        this.loadProfileData();
+  // Handle avatar change
+  changeAvatar() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/png, image/jpeg, image/gif';
+
+    input.onchange = (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      // Check file size (e.g., limit to 2MB)
+      if (file.size > 2 * 1024 * 1024) {
+        this.app.showToast('Image is too large. Please select an image under 2MB.', 'error');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const dataURL = event.target.result;
+        this.app.data.settings.profile.avatar = dataURL;
+        this.app.saveData();
+
+        // Update avatar on the page
+        document.getElementById('profileAvatarLarge').innerHTML = `<img src="${dataURL}" alt="Profile">`;
+        this.updateSidebarProfile();
+        this.app.showToast('Avatar changed successfully!', 'success');
+      };
+
+      reader.readAsDataURL(file);
+    };
+
+    input.click();
+  }
+
+  // Update sidebar profile display
+  updateSidebarProfile() {
+    const avatarContainer = document.getElementById('sidebarAvatar');
+    const profile = this.app.data.settings.profile;
+
+    if (profile.avatar) {
+      avatarContainer.innerHTML = `<img src="${profile.avatar}" alt="Avatar" style="width:100%; height:100%; object-fit:cover;">`;
+    } else if (profile.name) {
+      // Use initials if no avatar but has a name
+      const initials = profile.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+      avatarContainer.innerHTML = `<span>${initials}</span>`;
+      avatarContainer.style.backgroundColor = 'var(--color-primary)';
+    } else {
+      // Default icon
+      avatarContainer.innerHTML = '<i class="fas fa-user"></i>';
     }
-
-    loadProfileData() {
-        // Profile data is managed by the main app
-        // This file can be extended for additional profile features
-    }
-
-    generateDefaultAvatars() {
-        // Generate colorful avatar placeholders
-        const colors = [
-            '#667eea', '#764ba2', '#f093fb', '#f5576c',
-            '#4facfe', '#00f2fe', '#43e97b', '#38f9d7'
-        ];
-
-        return colors.map((color, index) => ({
-            id: `avatar${index + 1}`,
-            color: color,
-            icon: ['fa-user', 'fa-graduation-cap', 'fa-book', 'fa-star', 
-                   'fa-heart', 'fa-rocket', 'fa-lightbulb', 'fa-crown'][index]
-        }));
-    }
-
-    createAvatarSVG(color, icon) {
-        return `
-            <svg width="128" height="128" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="64" cy="64" r="64" fill="${color}"/>
-                <text x="64" y="80" font-size="48" text-anchor="middle" fill="white" font-family="FontAwesome">
-                    ${this.getIconUnicode(icon)}
-                </text>
-            </svg>
-        `;
-    }
-
-    getIconUnicode(iconClass) {
-        const icons = {
-            'fa-user': '\uf007',
-            'fa-graduation-cap': '\uf19d',
-            'fa-book': '\uf02d',
-            'fa-star': '\uf005',
-            'fa-heart': '\uf004',
-            'fa-rocket': '\uf135',
-            'fa-lightbulb': '\uf0eb',
-            'fa-crown': '\uf521'
-        };
-        return icons[iconClass] || '\uf007';
-    }
-
-    exportProfile() {
-        const profileData = {
-            user: app.data.user,
-            stats: {
-                totalBooks: app.data.books.length,
-                totalNotes: this.countTotalNotes(),
-                totalDrawings: app.data.drawings.length,
-                totalEvents: app.data.events.length
-            },
-            exportDate: new Date().toISOString()
-        };
-
-        const blob = new Blob([JSON.stringify(profileData, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `profile-${Date.now()}.json`;
-        a.click();
-        URL.revokeObjectURL(url);
-
-        app.showToast('Profile exported', 'success');
-    }
-
-    countTotalNotes() {
-        let total = 0;
-        app.data.books.forEach(book => {
-            book.chapters.forEach(chapter => {
-                total += chapter.notes.length;
-            });
-        });
-        return total;
-    }
-
-    shareProfile() {
-        const profileUrl = window.location.href;
-        const shareText = `Check out my Shiro Notes profile! I have ${app.data.books.length} books, ${this.countTotalNotes()} notes, and ${app.data.drawings.length} drawings.`;
-
-        if (navigator.share) {
-            navigator.share({
-                title: 'Shiro Notes Profile',
-                text: shareText,
-                url: profileUrl
-            }).then(() => {
-                app.showToast('Profile shared', 'success');
-            }).catch(() => {
-                this.fallbackShare(shareText);
-            });
-        } else {
-            this.fallbackShare(shareText);
-        }
-    }
-
-    fallbackShare(text) {
-        cryptoManager.copyToClipboard(text);
-    }
+  }
 }
 
-// Initialize profile manager
-const profileManager = new ProfileManager();
+// Initialize the module
+const profileModule = new ProfileModule(app);
+window.profileModule = profileModule;
+
+// Initial update of the sidebar profile on load
+document.addEventListener('DOMContentLoaded', () => {
+    profileModule.updateSidebarProfile();
+});
+
+

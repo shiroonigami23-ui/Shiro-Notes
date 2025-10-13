@@ -1,1064 +1,1161 @@
-// ===== Shiro Notes - Main Application Logic =====
 
 class ShiroNotes {
-    constructor() {
-        this.currentPage = 'dashboard';
-        this.currentBook = null;
-        this.currentNote = null;
-        this.currentCanvas = null;
-        
-        this.init();
+  constructor() {
+    this.data = {
+      books: [],
+      notes: [],
+      events: [],
+      settings: {
+        theme: 'auto',
+        autoLock: false,
+        lockTimeout: 300000, // 5 minutes
+        passcode: null,
+        profile: {
+          name: '',
+          email: '',
+          bio: '',
+          avatar: null
+        }
+      },
+      bookmarks: [],
+      tags: [],
+      templates: []
+    };
+    
+    this.currentPage = 'dashboard';
+    this.isLocked = false;
+    this.lockTimer = null;
+    this.sidebarCollapsed = false;
+    
+    this.init();
+  }
+  
+  async init() {
+    await this.loadData();
+    this.setupEventListeners();
+    this.setupKeyboardShortcuts();
+    this.initializeTheme();
+    this.checkLockStatus();
+    this.updateUI();
+    this.showToast('Welcome to Shiro Notes!', 'success');
+  }
+  
+  // Data Management
+  async loadData() {
+    try {
+      const savedData = localStorage.getItem('shiroNotesData');
+      if (savedData) {
+        const parsedData = JSON.parse(savedData);
+        this.data = { ...this.data, ...parsedData };
+      }
+      
+      // Initialize default templates if none exist
+      if (this.data.templates.length === 0) {
+        this.initializeDefaultTemplates();
+      }
+    } catch (error) {
+      console.error('Error loading data:', error);
+      this.showToast('Error loading data', 'error');
     }
-
-    init() {
-        this.loadData();
-        this.setupEventListeners();
-        this.checkLockScreen();
-        this.updateStats();
-        this.loadRecentActivity();
+  }
+  
+  saveData() {
+    try {
+      localStorage.setItem('shiroNotesData', JSON.stringify(this.data));
+    } catch (error) {
+      console.error('Error saving data:', error);
+      this.showToast('Error saving data', 'error');
     }
+  }
+  
+  // Theme Management
+  initializeTheme() {
+    const theme = this.data.settings.theme;
+    if (theme === 'auto') {
+      // Use system preference
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      this.setTheme(prefersDark ? 'dark' : 'light');
+    } else {
+      this.setTheme(theme);
+    }
+  }
+  
+  setTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    const themeIcon = document.getElementById('themeToggle').querySelector('i');
+    themeIcon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+  }
+  
+  toggleTheme() {
+    const currentTheme = document.documentElement.getAttribute('data-theme');
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    this.setTheme(newTheme);
+    this.data.settings.theme = newTheme;
+    this.saveData();
+  }
+  
+  // Lock Management
+  
+  
+  // Navigation
+  showPage(pageId) {
+    // Hide all pages
+    document.querySelectorAll('.page').forEach(page => {
+      page.classList.remove('active');
+    });
+    
+    // Remove active state from nav items
+    document.querySelectorAll('.nav-item').forEach(item => {
+      item.classList.remove('active');
+    });
+    
+    // Show selected page
+    const targetPage = document.getElementById(pageId + 'Page');
+    if (targetPage) {
+      targetPage.classList.add('active');
+      this.currentPage = pageId;
+      
+      // Update breadcrumb
+      const breadcrumb = document.getElementById('breadcrumb');
+      breadcrumb.textContent = this.getPageTitle(pageId);
+      
+      // Set active nav item
+      const navItem = document.querySelector(`[data-page="${pageId}"]`);
+      if (navItem) {
+        navItem.classList.add('active');
+      }
+      
+      // Load page content
+      this.loadPageContent(pageId);
+    }
+    
+    // Close mobile sidebar
+    if (window.innerWidth <= 768) {
+      this.closeMobileSidebar();
+    }
+  }
+  
+  getPageTitle(pageId) {
+    const titles = {
+      dashboard: 'Dashboard',
+      books: 'Books',
+      notes: 'All Notes',
+      canvas: 'Canvas',
+      audio: 'Audio Notes',
+      search: 'Search',
+      bookmarks: 'Bookmarks',
+      tags: 'Tags',
+      templates: 'Templates',
+      scheduler: 'Calendar',
+      export: 'Export',
+      security: 'Security',
+      profile: 'Profile'
+    };
+    return titles[pageId] || pageId;
+  }
+  
+  loadPageContent(pageId) {
+    const page = document.getElementById(pageId + 'Page');
+    
+    switch (pageId) {
+      case 'dashboard':
+        this.loadDashboard();
+        break;
+      case 'books':
+        this.loadBooksPage(page);
+        break;
+      case 'notes':
+        this.loadNotesPage(page);
+        break;
+      case 'canvas':
+        this.loadCanvasPage(page);
+        break;
+      case 'audio':
+        this.loadAudioPage(page);
+        break;
+      case 'search':
+        this.loadSearchPage(page);
+        break;
+      case 'bookmarks':
+        this.loadBookmarksPage(page);
+        break;
+      case 'tags':
+        this.loadTagsPage(page);
+        break;
+      case 'templates':
+        this.loadTemplatesPage(page);
+        break;
+      case 'scheduler':
+        this.loadSchedulerPage(page);
+        break;
+      case 'export':
+        exportModule.loadExportPage(page);
+        break;
+      case 'security':
+        this.loadSecurityPage(page);
+        break;
+      case 'profile':
+        this.loadProfilePage(page);
+        break;
+    }
+  }
+  
+  // Dashboard
+  loadDashboard() {
+    this.updateStats();
+    this.loadRecentBooks();
+    this.loadRecentNotes();
+  }
+  
+  updateStats() {
+    document.getElementById('totalBooks').textContent = this.data.books.length;
+    document.getElementById('totalNotes').textContent = this.data.notes.length;
+    document.getElementById('totalEvents').textContent = this.data.events.length;
+    document.getElementById('encryptedItems').textContent = this.getEncryptedItemsCount();
+    
+    // Update sidebar counts
+    document.getElementById('booksCount').textContent = this.data.books.length;
+    document.getElementById('notesCount').textContent = this.data.notes.length;
+  }
+  
+  getEncryptedItemsCount() {
+    let count = 0;
+    count += this.data.books.filter(book => book.encrypted).length;
+    count += this.data.notes.filter(note => note.encrypted).length;
+    return count;
+  }
+  
+  loadRecentBooks() {
+    const container = document.getElementById('recentBooks');
+    const recentBooks = this.data.books
+      .sort((a, b) => new Date(b.lastModified) - new Date(a.lastModified))
+      .slice(0, 3);
+    
+    if (recentBooks.length === 0) {
+      container.innerHTML = '<p class="text-center text-secondary">No books yet. Create your first book!</p>';
+      return;
+    }
+    
+    container.innerHTML = recentBooks.map(book => `
+      <div class="recent-item" onclick="app.openBook('${book.id}')">
+        <div class="item-icon">
+          <i class="fas fa-book"></i>
+        </div>
+        <div class="item-content">
+          <h4>${this.escapeHtml(book.title)}</h4>
+          <p>${this.escapeHtml(book.description || 'No description')}</p>
+          <small>Modified ${this.formatDate(book.lastModified)}</small>
+        </div>
+        ${book.encrypted ? '<i class="fas fa-lock item-lock"></i>' : ''}
+      </div>
+    `).join('');
+  }
+  
+  loadRecentNotes() {
+    const container = document.getElementById('recentNotes');
+    const recentNotes = this.data.notes
+      .sort((a, b) => new Date(b.lastModified) - new Date(a.lastModified))
+      .slice(0, 3);
+    
+    if (recentNotes.length === 0) {
+      container.innerHTML = '<p class="text-center text-secondary">No notes yet. Create your first note!</p>';
+      return;
+    }
+    
+    container.innerHTML = recentNotes.map(note => `
+      <div class="recent-item" onclick="app.openNote('${note.id}')">
+        <div class="item-icon">
+          <i class="fas fa-sticky-note"></i>
+        </div>
+        <div class="item-content">
+          <h4>${this.escapeHtml(note.title)}</h4>
+          <p>${this.escapeHtml(this.stripHtml(note.content).substring(0, 100))}...</p>
+          <small>Modified ${this.formatDate(note.lastModified)}</small>
+        </div>
+        ${note.encrypted ? '<i class="fas fa-lock item-lock"></i>' : ''}
+      </div>
+    `).join('');
+  }
+  
+  // Page loaders (basic structure)
+  loadBooksPage(page) {
+    page.innerHTML = `
+      <div class="page-header">
+        <h1>Books</h1>
+        <button class="btn btn--primary" onclick="app.createBook()">
+          <i class="fas fa-plus"></i> New Book
+        </button>
+      </div>
+      <div class="books-grid" id="booksGrid">
+        ${this.data.books.length === 0 ? 
+          '<div class="empty-state"><i class="fas fa-book"></i><h3>No books yet</h3><p>Create your first book to get started</p></div>' :
+          this.data.books.map(book => this.createBookCard(book)).join('')
+        }
+      </div>
+    `;
+  }
+  
+  loadNotesPage(page) {
+    page.innerHTML = `
+      <div class="page-header">
+        <h1>All Notes</h1>
+        <button class="btn btn--primary" onclick="app.createNote()">
+          <i class="fas fa-plus"></i> New Note
+        </button>
+      </div>
+      <div class="notes-grid" id="notesGrid">
+        ${this.data.notes.length === 0 ? 
+          '<div class="empty-state"><i class="fas fa-sticky-note"></i><h3>No notes yet</h3><p>Create your first note to get started</p></div>' :
+          this.data.notes.map(note => this.createNoteCard(note)).join('')
+        }
+      </div>
+    `;
+  }
+  
+  // In app.js
+loadCanvasPage(page) {
+    page.innerHTML = `
+      <div class="canvas-container">
+        <div class="canvas-toolbar">
+          <div class="tool-group">
+            <button class="tool-btn active" data-tool="pen" title="Pen (P)"><i class="fas fa-pen"></i></button>
+            <button class="tool-btn" data-tool="brush" title="Brush (B)"><i class="fas fa-paint-brush"></i></button>
+            <button class="tool-btn" data-tool="eraser" title="Eraser (E)"><i class="fas fa-eraser"></i></button>
+          </div>
+          <div class="tool-group">
+            <button class="tool-btn" data-tool="line" title="Line (L)"><i class="fas fa-minus"></i></button>
+            <button class="tool-btn" data-tool="rectangle" title="Rectangle (R)"><i class="far fa-square"></i></button>
+            <button class="tool-btn" data-tool="circle" title="Circle (C)"><i class="far fa-circle"></i></button>
+            <button class="tool-btn" data-tool="arrow" title="Arrow"><i class="fas fa-arrow-right"></i></button>
+          </div>
+          <div class="tool-group">
+            <label for="fillShapeToggle" class="toolbar-label" title="Fill shapes with the selected color">
+              <input type="checkbox" id="fillShapeToggle"> Fill
+            </label>
+          </div>
+          <div class="tool-group">
+            <input type="color" id="canvasColor" value="#000000" title="Color">
+            <input type="range" id="canvasSize" min="1" max="50" value="2" title="Size">
+          </div>
+          <div class="tool-group">
+            <button class="tool-btn" onclick="canvasModule.undo()" title="Undo (Ctrl+Z)"><i class="fas fa-undo"></i></button>
+            <button class="tool-btn" onclick="canvasModule.redo()" title="Redo (Ctrl+Y)"><i class="fas fa-redo"></i></button>
+            <button class="tool-btn" onclick="canvasModule.clear()" title="Clear Canvas"><i class="fas fa-trash"></i></button>
+          </div>
+          <div class="tool-group">
+            <button class="tool-btn" onclick="canvasModule.toggleGrid()" title="Toggle Grid (G)"><i class="fas fa-th"></i></button>
+            <button class="tool-btn" onclick="canvasModule.showLayersPanel()" title="Manage Layers"><i class="fas fa-layer-group"></i></button>
+          </div>
+          <div class="tool-group">
+            <button class="tool-btn" onclick="canvasModule.zoomIn()" title="Zoom In"><i class="fas fa-search-plus"></i></button>
+            <button class="tool-btn" onclick="canvasModule.zoomOut()" title="Zoom Out"><i class="fas fa-search-minus"></i></button>
+            <button class="tool-btn" onclick="canvasModule.resetZoom()" title="Reset View"><i class="fas fa-expand-arrows-alt"></i></button>
+          </div>
+          <div class="tool-group">
+            <button class="btn btn--secondary btn--sm" onclick="canvasModule.loadImage()"><i class="fas fa-upload"></i> Image</button>
+            <button class="btn btn--primary btn--sm" onclick="canvasModule.saveCanvas()"><i class="fas fa-save"></i> Save</button>
+          </div>
+        </div>
+        <div class="canvas-wrapper">
+          <canvas id="drawingCanvas"></canvas>
+        </div>
+      </div>
+    `;
+    
+    // Initialize canvas after DOM update
+    setTimeout(() => {
+      if (window.canvasModule) {
+        canvasModule.initCanvas();
+      }
+    }, 100);
+}
 
-    // ===== Data Management =====
-    loadData() {
-        this.data = {
-            user: JSON.parse(localStorage.getItem('shiro_user')) || {
-                name: 'Student',
-                email: '',
-                bio: '',
-                avatar: 'assets/default-avatar.png'
-            },
-            books: JSON.parse(localStorage.getItem('shiro_books')) || [],
-            folders: JSON.parse(localStorage.getItem('shiro_folders')) || [],
-            tags: JSON.parse(localStorage.getItem('shiro_tags')) || [],
-            drawings: JSON.parse(localStorage.getItem('shiro_drawings')) || [],
-            events: JSON.parse(localStorage.getItem('shiro_events')) || [],
-            settings: JSON.parse(localStorage.getItem('shiro_settings')) || {
-                theme: 'light',
-                passcode: null,
-                autoLock: false
+  
+  loadAudioPage(page) {
+    page.innerHTML = `
+      <div class="audio-container">
+        <div class="audio-recorder">
+          <h2>Voice Recorder</h2>
+          <div class="recorder-display">
+            <div class="waveform" id="waveform"></div>
+            <div class="timer" id="recordingTimer">00:00</div>
+          </div>
+          <div class="recorder-controls">
+            <button class="record-btn" id="recordBtn" onclick="audioModule.toggleRecording()">
+              <i class="fas fa-microphone"></i>
+            </button>
+            <button class="btn btn--secondary" id="stopBtn" onclick="audioModule.stopRecording()" disabled>
+              <i class="fas fa-stop"></i> Stop
+            </button>
+            <button class="btn btn--secondary" id="playBtn" onclick="audioModule.playRecording()" disabled>
+              <i class="fas fa-play"></i> Play
+            </button>
+          </div>
+        </div>
+        <div class="audio-library">
+          <h3>Audio Library</h3>
+          <div id="audioList">
+            ${this.data.notes.filter(note => note.type === 'audio').length === 0 ? 
+              '<p class="text-center text-secondary">No audio recordings yet</p>' :
+              this.data.notes.filter(note => note.type === 'audio').map(audio => this.createAudioCard(audio)).join('')
             }
-        };
-    }
-
-    saveData(key) {
-        localStorage.setItem(`shiro_${key}`, JSON.stringify(this.data[key]));
-    }
-
-    // ===== Event Listeners =====
-    setupEventListeners() {
-        // Navigation
-        document.querySelectorAll('.nav-item').forEach(item => {
-            item.addEventListener('click', (e) => {
-                const page = e.currentTarget.dataset.page;
-                if (page) {
-                    this.showPage(page);
-                }
-            });
-        });
-
-        // Sidebar toggle
-        const sidebarToggle = document.getElementById('sidebarToggle');
-        if (sidebarToggle) {
-            sidebarToggle.addEventListener('click', () => {
-                document.getElementById('sidebar').classList.toggle('open');
-            });
+          </div>
+        </div>
+      </div>
+    `;
+    
+    // Initialize audio module
+    setTimeout(() => {
+      if (window.audioModule) {
+        audioModule.init();
+      }
+    }, 100);
+  }
+  
+  // Utility functions
+  escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+  
+  stripHtml(html) {
+    const div = document.createElement('div');
+    div.innerHTML = html;
+    return div.textContent || div.innerText || '';
+  }
+  
+  formatDate(dateString) {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diff = now - date;
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    
+    if (days === 0) return 'Today';
+    if (days === 1) return 'Yesterday';
+    if (days < 7) return `${days} days ago`;
+    return date.toLocaleDateString();
+  }
+  
+  generateId() {
+    return 'id_' + Math.random().toString(36).substr(2, 9);
+  }
+  
+  // Toast notifications
+  showToast(message, type = 'info', duration = 3000) {
+    const container = document.getElementById('toastContainer');
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    
+    const icons = {
+      success: 'fas fa-check-circle',
+      error: 'fas fa-exclamation-circle',
+      warning: 'fas fa-exclamation-triangle',
+      info: 'fas fa-info-circle'
+    };
+    
+    toast.innerHTML = `
+      <i class="toast-icon ${icons[type]}"></i>
+      <div class="toast-content">
+        <div class="toast-message">${message}</div>
+      </div>
+      <button class="toast-close" onclick="this.parentElement.remove()">
+        <i class="fas fa-times"></i>
+      </button>
+    `;
+    
+    container.appendChild(toast);
+    
+    // Animate in
+    setTimeout(() => toast.classList.add('visible'), 100);
+    
+    // Auto remove
+    setTimeout(() => {
+      toast.classList.remove('visible');
+      setTimeout(() => toast.remove(), 300);
+    }, duration);
+  }
+  
+  // Event listeners
+  setupEventListeners() {
+    // Navigation
+    document.querySelectorAll('.nav-item[data-page]').forEach(item => {
+      item.addEventListener('click', (e) => {
+        e.preventDefault();
+        const page = item.getAttribute('data-page');
+        this.showPage(page);
+      });
+    });
+    
+    // Theme toggle
+    document.getElementById('themeToggle').addEventListener('click', () => {
+      this.toggleTheme();
+    });
+    
+    // Mobile menu
+    document.getElementById('mobileMenuBtn').addEventListener('click', () => {
+      this.toggleMobileSidebar();
+    });
+    
+    // Sidebar toggle
+    document.getElementById('sidebarToggle').addEventListener('click', () => {
+      this.toggleSidebar();
+    });
+    
+    
+    // Quick note
+    document.getElementById('quickNote').addEventListener('click', () => {
+      this.showQuickNote();
+    });
+    
+    // Full screen
+    document.getElementById('fullScreenBtn').addEventListener('click', () => {
+      this.toggleFullScreen();
+    });
+    
+    // Lock screen
+    this.setupLockScreen();
+    
+    // Quick search
+    document.getElementById('quickSearch').addEventListener('input', (e) => {
+      this.handleQuickSearch(e.target.value);
+    });
+    
+    // Activity tracking for auto-lock
+    ['mousedown', 'keydown', 'scroll', 'touchstart'].forEach(event => {
+      document.addEventListener(event, () => {
+        this.resetLockTimer();
+      }, { passive: true });
+    });
+    
+    // Quick actions
+    document.querySelectorAll('.quick-action[data-action]').forEach(action => {
+      action.addEventListener('click', (e) => {
+        const actionType = action.getAttribute('data-action');
+        this.handleQuickAction(actionType);
+      });
+    });
+  }
+  
+  
+  setupKeyboardShortcuts() {
+    document.addEventListener('keydown', (e) => {
+      if (this.isLocked) return;
+      
+      // Ctrl/Cmd + key combinations
+      if (e.ctrlKey || e.metaKey) {
+        switch (e.key) {
+          case 'n':
+            e.preventDefault();
+            this.showQuickNote();
+            break;
+          case 'b':
+            e.preventDefault();
+            this.showPage('books');
+            break;
+          case 'f':
+            e.preventDefault();
+            document.getElementById('quickSearch').focus();
+            break;
+          case 'l':
+            e.preventDefault();
+            this.lockApp();
+            break;
         }
+      }
+      
+      // Escape key
+      if (e.key === 'Escape') {
+        this.closeModals();
+      }
+    });
+  }
+  
+  // UI Helper methods
+  toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    sidebar.classList.toggle('collapsed');
+    this.sidebarCollapsed = !this.sidebarCollapsed;
+  }
+  
+  toggleMobileSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    sidebar.classList.toggle('open');
+  }
+  
+  closeMobileSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    sidebar.classList.remove('open');
+  }
+  
+  showQuickNote() {
+    const popup = document.getElementById('quickNotePopup');
+    popup.classList.remove('hidden');
+    setTimeout(() => popup.classList.add('visible'), 10);
+    
+    // Setup quick note handlers
+    document.getElementById('closeQuickNote').onclick = () => this.hideQuickNote();
+    document.getElementById('cancelQuickNote').onclick = () => this.hideQuickNote();
+    document.getElementById('saveQuickNote').onclick = () => this.saveQuickNote();
+  }
+  
+  hideQuickNote() {
+    const popup = document.getElementById('quickNotePopup');
+    popup.classList.remove('visible');
+    setTimeout(() => {
+      popup.classList.add('hidden');
+      document.getElementById('quickNoteTitle').value = '';
+      document.getElementById('quickNoteContent').value = '';
+    }, 300);
+  }
+  
+  saveQuickNote() {
+    const title = document.getElementById('quickNoteTitle').value || 'Quick Note';
+    const content = document.getElementById('quickNoteContent').value;
+    
+    if (!content.trim()) {
+      this.showToast('Please enter some content', 'warning');
+      return;
+    }
+    
+    const note = {
+      id: this.generateId(),
+      title,
+      content,
+      type: 'text',
+      created: new Date().toISOString(),
+      lastModified: new Date().toISOString(),
+      tags: [],
+      bookmarked: false,
+      encrypted: false
+    };
+    
+    this.data.notes.push(note);
+    this.saveData();
+    this.updateUI();
+    this.hideQuickNote();
+    this.showToast('Note saved successfully!', 'success');
+  }
+  
+  toggleFullScreen() {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen();
+      document.getElementById('fullScreenBtn').innerHTML = '<i class="fas fa-compress"></i>';
+    } else {
+      document.exitFullscreen();
+      document.getElementById('fullScreenBtn').innerHTML = '<i class="fas fa-expand"></i>';
+    }
+  }
+  
+  closeModals() {
+    // Close quick note if open
+    const quickNote = document.getElementById('quickNotePopup');
+    if (quickNote.classList.contains('visible')) {
+      this.hideQuickNote();
+    }
+  }
+  
+  handleQuickSearch(query) {
+    if (query.length < 2) return;
+    
+    // This will be enhanced by the search module
+    console.log('Quick search:', query);
+  }
+  
+  handleQuickAction(action) {
+    switch (action) {
+      case 'newBook':
+        this.createBook();
+        break;
+      case 'newNote':
+        this.createNote();
+        break;
+      case 'newCanvas':
+        this.showPage('canvas');
+        break;
+      case 'recordAudio':
+        this.showPage('audio');
+        break;
+    }
+  }
+  
+  updateUI() {
+    this.updateStats();
+    if (this.currentPage === 'dashboard') {
+      this.loadDashboard();
+    }
+  }
+  
+  // Placeholder methods for other modules to implement
+  createBook() {
+    this.showToast('Book creation will be implemented in the editor module', 'info');
+    this.showPage('books');
+  }
+  
+  createNote() {
+    this.showToast('Note creation will be implemented in the editor module', 'info');
+    this.showPage('notes');
+  }
+  
+  openBook(bookId) {
+    console.log('Opening book:', bookId);
+    this.showToast('Book editing will be implemented in the editor module', 'info');
+  }
+  
+  // In app.js
 
-        // Theme toggle
-        document.getElementById('themeToggle').addEventListener('click', () => {
-            this.toggleTheme();
-        });
+  openNote(noteId) {
+    console.log('Opening note:', noteId);
+    this.showToast('Note editing will be implemented in the editor module', 'info');
+  }
 
-        // Dashboard actions
-        document.getElementById('newBookBtn')?.addEventListener('click', () => this.createBook());
-        document.getElementById('newNoteBtn')?.addEventListener('click', () => this.createQuickNote());
-        document.getElementById('createBookBtn')?.addEventListener('click', () => this.createBook());
-        
-        // Profile
-        document.getElementById('saveProfileBtn')?.addEventListener('click', () => this.saveProfile());
-        document.getElementById('uploadAvatarBtn')?.addEventListener('click', () => {
-            document.getElementById('avatarUpload').click();
-        });
-        document.getElementById('avatarUpload')?.addEventListener('change', (e) => this.uploadAvatar(e));
-        document.getElementById('chooseAvatarBtn')?.addEventListener('click', () => this.showAvatarModal());
+  // ===================================================================
+  // == PASTE THE NEW SECURE DELETE FUNCTION HERE ======================
+  // ===================================================================
+  async deleteItem(itemId, itemType) {
+    let item;
+    let itemIndex;
+    let dataArray;
 
-        // Settings
-        document.getElementById('themeSelect')?.addEventListener('change', (e) => {
-            this.setTheme(e.target.value);
-        });
-        document.getElementById('setPasscodeBtn')?.addEventListener('click', () => this.setPasscode());
-        document.getElementById('exportDataBtn')?.addEventListener('click', () => this.exportAllData());
-        document.getElementById('importDataBtn')?.addEventListener('click', () => {
-            document.getElementById('importDataInput').click();
-        });
-        document.getElementById('importDataInput')?.addEventListener('change', (e) => this.importData(e));
-
-        // Search
-        document.getElementById('globalSearch')?.addEventListener('input', (e) => {
-            this.globalSearch(e.target.value);
-        });
-        document.getElementById('bookSearch')?.addEventListener('input', (e) => {
-            this.filterBooks(e.target.value);
-        });
-        document.getElementById('bookSort')?.addEventListener('change', (e) => {
-            this.sortBooks(e.target.value);
-        });
-
-        // Folders and Tags
-        document.getElementById('createFolderBtn')?.addEventListener('click', () => this.createFolder());
-        document.getElementById('createTagBtn')?.addEventListener('click', () => this.createTag());
-
-        // Modal handlers
-        document.querySelectorAll('.close-modal, .cancel-modal').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const modal = e.target.closest('.modal');
-                if (modal) modal.classList.remove('active');
-            });
-        });
-
-        // Close modals on backdrop click
-        document.querySelectorAll('.modal').forEach(modal => {
-            modal.addEventListener('click', (e) => {
-                if (e.target === modal) {
-                    modal.classList.remove('active');
-                }
-            });
-        });
+    if (itemType === 'book') {
+        dataArray = this.data.books;
+    } else { // 'note', 'audio', etc.
+        dataArray = this.data.notes;
     }
 
-    // ===== Lock Screen =====
-    checkLockScreen() {
-        const passcode = this.data.settings.passcode;
-        const lockScreen = document.getElementById('lockScreen');
-        
-        if (passcode) {
-            lockScreen.classList.remove('hidden');
-            document.getElementById('appContainer').style.display = 'none';
-            this.setupLockScreen();
-        } else {
-            lockScreen.classList.add('hidden');
-            document.getElementById('appContainer').style.display = 'flex';
-        }
+    itemIndex = dataArray.findIndex(i => i.id === itemId);
+    if (itemIndex === -1) {
+        this.showToast('Item not found.', 'error');
+        return;
     }
+    item = dataArray[itemIndex];
 
-    setupLockScreen() {
-        const input = document.getElementById('passcodeInput');
-        const dots = document.querySelectorAll('.passcode-dots .dot');
-        const unlockBtn = document.getElementById('unlockBtn');
-
-        input.addEventListener('input', (e) => {
-            const value = e.target.value;
-            dots.forEach((dot, i) => {
-                if (i < value.length) {
-                    dot.classList.add('filled');
-                } else {
-                    dot.classList.remove('filled');
-                }
-            });
-        });
-
-        unlockBtn.addEventListener('click', () => {
-            if (input.value === this.data.settings.passcode) {
-                document.getElementById('lockScreen').classList.add('hidden');
-                document.getElementById('appContainer').style.display = 'flex';
-                input.value = '';
-                dots.forEach(dot => dot.classList.remove('filled'));
-            } else {
-                this.showToast('Incorrect passcode', 'error');
-                input.value = '';
-                dots.forEach(dot => dot.classList.remove('filled'));
-            }
-        });
-
-        input.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                unlockBtn.click();
-            }
-        });
-    }
-
-    // ===== Navigation =====
-    showPage(pageName) {
-        // Hide all pages
-        document.querySelectorAll('.page').forEach(page => {
-            page.classList.remove('active');
-        });
-
-        // Show selected page
-        const page = document.getElementById(`${pageName}Page`);
-        if (page) {
-            page.classList.add('active');
-        }
-
-        // Update nav items
-        document.querySelectorAll('.nav-item').forEach(item => {
-            item.classList.remove('active');
-        });
-        document.querySelector(`[data-page="${pageName}"]`)?.classList.add('active');
-
-        this.currentPage = pageName;
-
-        // Load page data
-        switch (pageName) {
-            case 'books':
-                this.loadBooks();
-                break;
-            case 'folders':
-                this.loadFolders();
-                break;
-            case 'tags':
-                this.loadTags();
-                break;
-            case 'encrypted':
-                this.loadEncrypted();
-                break;
-            case 'profile':
-                this.loadProfile();
-                break;
-            case 'settings':
-                this.loadSettings();
-                break;
-        }
-    }
-
-    // ===== Theme Management =====
-    toggleTheme() {
-        const body = document.body;
-        const icon = document.querySelector('#themeToggle i');
-        
-        if (body.classList.contains('light-theme')) {
-            body.classList.remove('light-theme');
-            body.classList.add('dark-theme');
-            icon.classList.remove('fa-moon');
-            icon.classList.add('fa-sun');
-            this.data.settings.theme = 'dark';
-        } else {
-            body.classList.remove('dark-theme');
-            body.classList.add('light-theme');
-            icon.classList.remove('fa-sun');
-            icon.classList.add('fa-moon');
-            this.data.settings.theme = 'light';
-        }
-        
-        this.saveData('settings');
-    }
-
-    setTheme(theme) {
-        const body = document.body;
-        const icon = document.querySelector('#themeToggle i');
-        
-        body.classList.remove('light-theme', 'dark-theme');
-        
-        if (theme === 'dark') {
-            body.classList.add('dark-theme');
-            icon.classList.remove('fa-moon');
-            icon.classList.add('fa-sun');
-        } else if (theme === 'light') {
-            body.classList.add('light-theme');
-            icon.classList.remove('fa-sun');
-            icon.classList.add('fa-moon');
-        } else if (theme === 'auto') {
-            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-            body.classList.add(prefersDark ? 'dark-theme' : 'light-theme');
-            icon.classList.toggle('fa-sun', prefersDark);
-            icon.classList.toggle('fa-moon', !prefersDark);
-        }
-        
-        this.data.settings.theme = theme;
-        this.saveData('settings');
-    }
-
-    // ===== Books Management =====
-    createBook() {
-        const title = prompt('Enter book title:');
-        if (!title) return;
-
-        const book = {
-            id: Date.now().toString(),
-            title: title,
-            icon: 'fa-book',
-            color: this.getRandomGradient(),
-            chapters: [],
-            encrypted: false,
-            createdAt: new Date().toISOString(),
-            modifiedAt: new Date().toISOString()
-        };
-
-        this.data.books.push(book);
-        this.saveData('books');
-        this.loadBooks();
-        this.updateStats();
-        this.showToast('Book created successfully', 'success');
-    }
-
-    loadBooks() {
-        const container = document.getElementById('booksList');
-        if (!container) return;
-
-        if (this.data.books.length === 0) {
-            container.innerHTML = `
-                <div class="empty-state">
-                    <i class="fas fa-book"></i>
-                    <p>No books yet</p>
-                    <button class="btn-primary" onclick="app.createBook()">Create Your First Book</button>
-                </div>
-            `;
+    // If item is encrypted, require Master Password
+    if (item.encrypted) {
+        if (!this.data.settings.masterPasswordHash) {
+            this.showToast('A Master Password is required to delete encrypted items. Please set one in Security.', 'error');
             return;
         }
 
-        container.innerHTML = this.data.books.map(book => `
-            <div class="book-card" onclick="app.openBook('${book.id}')">
-                <div class="book-cover" style="background: ${book.color}">
-                    <i class="fas ${book.icon}"></i>
-                    ${book.encrypted ? '<span class="encrypted-badge"><i class="fas fa-lock"></i></span>' : ''}
-                </div>
-                <div class="book-info">
-                    <h3 class="book-title">${book.title}</h3>
-                    <div class="book-meta">
-                        <span><i class="fas fa-file-alt"></i> ${book.chapters.length} chapters</span>
-                        <span><i class="fas fa-clock"></i> ${this.formatDate(book.modifiedAt)}</span>
-                    </div>
-                </div>
+        const password = prompt("This item is encrypted. Please enter your Master Password to delete it:");
+        if (!password) return; // User cancelled
+
+        try {
+            const enteredHash = await cryptoModule.hash(password);
+            if (enteredHash !== this.data.settings.masterPasswordHash) {
+                this.showToast('Incorrect Master Password. Deletion cancelled.', 'error');
+                return;
+            }
+        } catch (e) {
+            this.showToast('Could not verify password. Deletion cancelled.', 'error');
+            return;
+        }
+    }
+    // Standard confirmation for unencrypted items
+    else if (!confirm(`Are you sure you want to delete "${item.title}"?`)) {
+        return;
+    }
+
+    // Proceed with deletion
+    dataArray.splice(itemIndex, 1);
+    this.saveData();
+    this.updateUI();
+    this.showToast('Item deleted successfully.', 'success');
+    
+    // Refresh the current page view to show the item is gone
+    this.loadPageContent(this.currentPage);
+  }
+  
+  createBookCard(book) {
+  let coverHtml = '';
+  // Default to a book icon if cover is missing for older books
+  const cover = book.cover || { type: 'icon', value: 'fas fa-book' };
+
+  if (cover.type === 'image') {
+    coverHtml = `<img src="${cover.value}" alt="Cover">`;
+  } else if (cover.type === 'emoji') {
+    coverHtml = `<span class="book-cover-emoji">${cover.value}</span>`;
+  } else { // 'icon' is the default
+    coverHtml = `<i class="${cover.value}"></i>`;
+  }
+
+  return `
+    <div class="book-card" onclick="app.openBook('${book.id}')">
+      <div class="book-cover">
+        ${coverHtml}
+      </div>
+      <div class="book-info">
+        <h3>${this.escapeHtml(book.title)}</h3>
+        <p>${this.escapeHtml(book.description || 'No description')}</p>
+        <small>Modified ${this.formatDate(book.lastModified)}</small>
+      </div>
+      ${book.encrypted ? '<div class="book-lock"><i class="fas fa-lock"></i></div>' : ''}
+    </div>
+  `;
+}
+
+  
+  createNoteCard(note) {
+    return `
+      <div class="note-card" onclick="app.openNote('${note.id}')">
+        <div class="note-header">
+          <h4>${this.escapeHtml(note.title)}</h4>
+          ${note.encrypted ? '<i class="fas fa-lock"></i>' : ''}
+        </div>
+        <div class="note-content">
+          <p>${this.escapeHtml(this.stripHtml(note.content).substring(0, 150))}...</p>
+        </div>
+        <div class="note-footer">
+          <small>Modified ${this.formatDate(note.lastModified)}</small>
+          ${note.bookmarked ? '<i class="fas fa-bookmark"></i>' : ''}
+        </div>
+      </div>
+    `;
+  }
+  
+  createAudioCard(audio) {
+    return `
+      <div class="audio-card">
+        <div class="audio-info">
+          <h4>${this.escapeHtml(audio.title)}</h4>
+          <small>Recorded ${this.formatDate(audio.created)}</small>
+        </div>
+        <div class="audio-controls">
+          <button class="btn btn--sm" onclick="audioModule.playAudio('${audio.id}')">
+            <i class="fas fa-play"></i>
+          </button>
+        </div>
+      </div>
+    `;
+  }
+  
+  initializeDefaultTemplates() {
+    const defaultTemplates = [
+      {
+        id: this.generateId(),
+        name: 'Meeting Notes',
+        type: 'text',
+        content: `# Meeting Notes\n\n**Date:** \n**Attendees:** \n**Agenda:** \n\n## Discussion Points\n\n## Action Items\n\n## Next Steps\n`,
+        description: 'Template for meeting notes'
+      },
+      {
+        id: this.generateId(),
+        name: 'Project Plan',
+        type: 'text',
+        content: `# Project Plan\n\n**Project Name:** \n**Start Date:** \n**End Date:** \n**Team Members:** \n\n## Objectives\n\n## Milestones\n\n## Resources Needed\n\n## Risks & Mitigation\n`,
+        description: 'Template for project planning'
+      },
+      {
+        id: this.generateId(),
+        name: 'Daily Journal',
+        type: 'text',
+        content: `# Daily Journal - {{date}}\n\n## What I accomplished today:\n\n## What I learned:\n\n## What I'm grateful for:\n\n## Tomorrow's priorities:\n`,
+        description: 'Template for daily journaling'
+      }
+    ];
+    
+    this.data.templates = defaultTemplates;
+    this.saveData();
+  }
+  
+  // Additional placeholder page loaders
+  loadSearchPage(page) {
+    page.innerHTML = `
+      <div class="search-container">
+        <div class="search-header">
+          <h1>Advanced Search</h1>
+          <div class="search-box">
+            <input type="text" placeholder="Search notes, books, and more..." id="advancedSearch">
+            <button class="search-btn"><i class="fas fa-search"></i></button>
+          </div>
+        </div>
+        <div class="search-filters">
+          <button class="filter-btn active" data-filter="all">All</button>
+          <button class="filter-btn" data-filter="books">Books</button>
+          <button class="filter-btn" data-filter="notes">Notes</button>
+          <button class="filter-btn" data-filter="audio">Audio</button>
+        </div>
+        <div class="search-results" id="searchResults">
+          <p class="text-center text-secondary">Enter a search term to begin</p>
+        </div>
+      </div>
+    `;
+  }
+  
+  loadBookmarksPage(page) {
+    const bookmarkedItems = [
+      ...this.data.books.filter(book => book.bookmarked),
+      ...this.data.notes.filter(note => note.bookmarked)
+    ].sort((a, b) => new Date(b.lastModified) - new Date(a.lastModified));
+    
+    page.innerHTML = `
+      <div class="bookmarks-container">
+        <h1>Bookmarks</h1>
+        <div class="bookmarks-list">
+          ${bookmarkedItems.length === 0 ? 
+            '<div class="empty-state"><i class="fas fa-bookmark"></i><h3>No bookmarks yet</h3><p>Bookmark your favorite items to find them here</p></div>' :
+            bookmarkedItems.map(item => this.createBookmarkCard(item)).join('')
+          }
+        </div>
+      </div>
+    `;
+  }
+  
+  loadTagsPage(page) {
+    const allTags = this.getAllTags();
+    
+    page.innerHTML = `
+      <div class="tags-container">
+        <h1>Tags</h1>
+        <div class="tags-cloud">
+          ${allTags.length === 0 ? 
+            '<div class="empty-state"><i class="fas fa-tags"></i><h3>No tags yet</h3><p>Tags will appear here as you create content</p></div>' :
+            allTags.map(tag => `<span class="tag-bubble" onclick="app.searchByTag('${tag.name}')">${tag.name} (${tag.count})</span>`).join('')
+          }
+        </div>
+      </div>
+    `;
+  }
+  
+  loadTemplatesPage(page) {
+    page.innerHTML = `
+      <div class="templates-container">
+        <div class="page-header">
+          <h1>Templates</h1>
+          <button class="btn btn--primary" onclick="app.createTemplate()">
+            <i class="fas fa-plus"></i> New Template
+          </button>
+        </div>
+        <div class="templates-grid">
+          ${this.data.templates.map(template => this.createTemplateCard(template)).join('')}
+        </div>
+      </div>
+    `;
+  }
+  
+  loadSchedulerPage(page) {
+    page.innerHTML = `
+      <div class="scheduler-container">
+        <div class="scheduler-header">
+          <h1>Calendar</h1>
+          <div class="view-controls">
+            <button class="btn btn--secondary btn--sm active" data-view="month">Month</button>
+            <button class="btn btn--secondary btn--sm" data-view="week">Week</button>
+            <button class="btn btn--secondary btn--sm" data-view="day">Day</button>
+          </div>
+          <button class="btn btn--primary" onclick="schedulerModule.createEvent()">
+            <i class="fas fa-plus"></i> New Event
+          </button>
+        </div>
+        <div class="calendar-wrapper" id="calendarWrapper">
+          <!-- Calendar will be rendered here -->
+        </div>
+      </div>
+    `;
+  }
+  
+  loadExportPage(page) {
+    page.innerHTML = `
+      <div class="export-container">
+        <h1>Export &amp; Share</h1>
+        <div class="export-options">
+          <div class="export-section">
+            <h3>Export Books</h3>
+            <div class="export-formats">
+              <button class="export-btn" onclick="exportModule.exportToPDF('books')">
+                <i class="fas fa-file-pdf"></i> Export as PDF
+              </button>
+              <button class="export-btn" onclick="exportModule.exportToEPUB()">
+                <i class="fas fa-book"></i> Export as EPUB
+              </button>
+              <button class="export-btn" onclick="exportModule.exportToHTML()">
+                <i class="fas fa-code"></i> Export as HTML
+              </button>
             </div>
-        `).join('');
-    }
+          </div>
+          <div class="export-section">
+            <h3>Backup Data</h3>
+            <div class="backup-options">
+              <button class="export-btn" onclick="exportModule.backupData()">
+                <i class="fas fa-download"></i> Download Backup
+              </button>
+              <button class="export-btn" onclick="exportModule.restoreData()">
+                <i class="fas fa-upload"></i> Restore Backup
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+  
+loadSecurityPage(page) {
+    const hasMasterPassword = !!this.data.settings.masterPasswordHash;
 
-    openBook(bookId) {
-        const book = this.data.books.find(b => b.id === bookId);
-        if (!book) return;
-
-        this.currentBook = book;
-        document.getElementById('bookTitle').textContent = book.title;
-        this.loadChapters();
-        this.showPage('bookDetail');
-    }
-
-    loadChapters() {
-        const container = document.getElementById('chaptersList');
-        if (!container || !this.currentBook) return;
-
-        const addChapterBtn = document.getElementById('addChapterBtn');
-        if (addChapterBtn) {
-            addChapterBtn.onclick = () => this.createChapter();
-        }
-
-        if (this.currentBook.chapters.length === 0) {
-            container.innerHTML = `
-                <div class="empty-state">
-                    <i class="fas fa-file-alt"></i>
-                    <p>No chapters yet</p>
-                    <button class="btn-primary" onclick="app.createChapter()">Add First Chapter</button>
+    page.innerHTML = `
+      <div class="security-container">
+        <div class="page-header">
+            <h1>Master Password & Encryption</h1>
+            <p>Set one strong password to encrypt and decrypt all your sensitive data.</p>
+        </div>
+        <div class="security-grid">
+            <div class="security-card">
+                <div class="card-header">
+                    <i class="fas fa-key"></i>
+                    <h3>Master Password</h3>
                 </div>
-            `;
-            return;
-        }
-
-        container.innerHTML = this.currentBook.chapters.map(chapter => `
-            <div class="chapter-item" onclick="app.openChapter('${chapter.id}')">
-                <div class="chapter-info">
-                    <i class="fas fa-file-alt"></i>
-                    <div>
-                        <h4>${chapter.title}</h4>
-                        <p style="font-size: 0.875rem; color: var(--text-secondary)">
-                            ${chapter.notes.length} notes • ${this.formatDate(chapter.modifiedAt)}
-                        </p>
+                <div class="card-body">
+                    <p>
+                        This single password is the key to all your encrypted items.
+                        <strong>If you forget it, your encrypted data cannot be recovered.</strong>
+                    </p>
+                    <div class="setting-item">
+                        <span>Status</span>
+                        <span class="badge ${hasMasterPassword ? 'status--success' : 'status--error'}">
+                            ${hasMasterPassword ? 'Set' : 'Not Set'}
+                        </span>
                     </div>
-                </div>
-                <div class="chapter-actions">
-                    ${chapter.encrypted ? '<i class="fas fa-lock" style="color: var(--warning)"></i>' : ''}
-                    <button class="icon-btn" onclick="event.stopPropagation(); app.deleteChapter('${chapter.id}')">
-                        <i class="fas fa-trash"></i>
+                    <button class="btn btn--primary" onclick="securityModule.setupMasterPassword()">
+                        ${hasMasterPassword ? 'Change Master Password' : 'Set Master Password'}
                     </button>
                 </div>
             </div>
-        `).join('');
-    }
-
-    createChapter() {
-        if (!this.currentBook) return;
-
-        const title = prompt('Enter chapter title:');
-        if (!title) return;
-
-        const chapter = {
-            id: Date.now().toString(),
-            title: title,
-            notes: [],
-            encrypted: false,
-            createdAt: new Date().toISOString(),
-            modifiedAt: new Date().toISOString()
-        };
-
-        this.currentBook.chapters.push(chapter);
-        this.currentBook.modifiedAt = new Date().toISOString();
-        this.saveData('books');
-        this.loadChapters();
-        this.showToast('Chapter created successfully', 'success');
-    }
-
-    openChapter(chapterId) {
-        if (!this.currentBook) return;
-
-        const chapter = this.currentBook.chapters.find(c => c.id === chapterId);
-        if (!chapter) return;
-
-        // For simplicity, open the first note or create one
-        if (chapter.notes.length > 0) {
-            this.openNote(this.currentBook.id, chapterId, chapter.notes[0].id);
-        } else {
-            const note = {
-                id: Date.now().toString(),
-                title: 'Untitled Note',
-                content: '',
-                encrypted: false,
-                bookmarked: false,
-                tags: [],
-                createdAt: new Date().toISOString(),
-                modifiedAt: new Date().toISOString()
-            };
-            chapter.notes.push(note);
-            this.saveData('books');
-            this.openNote(this.currentBook.id, chapterId, note.id);
-        }
-    }
-
-    deleteChapter(chapterId) {
-        if (!this.currentBook) return;
-        if (!confirm('Are you sure you want to delete this chapter?')) return;
-
-        const index = this.currentBook.chapters.findIndex(c => c.id === chapterId);
-        if (index > -1) {
-            this.currentBook.chapters.splice(index, 1);
-            this.currentBook.modifiedAt = new Date().toISOString();
-            this.saveData('books');
-            this.loadChapters();
-            this.showToast('Chapter deleted', 'success');
-        }
-    }
-
-    openNote(bookId, chapterId, noteId) {
-        const book = this.data.books.find(b => b.id === bookId);
-        if (!book) return;
-
-        const chapter = book.chapters.find(c => c.id === chapterId);
-        if (!chapter) return;
-
-        const note = chapter.notes.find(n => n.id === noteId);
-        if (!note) return;
-
-        this.currentNote = { book, chapter, note };
-        
-        // Load note in editor
-        document.getElementById('noteTitle').value = note.title;
-        document.getElementById('noteEditor').innerHTML = note.content || '';
-        
-        // Update bookmark button
-        const bookmarkBtn = document.getElementById('bookmarkNoteBtn');
-        if (bookmarkBtn) {
-            const icon = bookmarkBtn.querySelector('i');
-            icon.className = note.bookmarked ? 'fas fa-bookmark' : 'far fa-bookmark';
-        }
-
-        // Setup editor back button
-        document.getElementById('editorBackBtn').onclick = () => {
-            this.openBook(bookId);
-        };
-
-        this.showPage('editor');
-    }
-
-    createQuickNote() {
-        const title = prompt('Enter note title:');
-        if (!title) return;
-
-        // Create a default book if none exists
-        if (this.data.books.length === 0) {
-            this.data.books.push({
-                id: Date.now().toString(),
-                title: 'Quick Notes',
-                icon: 'fa-sticky-note',
-                color: this.getRandomGradient(),
-                chapters: [],
-                encrypted: false,
-                createdAt: new Date().toISOString(),
-                modifiedAt: new Date().toISOString()
-            });
-        }
-
-        const book = this.data.books[0];
-        
-        // Create a default chapter if none exists
-        if (book.chapters.length === 0) {
-            book.chapters.push({
-                id: Date.now().toString(),
-                title: 'Notes',
-                notes: [],
-                encrypted: false,
-                createdAt: new Date().toISOString(),
-                modifiedAt: new Date().toISOString()
-            });
-        }
-
-        const chapter = book.chapters[0];
-        
-        const note = {
-            id: Date.now().toString(),
-            title: title,
-            content: '',
-            encrypted: false,
-            bookmarked: false,
-            tags: [],
-            createdAt: new Date().toISOString(),
-            modifiedAt: new Date().toISOString()
-        };
-
-        chapter.notes.push(note);
-        this.saveData('books');
-        this.openNote(book.id, chapter.id, note.id);
-        this.showToast('Note created successfully', 'success');
-    }
-
-    // ===== Folders & Tags =====
-    createFolder() {
-        const name = prompt('Enter folder name:');
-        if (!name) return;
-
-        const folder = {
-            id: Date.now().toString(),
-            name: name,
-            items: [],
-            createdAt: new Date().toISOString()
-        };
-
-        this.data.folders.push(folder);
-        this.saveData('folders');
-        this.loadFolders();
-        this.showToast('Folder created successfully', 'success');
-    }
-
-    loadFolders() {
-        const container = document.getElementById('foldersList');
-        if (!container) return;
-
-        if (this.data.folders.length === 0) {
-            container.innerHTML = `
-                <div class="empty-state">
-                    <i class="fas fa-folder"></i>
-                    <p>No folders yet</p>
-                    <button class="btn-primary" onclick="app.createFolder()">Create Your First Folder</button>
-                </div>
-            `;
-            return;
-        }
-
-        container.innerHTML = this.data.folders.map(folder => `
-            <div class="folder-card" onclick="app.openFolder('${folder.id}')">
-                <i class="fas fa-folder"></i>
-                <h3>${folder.name}</h3>
-                <p>${folder.items.length} items</p>
-            </div>
-        `).join('');
-    }
-
-    createTag() {
-        const name = prompt('Enter tag name:');
-        if (!name) return;
-
-        const tag = {
-            id: Date.now().toString(),
-            name: name,
-            color: this.getRandomColor(),
-            createdAt: new Date().toISOString()
-        };
-
-        this.data.tags.push(tag);
-        this.saveData('tags');
-        this.loadTags();
-        this.showToast('Tag created successfully', 'success');
-    }
-
-    loadTags() {
-        const container = document.getElementById('tagsList');
-        if (!container) return;
-
-        if (this.data.tags.length === 0) {
-            container.innerHTML = `
-                <div class="empty-state">
-                    <i class="fas fa-tags"></i>
-                    <p>No tags yet</p>
-                    <button class="btn-primary" onclick="app.createTag()">Create Your First Tag</button>
-                </div>
-            `;
-            return;
-        }
-
-        container.innerHTML = this.data.tags.map(tag => `
-            <div class="tag-card" onclick="app.openTag('${tag.id}')">
-                <i class="fas fa-tag" style="color: ${tag.color}"></i>
-                <h3>${tag.name}</h3>
-            </div>
-        `).join('');
-    }
-
-    // ===== Profile =====
-    loadProfile() {
-        document.getElementById('profileAvatar').src = this.data.user.avatar;
-        document.getElementById('userName').value = this.data.user.name || '';
-        document.getElementById('userEmail').value = this.data.user.email || '';
-        document.getElementById('userBio').value = this.data.user.bio || '';
-    }
-
-    saveProfile() {
-        this.data.user.name = document.getElementById('userName').value;
-        this.data.user.email = document.getElementById('userEmail').value;
-        this.data.user.bio = document.getElementById('userBio').value;
-        
-        this.saveData('user');
-        this.updateProfileDisplay();
-        this.showToast('Profile saved successfully', 'success');
-    }
-
-    updateProfileDisplay() {
-        document.getElementById('sidebarAvatar').src = this.data.user.avatar;
-        document.getElementById('topBarAvatar').src = this.data.user.avatar;
-        document.getElementById('sidebarName').textContent = this.data.user.name;
-    }
-
-    uploadAvatar(e) {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            this.data.user.avatar = event.target.result;
-            this.saveData('user');
-            this.updateProfileDisplay();
-            document.getElementById('profileAvatar').src = event.target.result;
-            this.showToast('Avatar uploaded successfully', 'success');
-        };
-        reader.readAsDataURL(file);
-    }
-
-    showAvatarModal() {
-        const modal = document.getElementById('avatarModal');
-        const grid = document.getElementById('avatarGrid');
-        
-        const avatars = [
-            'assets/avatar1.png',
-            'assets/avatar2.png',
-            'assets/avatar3.png',
-            'assets/avatar4.png',
-            'assets/avatar5.png',
-            'assets/avatar6.png',
-            'assets/avatar7.png',
-            'assets/avatar8.png'
-        ];
-
-        grid.innerHTML = avatars.map(avatar => `
-            <div class="avatar-option" onclick="app.selectAvatar('${avatar}')">
-                <img src="${avatar}" alt="Avatar" onerror="this.src='assets/default-avatar.png'">
-            </div>
-        `).join('');
-
-        modal.classList.add('active');
-    }
-
-    selectAvatar(avatar) {
-        this.data.user.avatar = avatar;
-        this.saveData('user');
-        this.updateProfileDisplay();
-        document.getElementById('profileAvatar').src = avatar;
-        document.getElementById('avatarModal').classList.remove('active');
-        this.showToast('Avatar changed successfully', 'success');
-    }
-
-    // ===== Settings =====
-    loadSettings() {
-        document.getElementById('themeSelect').value = this.data.settings.theme || 'light';
-    }
-
-    setPasscode() {
-        const passcode = prompt('Enter a 6-digit passcode:');
-        if (!passcode || passcode.length !== 6 || !/^\d+$/.test(passcode)) {
-            this.showToast('Please enter a valid 6-digit passcode', 'error');
-            return;
-        }
-
-        this.data.settings.passcode = passcode;
-        this.saveData('settings');
-        this.showToast('Passcode set successfully', 'success');
-    }
-
-    // ===== Stats & Activity =====
-    updateStats() {
-        let totalNotes = 0;
-        this.data.books.forEach(book => {
-            book.chapters.forEach(chapter => {
-                totalNotes += chapter.notes.length;
-            });
-        });
-
-        let totalEncrypted = 0;
-        this.data.books.forEach(book => {
-            if (book.encrypted) totalEncrypted++;
-            book.chapters.forEach(chapter => {
-                if (chapter.encrypted) totalEncrypted++;
-                chapter.notes.forEach(note => {
-                    if (note.encrypted) totalEncrypted++;
-                });
-            });
-        });
-
-        document.getElementById('totalBooks').textContent = this.data.books.length;
-        document.getElementById('totalNotes').textContent = totalNotes;
-        document.getElementById('totalDrawings').textContent = this.data.drawings.length;
-        document.getElementById('totalEncrypted').textContent = totalEncrypted;
-    }
-
-    loadRecentActivity() {
-        const container = document.getElementById('recentList');
-        if (!container) return;
-
-        const recent = [];
-        
-        this.data.books.forEach(book => {
-            book.chapters.forEach(chapter => {
-                chapter.notes.forEach(note => {
-                    recent.push({
-                        type: 'note',
-                        title: note.title,
-                        subtitle: `${book.title} / ${chapter.title}`,
-                        date: note.modifiedAt,
-                        id: note.id,
-                        bookId: book.id,
-                        chapterId: chapter.id
-                    });
-                });
-            });
-        });
-
-        recent.sort((a, b) => new Date(b.date) - new Date(a.date));
-        
-        if (recent.length === 0) {
-            container.innerHTML = `
-                <div class="empty-state">
-                    <i class="fas fa-inbox"></i>
-                    <p>No recent activity</p>
-                    <button class="btn-primary" onclick="app.showPage('books')">Create Your First Book</button>
-                </div>
-            `;
-            return;
-        }
-
-        container.innerHTML = recent.slice(0, 10).map(item => `
-            <div class="chapter-item" onclick="app.openNote('${item.bookId}', '${item.chapterId}', '${item.id}')">
-                <div class="chapter-info">
-                    <i class="fas fa-file-alt"></i>
-                    <div>
-                        <h4>${item.title}</h4>
-                        <p style="font-size: 0.875rem; color: var(--text-secondary)">${item.subtitle}</p>
-                    </div>
-                </div>
-                <span style="font-size: 0.875rem; color: var(--text-secondary)">${this.formatDate(item.date)}</span>
-            </div>
-        `).join('');
-    }
-
-    loadEncrypted() {
-        const container = document.getElementById('encryptedList');
-        if (!container) return;
-
-        const encrypted = [];
-
-        this.data.books.forEach(book => {
-            book.chapters.forEach(chapter => {
-                chapter.notes.forEach(note => {
-                    if (note.encrypted) {
-                        encrypted.push({
-                            type: 'note',
-                            title: note.title,
-                            subtitle: `${book.title} / ${chapter.title}`,
-                            id: note.id,
-                            bookId: book.id,
-                            chapterId: chapter.id
-                        });
-                    }
-                });
-            });
-        });
-
-        if (encrypted.length === 0) {
-            container.innerHTML = `
-                <div class="empty-state">
-                    <i class="fas fa-lock"></i>
-                    <p>No encrypted items</p>
-                </div>
-            `;
-            return;
-        }
-
-        container.innerHTML = encrypted.map(item => `
-            <div class="encrypted-item" onclick="app.openNote('${item.bookId}', '${item.chapterId}', '${item.id}')">
-                <div>
-                    <h4>${item.title}</h4>
-                    <p style="font-size: 0.875rem; color: var(--text-secondary)">${item.subtitle}</p>
-                </div>
-                <i class="fas fa-lock"></i>
-            </div>
-        `).join('');
-    }
-
-    // ===== Search & Filter =====
-    globalSearch(query) {
-        if (!query) {
-            this.loadRecentActivity();
-            return;
-        }
-
-        const results = [];
-        query = query.toLowerCase();
-
-        this.data.books.forEach(book => {
-            if (book.title.toLowerCase().includes(query)) {
-                results.push({
-                    type: 'book',
-                    title: book.title,
-                    id: book.id
-                });
-            }
-
-            book.chapters.forEach(chapter => {
-                if (chapter.title.toLowerCase().includes(query)) {
-                    results.push({
-                        type: 'chapter',
-                        title: chapter.title,
-                        subtitle: book.title,
-                        bookId: book.id,
-                        id: chapter.id
-                    });
-                }
-
-                chapter.notes.forEach(note => {
-                    if (note.title.toLowerCase().includes(query) || 
-                        note.content.toLowerCase().includes(query)) {
-                        results.push({
-                            type: 'note',
-                            title: note.title,
-                            subtitle: `${book.title} / ${chapter.title}`,
-                            id: note.id,
-                            bookId: book.id,
-                            chapterId: chapter.id
-                        });
-                    }
-                });
-            });
-        });
-
-        console.log('Search results:', results);
-    }
-
-    filterBooks(query) {
-        const books = query ? 
-            this.data.books.filter(b => b.title.toLowerCase().includes(query.toLowerCase())) :
-            this.data.books;
-
-        const container = document.getElementById('booksList');
-        if (books.length === 0) {
-            container.innerHTML = '<div class="empty-state"><i class="fas fa-search"></i><p>No books found</p></div>';
-            return;
-        }
-
-        container.innerHTML = books.map(book => `
-            <div class="book-card" onclick="app.openBook('${book.id}')">
-                <div class="book-cover" style="background: ${book.color}">
-                    <i class="fas ${book.icon}"></i>
-                    ${book.encrypted ? '<span class="encrypted-badge"><i class="fas fa-lock"></i></span>' : ''}
-                </div>
-                <div class="book-info">
-                    <h3 class="book-title">${book.title}</h3>
-                    <div class="book-meta">
-                        <span><i class="fas fa-file-alt"></i> ${book.chapters.length} chapters</span>
-                        <span><i class="fas fa-clock"></i> ${this.formatDate(book.modifiedAt)}</span>
-                    </div>
-                </div>
-            </div>
-        `).join('');
-    }
-
-    sortBooks(sortBy) {
-        const books = [...this.data.books];
-
-        switch(sortBy) {
-            case 'name':
-                books.sort((a, b) => a.title.localeCompare(b.title));
-                break;
-            case 'created':
-                books.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-                break;
-            case 'recent':
-            default:
-                books.sort((a, b) => new Date(b.modifiedAt) - new Date(a.modifiedAt));
-                break;
-        }
-
-        this.data.books = books;
-        this.loadBooks();
-    }
-
-    // ===== Data Import/Export =====
-    exportAllData() {
-        const data = {
-            user: this.data.user,
-            books: this.data.books,
-            folders: this.data.folders,
-            tags: this.data.tags,
-            drawings: this.data.drawings,
-            events: this.data.events,
-            settings: this.data.settings,
-            exportDate: new Date().toISOString()
-        };
-
-        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `shiro-notes-backup-${Date.now()}.json`;
-        a.click();
-        URL.revokeObjectURL(url);
-
-        this.showToast('Data exported successfully', 'success');
-    }
-
-    importData(e) {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            try {
-                const data = JSON.parse(event.target.result);
-                
-                if (confirm('This will replace all current data. Continue?')) {
-                    this.data = {
-                        user: data.user || this.data.user,
-                        books: data.books || [],
-                        folders: data.folders || [],
-                        tags: data.tags || [],
-                        drawings: data.drawings || [],
-                        events: data.events || [],
-                        settings: data.settings || this.data.settings
-                    };
-
-                    Object.keys(this.data).forEach(key => {
-                        this.saveData(key);
-                    });
-
-                    this.updateProfileDisplay();
-                    this.updateStats();
-                    this.loadRecentActivity();
-                    
-                    this.showToast('Data imported successfully', 'success');
-                }
-            } catch (error) {
-                this.showToast('Invalid data file', 'error');
-            }
-        };
-        reader.readAsText(file);
-    }
-
-    // ===== Utility Functions =====
-    getRandomGradient() {
-        const gradients = [
-            'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-            'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-            'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
-            'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
-            'linear-gradient(135deg, #30cfd0 0%, #330867 100%)',
-            'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)',
-            'linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)'
-        ];
-        return gradients[Math.floor(Math.random() * gradients.length)];
-    }
-
-    getRandomColor() {
-        const colors = [
-            '#667eea', '#764ba2', '#f093fb', '#f5576c',
-            '#4facfe', '#00f2fe', '#43e97b', '#38f9d7',
-            '#fa709a', '#fee140', '#30cfd0', '#330867'
-        ];
-        return colors[Math.floor(Math.random() * colors.length)];
-    }
-
-    formatDate(dateString) {
-        const date = new Date(dateString);
-        const now = new Date();
-        const diff = now - date;
-        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-
-        if (days === 0) return 'Today';
-        if (days === 1) return 'Yesterday';
-        if (days < 7) return `${days} days ago`;
-        if (days < 30) return `${Math.floor(days / 7)} weeks ago`;
-        if (days < 365) return `${Math.floor(days / 30)} months ago`;
-        return `${Math.floor(days / 365)} years ago`;
-    }
-
-    showToast(message, type = 'info') {
-        const toast = document.createElement('div');
-        toast.className = `toast toast-${type}`;
-        toast.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 1rem 1.5rem;
-            background: ${type === 'success' ? 'var(--success)' : type === 'error' ? 'var(--danger)' : 'var(--primary)'};
-            color: white;
-            border-radius: var(--radius-md);
-            box-shadow: var(--shadow-lg);
-            z-index: 10000;
-            animation: slideIn 0.3s ease;
-        `;
-        toast.textContent = message;
-        document.body.appendChild(toast);
-
-        setTimeout(() => {
-            toast.style.animation = 'slideOut 0.3s ease';
-            setTimeout(() => toast.remove(), 300);
-        }, 3000);
-    }
+        </div>
+      </div>
+    `;
 }
 
-// ===== Initialize App =====
+  
+  loadProfilePage(page) {
+    page.innerHTML = `
+      <div class="profile-container">
+        <h1>Profile</h1>
+        <div class="profile-content">
+          <div class="profile-avatar-section">
+            <div class="profile-avatar-large" id="profileAvatarLarge">
+              ${this.data.settings.profile.avatar ? 
+                `<img src="${this.data.settings.profile.avatar}" alt="Profile">` :
+                '<i class="fas fa-user"></i>'
+              }
+            </div>
+            <button class="btn btn--secondary" onclick="profileModule.changeAvatar()">
+              Change Avatar
+            </button>
+          </div>
+          <div class="profile-form">
+            <div class="form-group">
+              <label>Name</label>
+              <input type="text" value="${this.data.settings.profile.name}" placeholder="Your name" onchange="profileModule.updateProfile('name', this.value)">
+            </div>
+            <div class="form-group">
+              <label>Email</label>
+              <input type="email" value="${this.data.settings.profile.email}" placeholder="your@email.com" onchange="profileModule.updateProfile('email', this.value)">
+            </div>
+            <div class="form-group">
+              <label>Bio</label>
+              <textarea placeholder="Tell us about yourself..." onchange="profileModule.updateProfile('bio', this.value)">${this.data.settings.profile.bio}</textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+  
+  // Helper methods for template cards
+  createBookmarkCard(item) {
+    const isBook = item.chapters !== undefined;
+    return `
+      <div class="bookmark-card" onclick="app.${isBook ? 'openBook' : 'openNote'}('${item.id}')">
+        <div class="bookmark-icon">
+          <i class="fas fa-${isBook ? 'book' : 'sticky-note'}"></i>
+        </div>
+        <div class="bookmark-content">
+          <h4>${this.escapeHtml(item.title)}</h4>
+          <p>${this.escapeHtml(isBook ? item.description : this.stripHtml(item.content).substring(0, 100))}...</p>
+          <small>Modified ${this.formatDate(item.lastModified)}</small>
+        </div>
+      </div>
+    `;
+  }
+  
+  getAllTags() {
+    const tagCount = {};
+    
+    // Count tags from all items
+    [...this.data.books, ...this.data.notes].forEach(item => {
+      if (item.tags) {
+        item.tags.forEach(tag => {
+          tagCount[tag] = (tagCount[tag] || 0) + 1;
+        });
+      }
+    });
+    
+    return Object.entries(tagCount).map(([name, count]) => ({ name, count }));
+  }
+  
+  createTemplateCard(template) {
+    return `
+      <div class="template-card" onclick="app.useTemplate('${template.id}')">
+        <div class="template-header">
+          <h4>${this.escapeHtml(template.name)}</h4>
+          <div class="template-actions">
+            <button class="btn btn--sm" onclick="event.stopPropagation(); app.editTemplate('${template.id}')" title="Edit">
+              <i class="fas fa-edit"></i>
+            </button>
+            <button class="btn btn--sm" onclick="event.stopPropagation(); app.deleteTemplate('${template.id}')" title="Delete">
+              <i class="fas fa-trash"></i>
+            </button>
+          </div>
+        </div>
+        <div class="template-content">
+          <p>${this.escapeHtml(template.description)}</p>
+        </div>
+      </div>
+    `;
+  }
+  
+  // Placeholder methods for template management
+  createTemplate() {
+    this.showToast('Template creation will be implemented', 'info');
+  }
+  
+  useTemplate(templateId) {
+    this.showToast('Template usage will be implemented', 'info');
+  }
+  
+  editTemplate(templateId) {
+    this.showToast('Template editing will be implemented', 'info');
+  }
+  
+  deleteTemplate(templateId) {
+    if (confirm('Are you sure you want to delete this template?')) {
+      this.data.templates = this.data.templates.filter(t => t.id !== templateId);
+      this.saveData();
+      this.loadTemplatesPage(document.getElementById('templatesPage'));
+      this.showToast('Template deleted', 'success');
+    }
+  }
+  
+  searchByTag(tagName) {
+    this.showPage('search');
+    // This will be enhanced by the search module
+    this.showToast(`Searching for tag: ${tagName}`, 'info');
+  }
+  
+  toggleAutoLock(enabled) {
+    this.data.settings.autoLock = enabled;
+    this.saveData();
+    if (enabled) {
+      this.resetLockTimer();
+    } else {
+      clearTimeout(this.lockTimer);
+    }
+    this.showToast(`Auto-lock ${enabled ? 'enabled' : 'disabled'}`, 'success');
+  }
+}
+
+// Initialize the application
 const app = new ShiroNotes();
 
-// Make functions globally accessible
-window.showPage = (page) => app.showPage(page);
+// Make app globally available
 window.app = app;
-
-// Add animations
-const style = document.createElement('style');
-style.textContent = `
-    @keyframes slideIn {
-        from {
-            transform: translateX(100%);
-            opacity: 0;
-        }
-        to {
-            transform: translateX(0);
-            opacity: 1;
-        }
-    }
-    
-    @keyframes slideOut {
-        from {
-            transform: translateX(0);
-            opacity: 1;
-        }
-        to {
-            transform: translateX(100%);
-            opacity: 0;
-        }
-    }
-`;
-document.head.appendChild(style);
