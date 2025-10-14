@@ -376,50 +376,48 @@ class CryptoModule {
     }
   }
 
-showEncryptionDialog(itemId, itemType) {
-    // First, check if a master password is even set.
-    if (!this.app.data.settings.masterPasswordHash) {
-        this.app.showToast('Please set a Master Password in Security settings before encrypting items.', 'error');
-        this.app.showPage('security');
-        return;
-    }
-
+showDecryptionDialog(itemId, itemType) {
+    const item = itemType === 'book' ? 
+      this.app.data.books.find(b => b.id === itemId) :
+      this.app.data.notes.find(n => n.id === itemId);
+    
+    if (!item) return;
+    
     const modal = document.createElement('div');
     modal.className = 'modal-overlay';
     modal.innerHTML = `
-      <div class="modal-content encryption-dialog">
+      <div class="modal-content decryption-dialog">
         <div class="modal-header">
-          <h3><i class="fas fa-lock"></i> Encrypt ${itemType}</h3>
+          <h3><i class="fas fa-unlock"></i> Unlock with Master Password</h3>
           <button class="close-btn" onclick="this.closest('.modal-overlay').remove()">
             <i class="fas fa-times"></i>
           </button>
         </div>
         <div class="modal-body">
-          <div class="encryption-info">
-            <p>This ${itemType} will be encrypted using your Master Password. Please enter it to confirm.</p>
+          <div class="item-info">
+            <h4>${this.app.escapeHtml(item.title)}</h4>
+            <p>This ${itemType} is encrypted. Please enter your Master Password to unlock it.</p>
           </div>
           
           <div class="form-group">
             <label>Master Password</label>
             <div class="password-input-group">
-              <input type="password" id="encryptionMasterPassword" placeholder="Enter your Master Password">
-              <button type="button" class="password-toggle" onclick="cryptoModule.togglePasswordVisibility('encryptionMasterPassword')">
+              <input type="password" id="decryptionPassword" placeholder="Enter your Master Password">
+              <button type="button" class="password-toggle" onclick="cryptoModule.togglePasswordVisibility('decryptionPassword')">
                 <i class="fas fa-eye"></i>
               </button>
             </div>
           </div>
           
-          <div class="warning-box">
+          <div class="decryption-error hidden" id="decryptionError">
             <i class="fas fa-exclamation-triangle"></i>
-            <div>
-              <strong>Remember:</strong> Only your Master Password can decrypt this item.
-            </div>
+            <span>Incorrect password or corrupted data</span>
           </div>
         </div>
         <div class="modal-footer">
           <button class="btn btn--secondary" onclick="this.closest('.modal-overlay').remove()">Cancel</button>
-          <button class="btn btn--primary" onclick="cryptoModule.performEncryption('${itemId}', '${itemType}')" id="encryptBtn">
-            <i class="fas fa-lock"></i> Encrypt ${itemType}
+          <button class="btn btn--primary" onclick="cryptoModule.performDecryption('${itemId}', '${itemType}')">
+            <i class="fas fa-unlock"></i> Unlock
           </button>
         </div>
       </div>
@@ -429,10 +427,15 @@ showEncryptionDialog(itemId, itemType) {
     setTimeout(() => modal.classList.add('visible'), 10);
     
     // Focus on password input
-    setTimeout(() => {
-        const passInput = document.getElementById('encryptionMasterPassword');
-        if(passInput) passInput.focus();
-    }, 100);
+    const passInput = document.getElementById('decryptionPassword');
+    setTimeout(() => passInput.focus(), 100);
+    
+    // Handle Enter key
+    passInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        this.performDecryption(itemId, itemType);
+      }
+    });
 }
 
 
