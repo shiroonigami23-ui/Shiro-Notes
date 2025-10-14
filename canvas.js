@@ -284,10 +284,6 @@ renderLayers() {
 }
 
     
-    // Draw selection handles if shape is selected
-    if (this.selectedShape) {
-      this.drawSelectionHandles(this.selectedShape);
-    }
   }
 
   drawGrid() {
