@@ -376,8 +376,14 @@ class CryptoModule {
     }
   }
 
-  // Show encryption dialog
-  showEncryptionDialog(itemId, itemType) {
+showEncryptionDialog(itemId, itemType) {
+    // First, check if a master password is even set.
+    if (!this.app.data.settings.masterPasswordHash) {
+        this.app.showToast('Please set a Master Password in Security settings before encrypting items.', 'error');
+        this.app.showPage('security');
+        return;
+    }
+
     const modal = document.createElement('div');
     modal.className = 'modal-overlay';
     modal.innerHTML = `
@@ -390,51 +396,29 @@ class CryptoModule {
         </div>
         <div class="modal-body">
           <div class="encryption-info">
-            <div class="info-box">
-              <i class="fas fa-shield-alt"></i>
-              <div>
-                <h4>Secure Encryption</h4>
-                <p>Your ${itemType} will be encrypted using AES-256-GCM encryption with PBKDF2 key derivation.</p>
-              </div>
-            </div>
+            <p>This ${itemType} will be encrypted using your Master Password. Please enter it to confirm.</p>
           </div>
           
           <div class="form-group">
-            <label>Encryption Password</label>
+            <label>Master Password</label>
             <div class="password-input-group">
-              <input type="password" id="encryptionPassword" placeholder="Enter a strong password">
-              <button type="button" class="password-toggle" onclick="cryptoModule.togglePasswordVisibility('encryptionPassword')">
+              <input type="password" id="encryptionMasterPassword" placeholder="Enter your Master Password">
+              <button type="button" class="password-toggle" onclick="cryptoModule.togglePasswordVisibility('encryptionMasterPassword')">
                 <i class="fas fa-eye"></i>
               </button>
             </div>
-            <div class="password-strength" id="passwordStrength"></div>
-          </div>
-          
-          <div class="form-group">
-            <label>Confirm Password</label>
-            <input type="password" id="confirmPassword" placeholder="Confirm your password">
-            <div class="password-match" id="passwordMatch"></div>
-          </div>
-          
-          <div class="encryption-options">
-            <label class="checkbox-label">
-              <input type="checkbox" id="savePasswordHint">
-              Save password hint (not recommended for sensitive data)
-            </label>
-            <input type="text" id="passwordHint" placeholder="Password hint (optional)" class="hidden">
           </div>
           
           <div class="warning-box">
             <i class="fas fa-exclamation-triangle"></i>
             <div>
-              <strong>Important:</strong> If you forget this password, your ${itemType} cannot be recovered. 
-              Make sure to use a memorable but strong password.
+              <strong>Remember:</strong> Only your Master Password can decrypt this item.
             </div>
           </div>
         </div>
         <div class="modal-footer">
           <button class="btn btn--secondary" onclick="this.closest('.modal-overlay').remove()">Cancel</button>
-          <button class="btn btn--primary" onclick="cryptoModule.performEncryption('${itemId}', '${itemType}')" id="encryptBtn" disabled>
+          <button class="btn btn--primary" onclick="cryptoModule.performEncryption('${itemId}', '${itemType}')" id="encryptBtn">
             <i class="fas fa-lock"></i> Encrypt ${itemType}
           </button>
         </div>
@@ -444,9 +428,13 @@ class CryptoModule {
     document.body.appendChild(modal);
     setTimeout(() => modal.classList.add('visible'), 10);
     
-    // Setup real-time validation
-    this.setupEncryptionValidation();
-  }
+    // Focus on password input
+    setTimeout(() => {
+        const passInput = document.getElementById('encryptionMasterPassword');
+        if(passInput) passInput.focus();
+    }, 100);
+}
+
 
   setupEncryptionValidation() {
     const passwordInput = document.getElementById('encryptionPassword');
@@ -558,54 +546,60 @@ class CryptoModule {
     }
   }
 
-  async performEncryption(itemId, itemType) {
-    const password = document.getElementById('encryptionPassword').value;
-    const saveHint = document.getElementById('savePasswordHint').checked;
-    const hint = document.getElementById('passwordHint').value;
+
+async performEncryption(itemId, itemType) {
+    const password = document.getElementById('encryptionMasterPassword').value;
+    const encryptBtn = document.getElementById('encryptBtn');
+
+    if (!password) {
+        this.app.showToast('Please enter your Master Password.', 'warning');
+        return;
+    }
     
     try {
-      // Find the item
-      let item;
-      if (itemType === 'book') {
-        item = this.app.data.books.find(b => b.id === itemId);
-      } else {
-        item = this.app.data.notes.find(n => n.id === itemId);
-      }
+        // Show loading
+        encryptBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Encrypting...';
+        encryptBtn.disabled = true;
+
+        // Verify the entered Master Password is correct
+        const enteredHash = await this.hash(password);
+        if (enteredHash !== this.app.data.settings.masterPasswordHash) {
+            this.app.showToast('Incorrect Master Password.', 'error');
+            encryptBtn.innerHTML = `<i class="fas fa-lock"></i> Encrypt ${itemType}`;
+            encryptBtn.disabled = false;
+            return;
+        }
       
-      if (!item) {
-        throw new Error('Item not found');
-      }
+        // Find the item
+        let item = itemType === 'book'
+            ? this.app.data.books.find(b => b.id === itemId)
+            : this.app.data.notes.find(n => n.id === itemId);
       
-      // Show loading
-      document.getElementById('encryptBtn').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Encrypting...';
-      document.getElementById('encryptBtn').disabled = true;
+        if (!item) throw new Error('Item not found');
       
-      // Encrypt the item
-      await this.encryptItem(item, password);
+        // Encrypt the item using the verified Master Password
+        await this.encryptItem(item, password);
       
-      // Save password hint if requested
-      if (saveHint && hint) {
-        item.passwordHint = hint;
-      }
+        // Clear any old password hints from the previous system
+        delete item.passwordHint;
       
-      // Save data
-      this.app.saveData();
-      this.app.updateUI();
+        // Save data and refresh the UI
+        this.app.saveData();
+        this.app.loadPageContent(this.app.currentPage);
+        this.app.updateStats();
       
-      // Close modal
-      document.querySelector('.modal-overlay').remove();
-      
-      this.app.showToast(`${itemType} encrypted successfully`, 'success');
+        // Close modal
+        document.querySelector('.modal-overlay').remove();
+        this.app.showToast(`${itemType} encrypted successfully`, 'success');
       
     } catch (error) {
-      console.error('Encryption error:', error);
-      this.app.showToast('Encryption failed: ' + error.message, 'error');
-      
-      // Reset button
-      document.getElementById('encryptBtn').innerHTML = `<i class="fas fa-lock"></i> Encrypt ${itemType}`;
-      document.getElementById('encryptBtn').disabled = false;
+        console.error('Encryption error:', error);
+        this.app.showToast('Encryption failed: ' + error.message, 'error');
+        encryptBtn.innerHTML = `<i class="fas fa-lock"></i> Encrypt ${itemType}`;
+        encryptBtn.disabled = false;
     }
-  }
+}
+
 
   // Show decryption dialog
   showDecryptionDialog(itemId, itemType) {
