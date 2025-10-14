@@ -480,8 +480,11 @@ class CryptoModule {
   }
 
   updatePasswordStrength(password) {
+  // In crypto.js
+
+  updatePasswordStrength(password) {
     const strengthEl = document.getElementById('passwordStrength');
-    if (!strengthEl) return;
+    if (!strengthEl) return; // <-- THIS IS THE FIX!
     
     let score = 0;
     let feedback = [];
@@ -528,6 +531,7 @@ class CryptoModule {
       ${feedback.length > 0 ? `<div class="strength-feedback">${feedback.join(', ')}</div>` : ''}
     `;
   }
+
 
   updatePasswordMatch(password, confirm) {
     const matchEl = document.getElementById('passwordMatch');
