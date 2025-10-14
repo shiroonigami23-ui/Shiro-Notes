@@ -312,63 +312,79 @@ class ShiroNotes {
     `;
   }
   
-  // In app.js
+// --- In app.js, REPLACE your entire loadCanvasPage function with this new version ---
 loadCanvasPage(page) {
     page.innerHTML = `
       <div class="canvas-container">
         <div class="canvas-toolbar">
           <div class="tool-group">
-            <button class="tool-btn active" data-tool="pen" title="Pen (P)"><i class="fas fa-pen"></i></button>
-            <button class="tool-btn" data-tool="brush" title="Brush (B)"><i class="fas fa-paint-brush"></i></button>
-            <button class="tool-btn" data-tool="eraser" title="Eraser (E)"><i class="fas fa-eraser"></i></button>
-          </div>
-          <div class="tool-group">
-            <button class="tool-btn" data-tool="line" title="Line (L)"><i class="fas fa-minus"></i></button>
-            <button class="tool-btn" data-tool="rectangle" title="Rectangle (R)"><i class="far fa-square"></i></button>
-            <button class="tool-btn" data-tool="circle" title="Circle (C)"><i class="far fa-circle"></i></button>
-            <button class="tool-btn" data-tool="arrow" title="Arrow"><i class="fas fa-arrow-right"></i></button>
-          </div>
-          <div class="tool-group">
-            <label for="fillShapeToggle" class="toolbar-label" title="Fill shapes with the selected color">
-              <input type="checkbox" id="fillShapeToggle"> Fill
-            </label>
-          </div>
-          <div class="tool-group">
-            <input type="color" id="canvasColor" value="#000000" title="Color">
-            <input type="range" id="canvasSize" min="1" max="50" value="2" title="Size">
-          </div>
-          <div class="tool-group">
+            <button class="btn btn--secondary btn--sm" onclick="canvasModule.saveCanvas()" title="Save Canvas"><i class="fas fa-save"></i> Save</button>
+            <button class="tool-btn" onclick="canvasModule.loadImage()" title="Load Image"><i class="fas fa-upload"></i></button>
             <button class="tool-btn" onclick="canvasModule.undo()" title="Undo (Ctrl+Z)"><i class="fas fa-undo"></i></button>
             <button class="tool-btn" onclick="canvasModule.redo()" title="Redo (Ctrl+Y)"><i class="fas fa-redo"></i></button>
-            <button class="tool-btn" onclick="canvasModule.clear()" title="Clear Canvas"><i class="fas fa-trash"></i></button>
           </div>
-          <div class="tool-group">
-            <button class="tool-btn" onclick="canvasModule.toggleGrid()" title="Toggle Grid (G)"><i class="fas fa-th"></i></button>
-            <button class="tool-btn" onclick="canvasModule.showLayersPanel()" title="Manage Layers"><i class="fas fa-layer-group"></i></button>
+
+          <div class="tool-group tool-dropdown">
+            <button class="tool-btn active" id="brush-tool-btn"><i class="fas fa-pen"></i></button>
+            <div class="dropdown-content">
+              <button class="tool-btn" data-tool="pen" title="Pen (P)"><i class="fas fa-pen"></i> Pen</button>
+              <button class="tool-btn" data-tool="brush" title="Brush (B)"><i class="fas fa-paint-brush"></i> Brush</button>
+              <button class="tool-btn" data-tool="calligraphy" title="Calligraphy"><i class="fas fa-pen-fancy"></i> Calligraphy</button>
+              <button class="tool-btn" data-tool="spray" title="Spray Paint"><i class="fas fa-spray-can"></i> Spray</button>
+              <button class="tool-btn" data-tool="eraser" title="Eraser (E)"><i class="fas fa-eraser"></i> Eraser</button>
+            </div>
           </div>
-          <div class="tool-group">
-            <button class="tool-btn" onclick="canvasModule.zoomIn()" title="Zoom In"><i class="fas fa-search-plus"></i></button>
-            <button class="tool-btn" onclick="canvasModule.zoomOut()" title="Zoom Out"><i class="fas fa-search-minus"></i></button>
-            <button class="tool-btn" onclick="canvasModule.resetZoom()" title="Reset View"><i class="fas fa-expand-arrows-alt"></i></button>
+
+          <div class="tool-group tool-dropdown">
+             <button class="tool-btn" id="shape-tool-btn"><i class="far fa-square"></i></button>
+             <div class="dropdown-content">
+                <button class="tool-btn" data-tool="line" title="Line (L)"><i class="fas fa-minus"></i> Line</button>
+                <button class="tool-btn" data-tool="rectangle" title="Rectangle (R)"><i class="far fa-square"></i> Rectangle</button>
+                <button class="tool-btn" data-tool="circle" title="Circle (C)"><i class="far fa-circle"></i> Circle</button>
+                <button class="tool-btn" data-tool="arrow" title="Arrow"><i class="fas fa-arrow-right"></i> Arrow</button>
+                <button class="tool-btn" data-tool="star" title="Star"><i class="fas fa-star"></i> Star</button>
+                <button class="tool-btn" data-tool="heart" title="Heart"><i class="fas fa-heart"></i> Heart</button>
+                <button class="tool-btn" data-tool="polygon" title="Polygon"><i class="fas fa-draw-polygon"></i> Polygon</button>
+             </div>
           </div>
+          
           <div class="tool-group">
-            <button class="btn btn--secondary btn--sm" onclick="canvasModule.loadImage()"><i class="fas fa-upload"></i> Image</button>
-            <button class="btn btn--primary btn--sm" onclick="canvasModule.saveCanvas()"><i class="fas fa-save"></i> Save</button>
+            <button class="tool-btn" data-tool="select" title="Select & Transform"><i class="fas fa-mouse-pointer"></i></button>
+            <button class="tool-btn" data-tool="text" title="Text Tool"><i class="fas fa-font"></i></button>
+            <button class="tool-btn" data-tool="eyedropper" title="Eyedropper"><i class="fas fa-eye-dropper"></i></button>
+            <label class="toolbar-label" title="Fill shapes"><input type="checkbox" id="fillShapeToggle"> Fill</label>
+          </div>
+
+          <div class="tool-group brush-settings">
+            <input type="color" id="canvasColor" value="#000000" title="Color Picker">
+            <label class="toolbar-label">Size: <input type="range" id="canvasSize" min="1" max="200" value="5"></label>
+            <label class="toolbar-label">Opacity: <input type="range" id="canvasOpacity" min="0.1" max="1" step="0.1" value="1"></label>
+          </div>
+
+          <div class="tool-group">
+             <button class="tool-btn" onclick="canvasModule.showLayersPanel()" title="Manage Layers"><i class="fas fa-layer-group"></i></button>
+             <div class="tool-dropdown">
+                <button class="tool-btn" title="Image Filters"><i class="fas fa-magic"></i></button>
+                <div class="dropdown-content">
+                    <button class="filter-btn" data-filter="grayscale"><i class="fas fa-palette"></i> Grayscale</button>
+                    <button class="filter-btn" data-filter="invert"><i class="fas fa-adjust"></i> Invert Colors</button>
+                    <button class="filter-btn" data-filter="sepia"><i class="fas fa-camera-retro"></i> Sepia</button>
+                </div>
+             </div>
+             <button class="tool-btn" onclick="canvasModule.toggleGrid()" title="Toggle Grid (G)"><i class="fas fa-th"></i></button>
+          </div>
+
+          <div class="tool-group">
+             <button class="btn btn--danger btn--sm" onclick="canvasModule.clear()"><i class="fas fa-trash"></i> Clear</button>
           </div>
         </div>
-        <div class="canvas-wrapper">
-          <canvas id="drawingCanvas"></canvas>
-        </div>
+        <div class="canvas-wrapper"><canvas id="drawingCanvas"></canvas></div>
       </div>
     `;
-    
-    // Initialize canvas after DOM update
-    setTimeout(() => {
-      if (window.canvasModule) {
-        canvasModule.initCanvas();
-      }
-    }, 100);
+    // Delay initialization to ensure the DOM is ready
+    setTimeout(() => { if (window.canvasModule) { canvasModule.initCanvas(); } }, 100);
 }
+
 
   
   loadAudioPage(page) {
@@ -487,10 +503,6 @@ loadCanvasPage(page) {
       });
     });
     
-    // Theme toggle
-    document.getElementById('themeToggle').addEventListener('click', () => {
-      this.toggleTheme();
-    });
     
     // Mobile menu
     document.getElementById('mobileMenuBtn').addEventListener('click', () => {
@@ -1048,40 +1060,7 @@ loadSecurityPage(page) {
 }
 
   
-  loadProfilePage(page) {
-    page.innerHTML = `
-      <div class="profile-container">
-        <h1>Profile</h1>
-        <div class="profile-content">
-          <div class="profile-avatar-section">
-            <div class="profile-avatar-large" id="profileAvatarLarge">
-              ${this.data.settings.profile.avatar ? 
-                `<img src="${this.data.settings.profile.avatar}" alt="Profile">` :
-                '<i class="fas fa-user"></i>'
-              }
-            </div>
-            <button class="btn btn--secondary" onclick="profileModule.changeAvatar()">
-              Change Avatar
-            </button>
-          </div>
-          <div class="profile-form">
-            <div class="form-group">
-              <label>Name</label>
-              <input type="text" value="${this.data.settings.profile.name}" placeholder="Your name" onchange="profileModule.updateProfile('name', this.value)">
-            </div>
-            <div class="form-group">
-              <label>Email</label>
-              <input type="email" value="${this.data.settings.profile.email}" placeholder="your@email.com" onchange="profileModule.updateProfile('email', this.value)">
-            </div>
-            <div class="form-group">
-              <label>Bio</label>
-              <textarea placeholder="Tell us about yourself..." onchange="profileModule.updateProfile('bio', this.value)">${this.data.settings.profile.bio}</textarea>
-            </div>
-          </div>
-        </div>
-      </div>
-    `;
-  }
+  
   
   // Helper methods for template cards
   createBookmarkCard(item) {
@@ -1099,6 +1078,128 @@ loadSecurityPage(page) {
       </div>
     `;
   }
+  //
+// --- REPLACE this function in app.js ---
+//
+loadProfilePage(page) {
+    const profile = this.data.settings.profile;
+
+    page.innerHTML = `
+      <div class="profile-container">
+        <div class="profile-header-card">
+            <div class="profile-avatar-large" id="profileAvatarLarge">
+              ${profile.avatar ?
+                `<img src="${profile.avatar}" alt="Profile">` :
+                '<i class="fas fa-user"></i>'
+              }
+            </div>
+            <div class="profile-header-info">
+                <span class="profile-name-display">${this.escapeHtml(profile.name) || 'User'}</span>
+                <span class="profile-email-display">${this.escapeHtml(profile.email) || 'No email set'}</span>
+            </div>
+            <button class="btn btn--secondary btn--sm" onclick="profileModule.changeAvatar()">
+              <i class="fas fa-camera"></i> Change Avatar
+            </button>
+        </div>
+
+        <nav class="profile-tabs">
+            <button class="profile-tab active" data-tab="tab-profile">
+                <i class="fas fa-user-edit"></i> Profile
+            </button>
+            <button class="profile-tab" data-tab="tab-preferences">
+                <i class="fas fa-sliders-h"></i> Preferences
+            </button>
+            <button class="profile-tab" data-tab="tab-account">
+                <i class="fas fa-shield-alt"></i> Account & Data
+            </button>
+        </nav>
+
+        <div class="profile-tab-content active" id="tab-profile">
+            <div class="profile-card">
+                <h3>Edit Information</h3>
+                <div class="profile-form">
+                    <div class="form-group">
+                        <label>Name</label>
+                        <input type="text" value="${this.escapeHtml(profile.name)}" placeholder="Your name" onchange="profileModule.updateProfile('name', this.value)">
+                    </div>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" value="${this.escapeHtml(profile.email)}" placeholder="your@email.com" onchange="profileModule.updateProfile('email', this.value)">
+                    </div>
+                    <div class="form-group">
+                        <label>Bio</label>
+                        <textarea placeholder="Tell us about yourself..." onchange="profileModule.updateProfile('bio', this.value)">${this.escapeHtml(profile.bio)}</textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="profile-tab-content" id="tab-preferences">
+            <div class="profile-card">
+                <h3>App Preferences</h3>
+                <div class="preference-item">
+                    <div>
+                        <strong>Theme</strong>
+                        <p>Choose between light, dark, or system default.</p>
+                    </div>
+                    <select class="form-control" onchange="app.setTheme(this.value); app.data.settings.theme = this.value; app.saveData();">
+                        <option value="light" ${this.data.settings.theme === 'light' ? 'selected' : ''}>Light</option>
+                        <option value="dark" ${this.data.settings.theme === 'dark' ? 'selected' : ''}>Dark</option>
+                        <option value="auto" ${this.data.settings.theme === 'auto' ? 'selected' : ''}>Auto</option>
+                    </select>
+                </div>
+                <div class="preference-item">
+                    <div>
+                        <strong>Auto-Lock</strong>
+                        <p>Automatically lock the app after a period of inactivity.</p>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" onchange="app.toggleAutoLock(this.checked)" ${this.data.settings.autoLock ? 'checked' : ''}>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <div class="profile-tab-content" id="tab-account">
+             <div class="profile-card">
+                <h3>Account Management</h3>
+                 <div class="account-actions">
+                    <button class="btn btn--secondary" onclick="app.showPage('security')"><i class="fas fa-key"></i> Master Password</button>
+                    <button class="btn btn--secondary" onclick="app.showPage('export')"><i class="fas fa-download"></i> Export & Backup</button>
+                </div>
+            </div>
+            <div class="profile-card danger-zone">
+                <h3>Danger Zone</h3>
+                <div class="danger-zone-item">
+                    <div>
+                        <strong>Delete Account</strong>
+                        <p>Permanently delete your account and all associated data. This action cannot be undone.</p>
+                    </div>
+                    <button class="btn btn--danger" onclick="console.log('Account deletion initiated.')">Delete My Account</button>
+                </div>
+            </div>
+        </div>
+      </div>
+    `;
+
+    // Add event listeners for tab switching
+    const tabs = page.querySelectorAll('.profile-tab');
+    const contents = page.querySelectorAll('.profile-tab-content');
+
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            // Deactivate all
+            tabs.forEach(t => t.classList.remove('active'));
+            contents.forEach(c => c.classList.remove('active'));
+
+            // Activate clicked tab and content
+            tab.classList.add('active');
+            const contentId = tab.getAttribute('data-tab');
+            page.querySelector(`#${contentId}`).classList.add('active');
+        });
+    });
+}
   
   getAllTags() {
     const tagCount = {};

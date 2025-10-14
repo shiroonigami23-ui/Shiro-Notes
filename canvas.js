@@ -30,8 +30,6 @@ class CanvasModule {
     this.transformHandle = null;
   }
   
-// --- In canvas.js, REPLACE the functions initCanvas, setupCanvas, AND setupToolListeners with this block ---
-
 initCanvas() {
     this.canvas = document.getElementById('drawingCanvas');
     if (!this.canvas) {
@@ -282,6 +280,9 @@ renderLayers() {
     if (this.gridEnabled) this.drawGrid();
     if (this.tool === 'select') this.drawSelectionHandles(this.selectedImage);
 }
+
+    
+  
 
   drawGrid() {
     const gridSize = 20;
