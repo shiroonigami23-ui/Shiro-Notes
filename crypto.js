@@ -452,35 +452,30 @@ class CryptoModule {
     const passwordInput = document.getElementById('encryptionPassword');
     const confirmInput = document.getElementById('confirmPassword');
     const encryptBtn = document.getElementById('encryptBtn');
-    const saveHintCheckbox = document.getElementById('savePasswordHint');
-    const hintInput = document.getElementById('passwordHint');
     
+    // If any of the required elements don't exist, exit gracefully.
+    if (!passwordInput || !confirmInput || !encryptBtn) {
+        return;
+    }
+
     const validateForm = () => {
       const password = passwordInput.value;
       const confirm = confirmInput.value;
       
-      // Check password strength
       this.updatePasswordStrength(password);
-      
-      // Check password match
       this.updatePasswordMatch(password, confirm);
       
-      // Enable/disable encrypt button
       const isValid = password.length >= 8 && password === confirm;
       encryptBtn.disabled = !isValid;
     };
     
     passwordInput.addEventListener('input', validateForm);
     confirmInput.addEventListener('input', validateForm);
-    
-    // Handle password hint
-    saveHintCheckbox.addEventListener('change', () => {
-      hintInput.classList.toggle('hidden', !saveHintCheckbox.checked);
-    });
+
+    // Run once on setup to set initial button state
+    validateForm();
   }
 
-  updatePasswordStrength(password) {
-  // In crypto.js
 
   updatePasswordStrength(password) {
     const strengthEl = document.getElementById('passwordStrength');
@@ -674,9 +669,6 @@ class CryptoModule {
       }
     });
   }
-
-  async performDecryption(itemId, itemType) {
-  // In crypto.js
 
   async performDecryption(itemId, itemType) {
     const password = document.getElementById('decryptionPassword').value;
