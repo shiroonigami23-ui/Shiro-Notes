@@ -1144,12 +1144,6 @@ showNoteEditor(note) {
 const editorModule = new EditorModule(app);
 window.editorModule = editorModule;
 
-// Override app methods to use editor
-app.createBook = () => editorModule.createNewBook();
-app.createNote = () => editorModule.createNewNote();
-app.openBook = (bookId) => editorModule.editBook(bookId);
-app.openNote = (noteId) => editorModule.editNote(noteId);
-
 // Add editor-specific styles
 const editorStyles = `
 .editor-container {
