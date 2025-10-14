@@ -17,6 +17,8 @@ class TemplatesModule {
     }
   }
 
+  // In templates.js
+
   // Use a template to create a new note
   useTemplate(templateId) {
     const template = this.app.data.templates.find(t => t.id === templateId);
@@ -25,14 +27,31 @@ class TemplatesModule {
       return;
     }
 
-    // Replace placeholders like {{date}}
-    let content = template.content.replace(/{{date}}/gi, new Date().toLocaleDateString());
+    // --- NEW: More powerful placeholder replacement ---
+    const now = new Date();
+    const replacements = {
+      '{{date}}': now.toLocaleDateString(),
+      '{{time}}': now.toLocaleTimeString(),
+      '{{datetime}}': now.toLocaleString(),
+      '{{day}}': now.toLocaleDateString(undefined, { weekday: 'long' }),
+      '{{month}}': String(now.getMonth() + 1).padStart(2, '0'),
+      '{{monthname}}': now.toLocaleDateString(undefined, { month: 'long' }),
+      '{{year}}': now.getFullYear(),
+    };
+
+    let content = template.content;
+    for (const [placeholder, value] of Object.entries(replacements)) {
+        // Use a regular expression with the 'gi' flags for a global, case-insensitive search
+        const regex = new RegExp(placeholder.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'gi');
+        content = content.replace(regex, value);
+    }
+    // --- END NEW ---
 
     const note = {
       id: this.app.generateId(),
       title: `Note from ${template.name}`,
       content: content,
-      type: template.type,
+      type: template.type || 'text', // Fallback for older templates
       created: new Date().toISOString(),
       lastModified: new Date().toISOString(),
       tags: [],
@@ -46,8 +65,15 @@ class TemplatesModule {
 
     // Open the new note in the editor
     this.app.showPage('notes');
-    setTimeout(() => editorModule.editNote(note.id), 100);
+    // Ensure editor module is ready before trying to edit
+    setTimeout(() => {
+        if (window.editorModule) {
+            editorModule.editNote(note.id);
+        }
+    }, 100);
   }
+  
+  // In templates.js
 
   // Show the modal for creating/editing a template
   showTemplateModal(template) {
@@ -64,17 +90,22 @@ class TemplatesModule {
         </div>
         <div class="modal-body">
           <div class="form-group">
-            <label>Template Name</label>
+            <label for="templateName">Template Name</label>
             <input type="text" id="templateName" placeholder="e.g., Weekly Meeting" value="${template ? this.app.escapeHtml(template.name) : ''}">
           </div>
           <div class="form-group">
-            <label>Description</label>
+            <label for="templateDescription">Description</label>
             <input type="text" id="templateDescription" placeholder="A brief description of the template" value="${template ? this.app.escapeHtml(template.description) : ''}">
           </div>
           <div class="form-group">
-            <label>Template Content</label>
-            <textarea id="templateContent" rows="10" placeholder="Enter your template content. Use {{date}} for the current date.">${template ? this.app.escapeHtml(template.content) : ''}</textarea>
-          </div>
+            <label for="templateContent">Template Content</label>
+            <textarea id="templateContent" rows="10" placeholder="Enter your template content...">${template ? this.app.escapeHtml(template.content) : ''}</textarea>
+            
+            <div class="placeholder-guide">
+              <strong>Available Placeholders:</strong>
+              <code>{{date}}</code> <code>{{time}}</code> <code>{{datetime}}</code> <code>{{day}}</code> <code>{{monthname}}</code> <code>{{year}}</code>
+            </div>
+            </div>
         </div>
         <div class="modal-footer">
           <button class="btn btn--secondary" onclick="this.closest('.modal-overlay').remove()">Cancel</button>
@@ -82,6 +113,12 @@ class TemplatesModule {
         </div>
       </div>
     `;
+
+    document.body.appendChild(modal);
+    setTimeout(() => modal.classList.add('visible'), 10);
+    setTimeout(() => document.getElementById('templateName').focus(), 100);
+  }
+
 
     document.body.appendChild(modal);
     setTimeout(() => modal.classList.add('visible'), 10);
