@@ -655,12 +655,42 @@ loadCanvasPage(page) {
     }
   }
   
+  // In app.js
+
   handleQuickSearch(query) {
     if (query.length < 2) return;
     
     // This will be enhanced by the search module
     console.log('Quick search:', query);
   }
+
+  // ======================================================
+  // == PASTE THE NEW FUNCTION HERE =======================
+  // ======================================================
+  handleQuickAction(action) {
+    switch (action) {
+      case 'newBook':
+        // This will call the createNewBook function from editor.js
+        this.createBook();
+        break;
+      case 'newNote':
+        // This will call the createNewNote function from editor.js
+        this.createNote();
+        break;
+      case 'newCanvas':
+        // This switches to the canvas page
+        this.showPage('canvas');
+        break;
+      case 'recordAudio':
+        // This switches to the audio recording page
+        this.showPage('audio');
+        break;
+    }
+  }
+  
+  updateUI() {
+  }
+
   
   handleQuickAction(action) {
     switch (action) {
@@ -686,32 +716,24 @@ loadCanvasPage(page) {
     }
   }
   
-  // Placeholder methods for other modules to implement
   createBook() {
-    this.showToast('Book creation will be implemented in the editor module', 'info');
-    this.showPage('books');
+    editorModule.createNewBook();
   }
   
   createNote() {
-    this.showToast('Note creation will be implemented in the editor module', 'info');
-    this.showPage('notes');
+    editorModule.createNewNote();
   }
   
   openBook(bookId) {
-    console.log('Opening book:', bookId);
-    this.showToast('Book editing will be implemented in the editor module', 'info');
+    editorModule.editBook(bookId);
   }
   
-  // In app.js
-
   openNote(noteId) {
-    console.log('Opening note:', noteId);
-    this.showToast('Note editing will be implemented in the editor module', 'info');
+    
+    editorModule.editNote(noteId);
   }
 
-  // ===================================================================
-  // == PASTE THE NEW SECURE DELETE FUNCTION HERE ======================
-  // ===================================================================
+  
   async deleteItem(itemId, itemType) {
     let item;
     let itemIndex;

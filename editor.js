@@ -17,6 +17,9 @@ class EditorModule {
   // Create rich text editor
   // In editor.js
 
+  // In editor.js
+// REPLACE your existing createEditor function with this complete version.
+
   createEditor(container, content = '', options = {}) {
     const editorId = 'editor_' + Date.now();
     
@@ -24,156 +27,71 @@ class EditorModule {
       <div class="editor-container" id="${editorId}">
         <div class="editor-toolbar">
           <div class="toolbar-group">
-            <button class="toolbar-btn" data-command="undo" title="Undo (Ctrl+Z)">
-              <i class="fas fa-undo"></i>
-            </button>
-            <button class="toolbar-btn" data-command="redo" title="Redo (Ctrl+Y)">
-              <i class="fas fa-redo"></i>
-            </button>
+            <button class="toolbar-btn" data-command="undo" title="Undo (Ctrl+Z)"><i class="fas fa-undo"></i></button>
+            <button class="toolbar-btn" data-command="redo" title="Redo (Ctrl+Y)"><i class="fas fa-redo"></i></button>
           </div>
-          
           <div class="toolbar-separator"></div>
-          
           <div class="toolbar-group">
             <select class="toolbar-select" data-command="fontName" title="Font Family">
-              <option value="Arial">Arial</option>
-              <option value="Verdana">Verdana</option>
-              <option value="Georgia">Georgia</option>
-              <option value="Garamond">Garamond</option>
-              <option value="Courier New">Courier New</option>
-              <option value="Trebuchet MS">Trebuchet MS</option>
-              <option value="Century Gothic">Century Gothic</option>
-              <option value="Lucida Console">Lucida Console</option>
-              <option value="Tahoma">Tahoma</option>
-              <option value="Comic Sans MS">Comic Sans MS</option>
+              <option value="Arial">Arial</option><option value="Verdana">Verdana</option><option value="Georgia">Georgia</option><option value="Garamond">Garamond</option><option value="Courier New">Courier New</option><option value="Trebuchet MS">Trebuchet MS</option><option value="Century Gothic">Century Gothic</option><option value="Lucida Console">Lucida Console</option><option value="Tahoma">Tahoma</option><option value="Comic Sans MS">Comic Sans MS</option>
             </select>
-            
             <select class="toolbar-select" data-command="fontSize" title="Font Size">
-              <option value="1">8pt</option>
-              <option value="2">10pt</option>
-              <option value="3" selected>12pt</option>
-              <option value="4">14pt</option>
-              <option value="5">18pt</option>
-              <option value="6">24pt</option>
-              <option value="7">36pt</option>
+              <option value="1">8pt</option><option value="2">10pt</option><option value="3">12pt</option><option value="4">14pt</option><option value="5">16pt</option><option value="6">18pt</option><option value="7">22pt</option><option value="8">24pt</option><option value="9">28pt</option><option value="10">32pt</option><option value="11">36pt</option><option value="12">40pt</option>
             </select>
           </div>
-          
           <div class="toolbar-separator"></div>
-          
           <div class="toolbar-group">
-            <button class="toolbar-btn" data-command="bold" title="Bold (Ctrl+B)">
-              <i class="fas fa-bold"></i>
-            </button>
-            <button class="toolbar-btn" data-command="italic" title="Italic (Ctrl+I)">
-              <i class="fas fa-italic"></i>
-            </button>
-            <button class="toolbar-btn" data-command="underline" title="Underline (Ctrl+U)">
-              <i class="fas fa-underline"></i>
-            </button>
-            <button class="toolbar-btn" data-command="strikeThrough" title="Strikethrough">
-              <i class="fas fa-strikethrough"></i>
-            </button>
-            <button class="toolbar-btn" data-command="subscript" title="Subscript">
-              <i class="fas fa-subscript"></i>
-            </button>
-            <button class="toolbar-btn" data-command="superscript" title="Superscript">
-              <i class="fas fa-superscript"></i>
-            </button>
+            <button class="toolbar-btn" data-command="bold" title="Bold (Ctrl+B)"><i class="fas fa-bold"></i></button>
+            <button class="toolbar-btn" data-command="italic" title="Italic (Ctrl+I)"><i class="fas fa-italic"></i></button>
+            <button class="toolbar-btn" data-command="underline" title="Underline (Ctrl+U)"><i class="fas fa-underline"></i></button>
+            <button class="toolbar-btn" data-command="strikeThrough" title="Strikethrough"><i class="fas fa-strikethrough"></i></button>
+            <button class="toolbar-btn" data-command="subscript" title="Subscript"><i class="fas fa-subscript"></i></button>
+            <button class="toolbar-btn" data-command="superscript" title="Superscript"><i class="fas fa-superscript"></i></button>
           </div>
-          
           <div class="toolbar-separator"></div>
-          
           <div class="toolbar-group">
             <div class="color-picker-container">
-              <button class="toolbar-btn color-btn" id="textColorBtn" title="Text Color">
-                <i class="fas fa-font"></i>
-                <span class="color-indicator" id="textColorIndicator"></span>
-              </button>
+              <button class="toolbar-btn color-btn" id="textColorBtn" title="Text Color"><i class="fas fa-font"></i><span class="color-indicator" id="textColorIndicator"></span></button>
               <input type="color" id="textColorPicker" value="#000000" style="display: none;">
             </div>
-            
             <div class="color-picker-container">
-              <button class="toolbar-btn color-btn" id="bgColorBtn" title="Highlight Color">
-                <i class="fas fa-highlighter"></i>
-                <span class="color-indicator" id="bgColorIndicator"></span>
-              </button>
+              <button class="toolbar-btn color-btn" id="bgColorBtn" title="Highlight Color"><i class="fas fa-highlighter"></i><span class="color-indicator" id="bgColorIndicator"></span></button>
               <input type="color" id="bgColorPicker" value="#ffff00" style="display: none;">
             </div>
+            <button class="toolbar-btn" data-command="removeFormat" title="Clear Formatting"><i class="fas fa-eraser"></i></button>
           </div>
-          
           <div class="toolbar-separator"></div>
-          
           <div class="toolbar-group">
-            <button class="toolbar-btn" data-command="justifyLeft" title="Align Left">
-              <i class="fas fa-align-left"></i>
-            </button>
-            <button class="toolbar-btn" data-command="justifyCenter" title="Align Center">
-              <i class="fas fa-align-center"></i>
-            </button>
-            <button class="toolbar-btn" data-command="justifyRight" title="Align Right">
-              <i class="fas fa-align-right"></i>
-            </button>
-            <button class="toolbar-btn" data-command="justifyFull" title="Justify">
-              <i class="fas fa-align-justify"></i>
-            </button>
+            <button class="toolbar-btn" data-command="justifyLeft" title="Align Left"><i class="fas fa-align-left"></i></button>
+            <button class="toolbar-btn" data-command="justifyCenter" title="Align Center"><i class="fas fa-align-center"></i></button>
+            <button class="toolbar-btn" data-command="justifyRight" title="Align Right"><i class="fas fa-align-right"></i></button>
+            <button class="toolbar-btn" data-command="justifyFull" title="Justify"><i class="fas fa-align-justify"></i></button>
           </div>
-          
           <div class="toolbar-separator"></div>
-          
           <div class="toolbar-group">
-            <button class="toolbar-btn" data-command="insertUnorderedList" title="Bullet List">
-              <i class="fas fa-list-ul"></i>
-            </button>
-            <button class="toolbar-btn" data-command="insertOrderedList" title="Numbered List">
-              <i class="fas fa-list-ol"></i>
-            </button>
-            <button class="toolbar-btn" data-command="outdent" title="Decrease Indent">
-              <i class="fas fa-outdent"></i>
-            </button>
-            <button class="toolbar-btn" data-command="indent" title="Increase Indent">
-              <i class="fas fa-indent"></i>
-            </button>
+            <button class="toolbar-btn" data-command="insertUnorderedList" title="Bullet List"><i class="fas fa-list-ul"></i></button>
+            <button class="toolbar-btn" data-command="insertOrderedList" title="Numbered List"><i class="fas fa-list-ol"></i></button>
+            <button class="toolbar-btn" data-command="outdent" title="Decrease Indent"><i class="fas fa-outdent"></i></button>
+            <button class="toolbar-btn" data-command="indent" title="Increase Indent"><i class="fas fa-indent"></i></button>
           </div>
-          
           <div class="toolbar-separator"></div>
-          
           <div class="toolbar-group">
-            <button class="toolbar-btn" onclick="editorModule.insertLink()" title="Insert Link">
-              <i class="fas fa-link"></i>
-            </button>
-            <button class="toolbar-btn" onclick="editorModule.insertImage()" title="Insert Image">
-                <i class="fas fa-image"></i>
-            </button>
-            <button class="toolbar-btn" onclick="editorModule.insertAudio()" title="Insert Audio File">
-                <i class="fas fa-file-audio"></i>
-            </button>
-            <button class="toolbar-btn" onclick="editorModule.insertTable()" title="Insert Table">
-              <i class="fas fa-table"></i>
-            </button>
-            <button class="toolbar-btn" onclick="editorModule.insertEmoji()" title="Insert Emoji">
-              <i class="fas fa-smile"></i>
-            </button>
-            <button class="toolbar-btn" onclick="editorModule.insertMath()" title="Insert Math">
-              <i class="fas fa-square-root-alt"></i>
-            </button>
-            <button class="toolbar-btn" id="dictationBtn" onclick="editorModule.toggleDictation()" title="Start Dictation">
-                <i class="fas fa-microphone"></i>
-            </button>
+            <button class="toolbar-btn" onclick="editorModule.insertLink()" title="Insert Link"><i class="fas fa-link"></i></button>
+            <button class="toolbar-btn" onclick="editorModule.insertImage()" title="Insert Image"><i class="fas fa-image"></i></button>
+            <button class="toolbar-btn" onclick="editorModule.insertAudio()" title="Insert Audio File"><i class="fas fa-file-audio"></i></button>
+            <button class="toolbar-btn" onclick="editorModule.insertTable()" title="Insert Table"><i class="fas fa-table"></i></button>
+            <button class="toolbar-btn" data-command="insertHorizontalRule" title="Insert Horizontal Rule"><i class="fas fa-minus"></i></button>
+            <button class="toolbar-btn" data-command="formatBlock" data-value="blockquote" title="Blockquote"><i class="fas fa-quote-left"></i></button>
+            <button class="toolbar-btn" onclick="editorModule.insertEmoji()" title="Insert Emoji"><i class="fas fa-smile"></i></button>
+            <button class="toolbar-btn" onclick="editorModule.insertMath()" title="Insert Math"><i class="fas fa-square-root-alt"></i></button>
+            <button class="toolbar-btn" id="dictationBtn" onclick="editorModule.toggleDictation()" title="Start Dictation"><i class="fas fa-microphone"></i></button>
           </div>
-    
           <div class="toolbar-separator"></div>
-          
           <div class="toolbar-group">
-            <button class="toolbar-btn" onclick="editorModule.toggleMarkdown()" title="Markdown Mode">
-              <i class="fab fa-markdown"></i>
-            </button>
-            <button class="toolbar-btn" onclick="editorModule.toggleFullscreen()" title="Full Screen">
-              <i class="fas fa-expand"></i>
-            </button>
-            <button class="toolbar-btn" onclick="editorModule.showWordCount()" title="Word Count">
-              <i class="fas fa-file-word"></i>
-            </button>
+            <button class="toolbar-btn" onclick="editorModule.findAndReplace()" title="Find & Replace (Ctrl+F)"><i class="fas fa-search"></i></button>
+            <button class="toolbar-btn" onclick="editorModule.toggleMarkdown()" title="Markdown Mode"><i class="fab fa-markdown"></i></button>
+            <button class="toolbar-btn" onclick="editorModule.toggleFullscreen()" title="Full Screen"><i class="fas fa-expand"></i></button>
+            <button class="toolbar-btn" onclick="editorModule.showWordCount()" title="Word Count"><i class="fas fa-file-word"></i></button>
           </div>
         </div>
         
@@ -311,6 +229,56 @@ class EditorModule {
       dictationBtn.title = "Start Dictation";
     }
   }
+  
+
+  findAndReplace() {
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay visible';
+    modal.innerHTML = `
+      <div class="modal-content find-replace-modal">
+        <div class="modal-header">
+          <h3>Find & Replace</h3>
+          <button class="close-btn" onclick="this.closest('.modal-overlay').remove()">&times;</button>
+        </div>
+        <div class="find-replace-body">
+          <div class="form-group">
+            <label>Find</label>
+            <input type="text" id="findInput" class="form-control">
+          </div>
+          <div class="form-group">
+            <label>Replace with</label>
+            <input type="text" id="replaceInput" class="form-control">
+          </div>
+        </div>
+        <div class="find-replace-footer">
+          <label id="matchCaseToggle">
+            <input type="checkbox" id="matchCase"> Match Case
+          </label>
+          <div class="find-replace-actions">
+            <button class="btn btn--secondary" id="replaceAllBtn">Replace All</button>
+            <button class="btn btn--secondary" onclick="this.closest('.modal-overlay').remove()">Close</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+
+    document.getElementById('replaceAllBtn').onclick = () => {
+      const findText = document.getElementById('findInput').value;
+      const replaceText = document.getElementById('replaceInput').value;
+      const matchCase = document.getElementById('matchCase').checked;
+
+      if (!findText) return;
+
+      let content = this.currentEditor.innerHTML;
+      const flags = matchCase ? 'g' : 'gi';
+      const regex = new RegExp(findText.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), flags);
+      
+      this.currentEditor.innerHTML = content.replace(regex, replaceText);
+      this.app.showToast('Replacement complete!', 'success');
+      modal.remove();
+    };
+  }
 
   setupEditorEvents(editorId) {
     const container = document.getElementById(editorId);
@@ -358,6 +326,13 @@ class EditorModule {
     content.addEventListener('keydown', (e) => {
       this.handleKeyboardShortcuts(e);
     });
+    
+        content.addEventListener('keyup', () =>
+    this.updateToolbarState());
+        content.addEventListener('click', () =>
+    this.updateToolbarState());
+        document.addEventListener('selectionchange', () =>
+    this.updateToolbarState());
     
     // Font controls
     container.querySelectorAll('.toolbar-select').forEach(select => {
@@ -407,6 +382,75 @@ class EditorModule {
     if (e.key === 'Tab') {
       e.preventDefault();
       this.execCommand('insertHTML', '&nbsp;&nbsp;&nbsp;&nbsp;');
+    }
+  }
+  
+  updateToolbarState() {
+    if (!this.currentEditor) return;
+
+    const selection = window.getSelection();
+    if (!selection.rangeCount || !this.currentEditor.contains(selection.anchorNode)) {
+      document.querySelectorAll('.toolbar-btn.active').forEach(btn => btn.classList.remove('active'));
+      return;
+    }
+
+    // Update state for toggle buttons
+    document.querySelectorAll('.toolbar-btn[data-command]').forEach(btn => {
+      const command = btn.dataset.command;
+      if (document.queryCommandState(command)) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+    });
+
+    // Update state for select dropdowns
+    document.querySelectorAll('.toolbar-select[data-command]').forEach(select => {
+        const command = select.dataset.command;
+        const value = document.queryCommandValue(command);
+        select.value = value.replace(/['"]/g, '');
+    });
+
+    // == ADD THIS NEW SECTION FOR COLORS ==
+    const rgbToHex = (rgb) => {
+        let hex = Number(rgb).toString(16);
+        if (hex.length < 2) {
+             hex = "0" + hex;
+        }
+        return hex;
+    };
+
+    const fullColorToHex = (rgbStr) => {
+        if (!rgbStr || !rgbStr.startsWith('rgb')) return rgbStr; // Return as is if not rgb
+        const rgb = rgbStr.match(/\d+/g);
+        if (!rgb) return '#000000';
+        return "#" + rgbToHex(rgb[0]) + rgbToHex(rgb[1]) + rgbToHex(rgb[2]);
+    };
+
+    // Update Text Color
+    const foreColor = document.queryCommandValue('foreColor');
+    const textColorPicker = document.getElementById('textColorPicker');
+    const textColorIndicator = document.getElementById('textColorIndicator');
+    if (textColorPicker && textColorIndicator) {
+        const hexColor = fullColorToHex(foreColor);
+        textColorPicker.value = hexColor;
+        textColorIndicator.style.backgroundColor = hexColor;
+    }
+
+    // Update Highlight Color
+    const backColor = document.queryCommandValue('hiliteColor');
+    const bgColorPicker = document.getElementById('bgColorPicker');
+    const bgColorIndicator = document.getElementById('bgColorIndicator');
+    if (bgColorPicker && bgColorIndicator) {
+        // 'transparent' is a valid value we should handle
+        if (backColor === 'transparent' || backColor.includes('0,0,0,0')) {
+             bgColorPicker.value = '#ffff00'; // Default highlight
+             bgColorIndicator.style.backgroundColor = 'transparent';
+        } else {
+            const hexColor = fullColorToHex(backColor);
+            bgColorPicker.value = hexColor;
+            bgColorIndicator.style.backgroundColor = hexColor;
+        }
     }
   }
 

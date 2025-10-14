@@ -2239,3 +2239,41 @@ body {
     opacity: 1;
   }
 }
+/* In style.css */
+
+/* === Find and Replace Modal Styles === */
+.find-replace-modal {
+  padding: 0;
+}
+
+.find-replace-body {
+  padding: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.find-replace-body .form-group {
+  margin-bottom: 0;
+}
+
+.find-replace-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-4);
+  background-color: var(--color-background);
+  border-top: 1px solid var(--color-border);
+}
+
+.find-replace-actions button {
+  margin-left: var(--space-2);
+}
+
+#matchCaseToggle {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--font-size-sm);
+    cursor: pointer;
+}
