@@ -672,63 +672,69 @@ class CryptoModule {
   }
 
   async performDecryption(itemId, itemType) {
+  // In crypto.js
+
+  async performDecryption(itemId, itemType) {
     const password = document.getElementById('decryptionPassword').value;
     const errorEl = document.getElementById('decryptionError');
     const decryptBtn = document.querySelector('.decryption-dialog .btn--primary');
     
     if (!password) {
-      this.app.showToast('Please enter a password', 'warning');
+      this.app.showToast('Please enter your Master Password', 'warning');
       return;
     }
     
+    // Show loading UI
+    decryptBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying...';
+    decryptBtn.disabled = true;
+    errorEl.classList.add('hidden');
+    
     try {
+      // --- NEW: Master Password Verification ---
+      const enteredHash = await this.hash(password);
+      if (enteredHash !== this.app.data.settings.masterPasswordHash) {
+        throw new Error('Incorrect Master Password');
+      }
+      // --- END NEW ---
+
       // Find the item
-      let item;
-      if (itemType === 'book') {
-        item = this.app.data.books.find(b => b.id === itemId);
-      } else {
-        item = this.app.data.notes.find(n => n.id === itemId);
-      }
+      const item = itemType === 'book'
+        ? this.app.data.books.find(b => b.id === itemId)
+        : this.app.data.notes.find(n => n.id === itemId);
       
-      if (!item) {
-        throw new Error('Item not found');
-      }
+      if (!item) throw new Error('Item not found');
       
-      // Show loading
-      decryptBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Decrypting...';
-      decryptBtn.disabled = true;
-      errorEl.classList.add('hidden');
-      
-      // Decrypt the item
+      // Decrypt the item's content in memory for this session
       await this.decryptItem(item, password);
       
-      // Remove password hint
+      // Remove the password hint if it exists
       delete item.passwordHint;
       
-      // Save data
-      this.app.saveData();
-      this.app.updateUI();
-      
-      // Close modal
+      // Close the modal
       document.querySelector('.modal-overlay').remove();
+      this.app.showToast(`${itemType} decrypted successfully!`, 'success');
       
-      this.app.showToast(`${itemType} decrypted successfully`, 'success');
+      // --- NEW: Now open the editor with the decrypted content ---
+      if (itemType === 'book') {
+        this.app.openBook(itemId);
+      } else {
+        this.app.openNote(itemId);
+      }
       
     } catch (error) {
       console.error('Decryption error:', error);
       
-      // Show error
+      // Show error UI
       errorEl.classList.remove('hidden');
-      
-      // Reset button
       decryptBtn.innerHTML = `<i class="fas fa-unlock"></i> Decrypt ${itemType}`;
       decryptBtn.disabled = false;
       
-      // Clear password field
-      document.getElementById('decryptionPassword').value = '';
-      document.getElementById('decryptionPassword').focus();
+      const passInput = document.getElementById('decryptionPassword');
+      passInput.value = '';
+      passInput.focus();
     }
   }
+
 
   // Secure message encryption
   async createSecureMessage(message, recipients = []) {
