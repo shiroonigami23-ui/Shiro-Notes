@@ -759,10 +759,8 @@ loadCanvasPage(page) {
   openNote(noteId) {
     const note = this.data.notes.find(n => n.id === noteId);
     if (!note) return;
-    alert("openNote function is being called!");
     // --- NEW: Security Check ---
     if (note.encrypted) {
-      alert("Note is encrypted, should show dialog!");
       if (!this.data.settings.masterPasswordHash) {
           this.showToast('A Master Password is required to open encrypted items. Please set one in Security.', 'error');
           return;
@@ -770,7 +768,6 @@ loadCanvasPage(page) {
       // This will show the password prompt
       cryptoModule.showDecryptionDialog(noteId, 'note');
     } else {
-      alert("Note is not encrypted, opening editor.");
       // If not encrypted, open directly
       editorModule.editNote(noteId);
     }
