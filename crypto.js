@@ -670,7 +670,10 @@ class CryptoModule {
     });
   }
 
-  async performDecryption(itemId, itemType) {
+  // In crypto.js
+
+// --- REPLACE your old performDecryption function with this one ---
+async performDecryption(itemId, itemType) {
     const password = document.getElementById('decryptionPassword').value;
     const errorEl = document.getElementById('decryptionError');
     const decryptBtn = document.querySelector('.decryption-dialog .btn--primary');
@@ -683,53 +686,55 @@ class CryptoModule {
     // Show loading UI
     decryptBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying...';
     decryptBtn.disabled = true;
-    errorEl.classList.add('hidden');
+    if (errorEl) errorEl.classList.add('hidden');
     
     try {
-      // --- NEW: Master Password Verification ---
+      // Step 1: Verify the entered password against the stored Master Password hash
       const enteredHash = await this.hash(password);
       if (enteredHash !== this.app.data.settings.masterPasswordHash) {
         throw new Error('Incorrect Master Password');
       }
-      // --- END NEW ---
 
-      // Find the item
+      // Step 2: Find the item in your app's data
       const item = itemType === 'book'
         ? this.app.data.books.find(b => b.id === itemId)
         : this.app.data.notes.find(n => n.id === itemId);
       
       if (!item) throw new Error('Item not found');
       
-      // Decrypt the item's content in memory for this session
+      // Step 3: Decrypt the item's content in memory for this session
       await this.decryptItem(item, password);
       
-      // Remove the password hint if it exists
-      delete item.passwordHint;
-      
-      // Close the modal
+      // Close the decryption dialog
       document.querySelector('.modal-overlay').remove();
-      this.app.showToast(`${itemType} decrypted successfully!`, 'success');
+      this.app.showToast(`${itemType} decrypted for this session!`, 'success');
       
-      // --- NEW: Now open the editor with the decrypted content ---
+      // Step 4 (THE FIX): Directly open the editor with the decrypted content.
+      // We no longer call app.openNote() which caused the loop.
       if (itemType === 'book') {
-        this.app.openBook(itemId);
+        editorModule.editBook(itemId);
       } else {
-        this.app.openNote(itemId);
+        editorModule.editNote(itemId);
       }
       
     } catch (error) {
       console.error('Decryption error:', error);
       
-      // Show error UI
-      errorEl.classList.remove('hidden');
+      // Show a more helpful error message on the screen
+      if (errorEl) {
+        errorEl.classList.remove('hidden');
+        errorEl.querySelector('span').textContent = error.message;
+      }
+      
+      // Reset the button and password field
       decryptBtn.innerHTML = `<i class="fas fa-unlock"></i> Decrypt ${itemType}`;
       decryptBtn.disabled = false;
-      
       const passInput = document.getElementById('decryptionPassword');
       passInput.value = '';
       passInput.focus();
     }
   }
+
 
 
   // Secure message encryption
