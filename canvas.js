@@ -187,14 +187,7 @@ setupToolListeners() {
           this.toggleGrid();
           break;
       }
-    });
-
-    // Resize handler
-    window.addEventListener('resize', () => {
-      if (this.canvas) {
-        this.resizeCanvas();
-      }
-    });
+    }); 
   }
 
   selectTool(toolName) {
@@ -412,7 +405,7 @@ draw(e) {
     if (!this.isDrawing) return;
 
     const pos = this.getMousePos(e);
-  if (!this.tool === 'select'){
+  if (this.tool === 'select'){
     this.transformImage(pos.x, pos.y);
     return;
   }
@@ -1117,7 +1110,28 @@ loadImage() {
     input.click();
 }
 
-  
+  // --- In canvas.js, ADD this new function inside the CanvasModule class ---
+
+redrawImagesOnLayer(layerId) {
+    const layer = this.layers.find(l => l.id === layerId);
+    if (!layer) return;
+
+    // Find all images that are on the layer we are modifying
+    const imagesOnThisLayer = this.images.filter(img => img.layerId === layerId);
+    
+    // Draw each image permanently onto the layer's canvas
+    imagesOnThisLayer.forEach(img => {
+        layer.ctx.drawImage(img.element, img.x, img.y, img.width, img.height);
+    });
+
+    // VERY IMPORTANT: After drawing the images, we must remove them from the
+    // 'this.images' array so they don't get drawn twice by the renderLayers() function.
+    this.images = this.images.filter(img => img.layerId !== layerId);
+    
+    // Clear the selection
+    this.selectedImage = null;
+}
+
   
 
   // Add layers panel
