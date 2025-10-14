@@ -52,34 +52,54 @@ setupMasterPassword() {
     }
 }
 
+
 async saveMasterPassword() {
-    const isChanging = !!this.app.data.settings.masterPasswordHash;
-    const currentPass = isChanging ? document.getElementById('currentPassword').value : null;
-    const newPass = document.getElementById('encryptionPassword').value;
-    const confirmPass = document.getElementById('confirmPassword').value;
+    const saveButton = document.getElementById('encryptBtn');
 
-    if (newPass.length < 8 || newPass !== confirmPass) {
-        this.app.showToast('Passwords must match and be at least 8 characters long.', 'error');
-        return;
-    }
+    try {
+        const isChanging = !!this.app.data.settings.masterPasswordHash;
+        const currentPass = isChanging ? document.getElementById('currentPassword').value : null;
+        const newPass = document.getElementById('encryptionPassword').value;
+        const confirmPass = document.getElementById('confirmPassword').value;
 
-    if (isChanging) {
-        const currentHash = this.app.data.settings.masterPasswordHash;
-        const enteredHash = await cryptoModule.hash(currentPass); //
-        if (currentHash !== enteredHash) {
-            this.app.showToast('The current password you entered is incorrect.', 'error');
+        if (newPass.length < 8 || newPass !== confirmPass) {
+            this.app.showToast('Passwords must match and be at least 8 characters long.', 'error');
             return;
         }
-    }
 
-    // Hash and save the new password using the strong hash from crypto.js
-    const newHash = await cryptoModule.hash(newPass);
-    this.app.data.settings.masterPasswordHash = newHash;
-    this.app.saveData(); //
-    document.querySelector('.modal-overlay').remove();
-    this.app.showToast('Master Password updated successfully!', 'success');
-    this.app.loadPageContent('security'); // Refresh the page
+        if (isChanging) {
+            const currentHash = this.app.data.settings.masterPasswordHash;
+            const enteredHash = await cryptoModule.hash(currentPass);
+            if (currentHash !== enteredHash) {
+                this.app.showToast('The current password you entered is incorrect.', 'error');
+                return;
+            }
+        }
+        
+        if (saveButton) {
+            saveButton.disabled = true;
+            saveButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+        }
+
+        const newHash = await cryptoModule.hash(newPass);
+        this.app.data.settings.masterPasswordHash = newHash;
+        this.app.saveData();
+
+        document.querySelector('.modal-overlay').remove();
+        this.app.showToast('Master Password updated successfully!', 'success');
+        this.app.loadPageContent('security'); // Refresh the page
+
+    } catch (error) {
+        console.error("Failed to save master password:", error);
+        this.app.showToast(`An error occurred: ${error.message}`, 'error');
+        
+        if (saveButton) {
+            saveButton.disabled = false;
+            saveButton.innerHTML = 'Save';
+        }
+    }
 }
+
 
   // Password Generator
   generatePassword() {
