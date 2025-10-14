@@ -283,9 +283,6 @@ renderLayers() {
     if (this.tool === 'select') this.drawSelectionHandles(this.selectedImage);
 }
 
-    
-  }
-
   drawGrid() {
     const gridSize = 20;
     this.ctx.save();
