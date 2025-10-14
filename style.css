@@ -2601,3 +2601,33 @@ input:checked + .slider:before {
 .toolbar-label input[type="range"] {
     vertical-align: middle;
 }
+
+/* --- Styles for Template Placeholder Guide (V2 - Integrated with Design System) --- */
+.placeholder-guide {
+  margin-top: var(--space-3); /* Was 12px, now uses your spacing scale */
+  padding: var(--space-3);
+  background-color: var(--color-background); /* Uses your main background for subtle contrast */
+  border-radius: var(--radius-base); /* Uses your standard border-radius */
+  border: 1px solid var(--color-border); /* Adds a border to match other components */
+  font-size: var(--font-size-sm); /* Uses your typography scale */
+  color: var(--color-text-secondary); /* Uses your secondary text color */
+}
+
+.placeholder-guide strong {
+  display: block;
+  margin-bottom: var(--space-2); /* Was 6px, now uses your spacing scale */
+  color: var(--color-text);
+  font-weight: var(--font-weight-semibold);
+}
+
+.placeholder-guide code {
+  background-color: var(--color-secondary); /* Uses your standard secondary/hover color */
+  color: var(--color-primary); /* Makes placeholders pop with your primary accent color */
+  font-family: var(--font-family-mono); /* Uses your defined monospace font */
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-sm);
+  margin: 0 2px;
+  display: inline-block;
+  font-weight: var(--font-weight-medium);
+  transition: all var(--transition-fast);
+}
