@@ -268,24 +268,28 @@ setupToolListeners() {
     this.renderLayers();
   }
 
-  renderLayers() {
-    // Clear main canvas
+  // --- In canvas.js, REPLACE your renderLayers function ---
+renderLayers() {
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-    
-    // Render all visible layers
+
     this.layers.forEach(layer => {
-      if (layer.visible) {
-        this.ctx.save();
-        this.ctx.globalAlpha = layer.opacity;
-        this.ctx.drawImage(layer.canvas, 0, 0);
-        this.ctx.restore();
-      }
+        if (layer.visible) {
+            this.ctx.save();
+            this.ctx.globalAlpha = layer.opacity;
+            // Draw the layer's base content
+            this.ctx.drawImage(layer.canvas, 0, 0);
+            // Draw any images assigned to this layer on top
+            this.images.filter(img => img.layerId === layer.id).forEach(img => {
+                this.ctx.drawImage(img.element, img.x, img.y, img.width, img.height);
+            });
+            this.ctx.restore();
+        }
     });
-    
-    // Draw grid if enabled
-    if (this.gridEnabled) {
-      this.drawGrid();
-    }
+
+    if (this.gridEnabled) this.drawGrid();
+    if (this.tool === 'select') this.drawSelectionHandles(this.selectedImage);
+}
+
     
     // Draw selection handles if shape is selected
     if (this.selectedShape) {
@@ -1076,7 +1080,7 @@ getHandleAt(x, y) {
     this.app.updateUI();
   }
 
-  loadImage() {
+loadImage() {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'image/*';
@@ -1089,11 +1093,21 @@ getHandleAt(x, y) {
       reader.onload = (event) => {
         const img = new Image();
         img.onload = () => {
-          const ctx = this.layers[this.currentLayer].ctx;
-          ctx.drawImage(img, 0, 0);
+          // Add the image to our tracking array
+          const newImage = {
+              element: img,
+              x: 20,
+              y: 20,
+              width: img.width / 2, // Start at half size
+              height: img.height / 2,
+              layerId: this.currentLayer
+          };
+          this.images.push(newImage);
+          this.selectedImage = newImage; // Auto-select the new image
+          this.selectTool('select'); // Switch to select tool automatically
+          
           this.renderLayers();
-          this.saveState();
-          this.app.showToast('Image loaded', 'success');
+          this.app.showToast('Image loaded. Use the select tool to move/resize.', 'success');
         };
         img.src = event.target.result;
       };
@@ -1101,7 +1115,8 @@ getHandleAt(x, y) {
     };
     
     input.click();
-  }
+}
+
   
   
 
