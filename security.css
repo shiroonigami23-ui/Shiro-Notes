@@ -1,0 +1,183 @@
+/* ================================== */
+/* == Security Page & Modals Styles == */
+/* ================================== */
+
+/* Security Settings Page Layout */
+.security-container .page-header {
+    margin-bottom: var(--space-6); /* Reduced margin */
+    text-align: center;
+    padding-bottom: var(--space-4);
+    border-bottom: 1px solid var(--color-border);
+}
+.security-container .page-header h1 {
+    font-size: var(--font-size-2xl); /* Match other page titles */
+}
+.security-container .page-header p {
+    max-width: 600px;
+    margin: var(--space-2) auto 0;
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm); /* Smaller description */
+}
+
+.security-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: var(--space-6);
+    max-width: 900px; /* Allow wider grid if needed */
+    margin: 0 auto;
+}
+
+.security-card {
+    background-color: var(--color-surface);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--color-card-border);
+    display: flex; /* Use flex for vertical stacking */
+    flex-direction: column;
+}
+.security-card .card-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4); /* Reduced padding */
+    border-bottom: 1px solid var(--color-card-border);
+}
+.security-card .card-header i { font-size: var(--font-size-base); color: var(--color-primary); }
+.security-card .card-header h3 { font-size: var(--font-size-base); margin: 0; } /* Smaller heading */
+.security-card .card-body {
+    padding: var(--space-4); /* Reduced padding */
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    flex-grow: 1; /* Allow body to fill space */
+}
+.security-card .card-body p { color: var(--color-text-secondary); font-size: var(--font-size-sm); margin: 0 0 var(--space-3) 0; line-height: 1.4; }
+.security-card .card-body .btn { margin-top: auto; /* Push button to bottom */ }
+
+.setting-item { display: flex; justify-content: space-between; align-items: center; }
+.setting-item .badge { font-weight: var(--font-weight-medium); padding: 2px 8px; border-radius: var(--radius-full); font-size: var(--font-size-xs); }
+/* Badge status colors are in components.css */
+
+/* Encryption / Decryption Modals (General Styles) */
+.encryption-dialog, .decryption-dialog { max-width: 450px; /* Slightly narrower */ }
+.encryption-dialog .modal-body, .decryption-dialog .modal-body { padding-top: var(--space-4); } /* Reduce top padding */
+.item-info { margin-bottom: var(--space-4); } /* Reduced margin */
+.item-info h4 { margin-bottom: var(--space-1); font-size: var(--font-size-base); }
+.item-info p { margin: 0; font-size: var(--font-size-sm); color: var(--color-text-secondary); }
+
+.password-input-group { position: relative; display: flex; }
+.password-input-group input { flex-grow: 1; padding-right: var(--space-8); } /* Space for toggle */
+.password-toggle {
+  position: absolute; right: var(--space-2); top: 50%; transform: translateY(-50%);
+  background: none; border: none; color: var(--color-text-secondary); cursor: pointer;
+  padding: var(--space-1); border-radius: var(--radius-sm); line-height: 1;
+}
+.password-toggle:hover { color: var(--color-text); background-color: var(--color-secondary); }
+
+/* Password Strength & Match Indicators */
+.password-strength { margin-top: var(--space-2); }
+.strength-bar { height: 4px; background-color: var(--color-secondary); border-radius: var(--radius-full); overflow: hidden; margin-bottom: var(--space-1); }
+.strength-fill { height: 100%; transition: width var(--duration-normal); }
+.strength-fill.weak { background-color: var(--color-error); }
+.strength-fill.moderate { background-color: var(--color-warning); }
+.strength-fill.strong { background-color: var(--color-success); }
+.strength-text { font-size: var(--font-size-xs); font-weight: var(--font-weight-medium); }
+.strength-weak .strength-text { color: var(--color-error); }
+.strength-moderate .strength-text { color: var(--color-warning); }
+.strength-strong .strength-text { color: var(--color-success); }
+.strength-feedback { font-size: var(--font-size-xs); color: var(--color-text-secondary); margin-top: var(--space-1); }
+
+.password-match { margin-top: var(--space-2); font-size: var(--font-size-sm); display: flex; align-items: center; gap: var(--space-1); }
+.password-match.success { color: var(--color-success); }
+.password-match.error { color: var(--color-error); }
+
+/* Encryption Specifics */
+.encryption-options { margin: var(--space-4) 0 var(--space-2) 0; }
+.warning-box {
+  display: flex; gap: var(--space-3); padding: var(--space-3);
+  background-color: rgba(var(--color-warning-rgb), 0.1);
+  border: 1px solid rgba(var(--color-warning-rgb), 0.3);
+  border-radius: var(--radius-base); margin-top: var(--space-4); font-size: var(--font-size-sm);
+}
+.warning-box i { color: var(--color-warning); font-size: var(--font-size-base); margin-top: 2px; flex-shrink: 0; }
+.warning-box p { margin: 0; line-height: 1.4; }
+
+/* Decryption Specifics */
+.password-hint { background-color: var(--color-background); padding: var(--space-2); border-radius: var(--radius-base); margin-top: var(--space-2); font-size: var(--font-size-sm); border: 1px dashed var(--color-border); }
+.decryption-error {
+  display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2);
+  background-color: rgba(var(--color-error-rgb), 0.1);
+  border: 1px solid rgba(var(--color-error-rgb), 0.3);
+  border-radius: var(--radius-base); color: var(--color-error); font-size: var(--font-size-sm);
+  margin-top: var(--space-3);
+}
+.decryption-error.hidden { display: none; }
+.decryption-error i { color: var(--color-error); }
+
+/* Password Generator Modal */
+.password-generator { max-width: 400px; }
+.password-display { display: flex; gap: var(--space-2); margin-bottom: var(--space-4); }
+.password-display input { flex-grow: 1; padding: var(--space-2); border: 1px solid var(--color-border); border-radius: var(--radius-base); font-family: var(--font-family-mono); background-color: var(--color-background); color: var(--color-text); font-size: var(--font-size-lg); }
+.password-actions { display: flex; gap: var(--space-1); }
+.password-actions .btn--sm { width: 36px; height: 36px; padding: 0; } /* Make copy/regen square */
+
+.password-options { margin-bottom: var(--space-4); }
+.option-group { margin-bottom: var(--space-3); }
+.option-group label { display: block; margin-bottom: var(--space-2); font-weight: var(--font-weight-medium); font-size: var(--font-size-sm); }
+.option-group input[type="range"] { width: 100%; cursor: pointer; }
+.checkbox-group { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2); } /* 2 columns for checkboxes */
+.checkbox-group label { display: flex; align-items: center; gap: var(--space-2); font-weight: normal; font-size: var(--font-size-sm); cursor: pointer; }
+
+.password-strength-meter { display: flex; align-items: center; gap: var(--space-2); }
+.strength-label { font-size: var(--font-size-sm); color: var(--color-text-secondary); }
+/* Strength bar/text styles reused from above */
+
+/* App Lock Screen Styles (Simple Passcode) */
+.lock-screen {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: var(--color-background); /* Use app background */
+  display: flex; align-items: center; justify-content: center;
+  z-index: 1000;
+}
+.lock-container {
+  background-color: var(--color-surface);
+  border-radius: var(--radius-xl);
+  padding: var(--space-6);
+  text-align: center;
+  box-shadow: var(--shadow-xl);
+  max-width: 320px; /* Narrower for keypad */
+  width: 90%;
+}
+.lock-header { margin-bottom: var(--space-6); }
+.lock-header i.fa-lock { font-size: var(--font-size-3xl); color: var(--color-primary); margin-bottom: var(--space-3); }
+.lock-header h2 { font-size: var(--font-size-xl); margin-bottom: var(--space-1); }
+.lock-header p { color: var(--color-text-secondary); font-size: var(--font-size-sm); margin: 0; }
+
+.passcode-dots { display: flex; justify-content: center; gap: var(--space-3); margin-bottom: var(--space-4); height: 16px; /* Fixed height */ }
+.dot { width: 12px; height: 12px; border-radius: var(--radius-full); background-color: var(--color-secondary); transition: background-color var(--duration-fast); }
+.dot.filled { background-color: var(--color-primary); transform: scale(1.1); }
+
+.lock-keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-3); margin-bottom: var(--space-4); }
+.key {
+  aspect-ratio: 1 / 1; /* Make keys square */
+  border: 1px solid var(--color-border);
+  background-color: var(--color-background);
+  border-radius: var(--radius-lg);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  transition: all var(--duration-fast);
+  display: flex; align-items: center; justify-content: center;
+}
+.key:hover { background-color: var(--color-secondary); }
+.key:active { transform: scale(0.95); background-color: var(--color-secondary-hover); }
+.key.action { font-size: var(--font-size-sm); } /* Smaller text/icon for actions */
+.key.action i { font-size: var(--font-size-base); }
+
+.lock-error { color: var(--color-error); font-size: var(--font-size-sm); margin-top: var(--space-3); height: 1.2em; /* Reserve space */ }
+
+/* Responsive Security Styles */
+@media (max-width: 480px) {
+  .security-grid { grid-template-columns: 1fr; }
+  .password-generator { max-width: 90%; }
+  .checkbox-group { grid-template-columns: 1fr; } /* Stack checkboxes */
+}
