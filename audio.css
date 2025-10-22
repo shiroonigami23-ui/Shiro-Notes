@@ -1,0 +1,171 @@
+/* ================================== */
+/* == Audio Page Styles            == */
+/* ================================== */
+
+.audio-container {
+  display: grid; /* Use grid for better layout control */
+  grid-template-rows: auto 1fr; /* Recorder auto-height, Library fills rest */
+  height: 100%;
+  gap: var(--space-6);
+  padding: var(--space-4); /* Add padding around the whole page */
+  max-width: 1000px; /* Limit width */
+  margin: 0 auto; /* Center content */
+}
+
+/* Audio Recorder Section */
+.audio-recorder {
+  background-color: var(--color-surface);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  border: 1px solid var(--color-card-border);
+  text-align: center;
+}
+.audio-recorder h2 {
+  font-size: var(--font-size-xl);
+  margin-bottom: var(--space-4);
+  color: var(--color-text);
+}
+.recorder-display { margin: var(--space-4) 0; }
+#waveform {
+  height: 80px; /* Slightly smaller waveform */
+  border-radius: var(--radius-base);
+  margin-bottom: var(--space-3);
+  position: relative;
+  overflow: hidden;
+  background-color: var(--color-background); /* Add background */
+  border: 1px solid var(--color-border); /* Add subtle border */
+}
+#waveform canvas {
+  display: block; /* Ensure canvas fills container */
+  width: 100%;
+  height: 100%;
+}
+.timer {
+  font-size: var(--font-size-xl); /* Slightly smaller timer */
+  font-weight: var(--font-weight-bold);
+  color: var(--color-primary);
+  font-family: var(--font-family-mono);
+  margin-top: var(--space-2);
+}
+.recorder-controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: var(--space-4);
+  margin-top: var(--space-4);
+}
+.record-btn {
+  width: 64px; height: 64px; /* Slightly smaller record button */
+  border-radius: var(--radius-full);
+  border: none;
+  background-color: var(--color-error);
+  color: white;
+  font-size: var(--font-size-2xl);
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: var(--shadow-md);
+}
+.record-btn:hover { transform: scale(1.05); box-shadow: var(--shadow-lg); }
+.record-btn.recording { background-color: var(--color-error); animation: pulse-recording 1.5s infinite; }
+.recorder-controls .btn--secondary { min-width: 100px; } /* Give Stop/Play buttons some width */
+
+/* Audio Library Section */
+.audio-library {
+  background-color: var(--color-surface);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4); /* Consistent padding */
+  border: 1px solid var(--color-card-border);
+  overflow: hidden; /* Contains scrolling list */
+  display: flex;
+  flex-direction: column;
+}
+.audio-library h3 {
+  margin-bottom: var(--space-4);
+  font-size: var(--font-size-lg); /* Smaller heading */
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text);
+}
+#audioList {
+  flex-grow: 1; /* Make list fill space */
+  overflow-y: auto;
+  display: grid; /* Use grid for cards */
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); /* Responsive grid */
+  gap: var(--space-4);
+  padding-right: var(--space-2); /* Space for scrollbar */
+}
+.audio-card {
+  background-color: var(--color-background);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  transition: all var(--transition-normal);
+  display: flex;
+  flex-direction: column; /* Stack elements vertically */
+}
+.audio-card:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); border-color: var(--color-primary); }
+
+.audio-header { display: flex; align-items: flex-start; gap: var(--space-3); margin-bottom: var(--space-3); }
+.audio-icon {
+  width: 36px; height: 36px; /* Smaller icon */
+  background-color: var(--color-primary);
+  border-radius: var(--radius-base); /* Match card radius */
+  display: flex; align-items: center; justify-content: center;
+  color: white; font-size: var(--font-size-base); flex-shrink: 0;
+}
+.audio-info { flex-grow: 1; min-width: 0; }
+.audio-info h4 { margin: 0 0 var(--space-1) 0; font-size: var(--font-size-base); font-weight: var(--font-weight-semibold); color: var(--color-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.audio-meta { display: flex; gap: var(--space-3); margin-bottom: var(--space-2); font-size: var(--font-size-xs); color: var(--color-text-secondary); }
+.audio-meta span { display: flex; align-items: center; gap: var(--space-1); }
+.audio-card .description { font-size: var(--font-size-sm); color: var(--color-text-secondary); margin: var(--space-2) 0 0 0; line-height: 1.4; max-height: 2.8em; overflow: hidden; /* Limit description lines */ }
+
+.audio-card .audio-controls {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: auto; /* Push controls to the bottom */
+  padding-top: var(--space-3); /* Space above controls */
+  border-top: 1px solid var(--color-border); /* Separator */
+}
+.control-btn {
+  width: 28px; height: 28px; /* Smaller buttons */
+  border: none; background-color: var(--color-secondary); color: var(--color-text);
+  border-radius: var(--radius-base); cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: all var(--transition-fast); font-size: var(--font-size-xs);
+}
+.control-btn:hover { background-color: var(--color-secondary-hover); transform: scale(1.05); }
+.control-btn.danger:hover { background-color: var(--color-error); color: white; }
+.play-btn { background-color: var(--color-primary); color: white; }
+.play-btn:hover { background-color: var(--color-primary-hover); }
+
+/* Remove mini waveform for now, simplify card */
+.audio-waveform { display: none; }
+
+.audio-tags { display: flex; flex-wrap: wrap; gap: var(--space-1); margin-top: var(--space-2); }
+.audio-tags .tag { padding: 1px var(--space-2); font-size: 9px; } /* Smaller tags */
+
+/* Empty state styling in components.css */
+
+/* Audio Preview in Save Modal */
+.audio-preview { background-color: var(--color-background); border-radius: var(--radius-base); padding: var(--space-3); margin: var(--space-4) 0; border: 1px solid var(--color-border); }
+.audio-preview h4 { margin-bottom: var(--space-2); font-size: var(--font-size-sm); }
+.audio-preview .audio-controls { display: flex; align-items: center; gap: var(--space-3); border-top: none; padding-top: 0; margin-top: 0; }
+.audio-preview .duration { font-family: var(--font-family-mono); font-size: var(--font-size-sm); color: var(--color-text-secondary); }
+
+/* Form styles reused from components.css */
+
+/* Responsive Audio Page */
+@media (max-width: 768px) {
+  .audio-container { padding: var(--space-3); gap: var(--space-4); }
+  .recorder-controls { flex-direction: row; /* Keep row layout but maybe wrap */ flex-wrap: wrap; }
+  .record-btn { width: 56px; height: 56px; font-size: var(--font-size-xl); }
+  #audioList { grid-template-columns: 1fr; /* Single column on mobile */ }
+  .audio-card { padding: var(--space-3); }
+  .audio-card .audio-controls { flex-wrap: wrap; }
+}
+
+@keyframes pulse-recording { /* Re-declare here if not global */
+  0% { box-shadow: 0 0 0 0 rgba(var(--color-red-400-rgb), 0.7); }
+  70% { box-shadow: 0 0 0 10px rgba(var(--color-red-400-rgb), 0); }
+  100% { box-shadow: 0 0 0 0 rgba(var(--color-red-400-rgb), 0); }
+}
