@@ -4,252 +4,157 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Shiro Notes - Professional Note-Taking</title>
+    <!-- External Libraries -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="style.css">
+    <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E📝%3C/text%3E%3C/svg%3E">
+
+    <!-- Modular CSS Files -->
+    <link rel="stylesheet" href="base.css">
+    <link rel="stylesheet" href="layout.css">
+    <link rel="stylesheet" href="components.css">
+    <link rel="stylesheet" href="dashboard.css">
+    <link rel="stylesheet" href="editor.css">     <!-- Consolidated editor styles -->
+    <link rel="stylesheet" href="search.css">
+    <link rel="stylesheet" href="security.css">
+    <link rel="stylesheet" href="calendar.css">
+    <link rel="stylesheet" href="canvas.css">     <!-- Consolidated canvas styles -->
+    <link rel="stylesheet" href="audio.css">
+    <link rel="stylesheet" href="profile.css">
+    <link rel="stylesheet" href="export.css">
+    <!-- Add links for templates.css if created, etc. -->
+
 </head>
 <body>
 
-    <!-- Main Application -->
+    <!-- Main Application Structure -->
     <div id="app" class="app">
         <!-- Sidebar -->
         <div class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <div class="logo">
                     <i class="fas fa-feather-alt"></i>
-                    <span>Shiro Notes</span>
+                    <span class="logo-text">Shiro Notes</span> <!-- Added class for collapsing -->
                 </div>
-                <button class="sidebar-toggle" id="sidebarToggle">
+                <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle Sidebar">
                     <i class="fas fa-chevron-left"></i>
                 </button>
             </div>
-            
+
             <nav class="sidebar-nav">
                 <div class="nav-section">
-                    <h3>Main</h3>
-                    <button class="nav-item active" data-page="dashboard">
-                        <i class="fas fa-home"></i>
-                        <span>Dashboard</span>
+                    <h3 class="nav-section-title">Main</h3>
+                    <button class="nav-item active" data-page="dashboard" title="Dashboard">
+                        <i class="fas fa-home fa-fw"></i> <!-- Added fa-fw for fixed width -->
+                        <span class="nav-text">Dashboard</span>
                     </button>
-                    <button class="nav-item" data-page="books">
-                        <i class="fas fa-book"></i>
-                        <span>Books</span>
+                    <button class="nav-item" data-page="books" title="Books">
+                        <i class="fas fa-book fa-fw"></i>
+                        <span class="nav-text">Books</span>
                         <span class="count" id="booksCount">0</span>
                     </button>
-                    <button class="nav-item" data-page="notes">
-                        <i class="fas fa-sticky-note"></i>
-                        <span>All Notes</span>
+                    <button class="nav-item" data-page="notes" title="All Notes">
+                        <i class="fas fa-sticky-note fa-fw"></i>
+                        <span class="nav-text">All Notes</span>
                         <span class="count" id="notesCount">0</span>
                     </button>
-                    <button class="nav-item" data-page="canvas">
-                        <i class="fas fa-paint-brush"></i>
-                        <span>Canvas</span>
+                    <button class="nav-item" data-page="canvas" title="Canvas">
+                        <i class="fas fa-paint-brush fa-fw"></i>
+                        <span class="nav-text">Canvas</span>
                     </button>
-                    <button class="nav-item" data-page="audio">
-                        <i class="fas fa-microphone"></i>
-                        <span>Audio Notes</span>
-                    </button>
-                </div>
-                
-                <div class="nav-section">
-                    <h3>Organization</h3>
-                    <button class="nav-item" data-page="search">
-                        <i class="fas fa-search"></i>
-                        <span>Search</span>
-                    </button>
-                    <button class="nav-item" data-page="bookmarks">
-                        <i class="fas fa-bookmark"></i>
-                        <span>Bookmarks</span>
-                    </button>
-                    <button class="nav-item" data-page="tags">
-                        <i class="fas fa-tags"></i>
-                        <span>Tags</span>
-                    </button>
-                    <button class="nav-item" data-page="templates">
-                        <i class="fas fa-file-alt"></i>
-                        <span>Templates</span>
+                    <button class="nav-item" data-page="audio" title="Audio Notes">
+                        <i class="fas fa-microphone fa-fw"></i>
+                        <span class="nav-text">Audio Notes</span>
                     </button>
                 </div>
-                
+
                 <div class="nav-section">
-                    <h3>Tools</h3>
-                    <button class="nav-item" data-page="scheduler">
-                        <i class="fas fa-calendar-alt"></i>
-                        <span>Calendar</span>
+                    <h3 class="nav-section-title">Organization</h3>
+                    <button class="nav-item" data-page="search" title="Search">
+                        <i class="fas fa-search fa-fw"></i>
+                        <span class="nav-text">Search</span>
+                    </button>
+                    <button class="nav-item" data-page="bookmarks" title="Bookmarks">
+                        <i class="fas fa-bookmark fa-fw"></i>
+                        <span class="nav-text">Bookmarks</span>
+                    </button>
+                    <button class="nav-item" data-page="tags" title="Tags">
+                        <i class="fas fa-tags fa-fw"></i>
+                        <span class="nav-text">Tags</span>
+                    </button>
+                    <button class="nav-item" data-page="templates" title="Templates">
+                        <i class="fas fa-file-alt fa-fw"></i>
+                        <span class="nav-text">Templates</span>
+                    </button>
+                </div>
+
+                <div class="nav-section">
+                    <h3 class="nav-section-title">Tools</h3>
+                    <button class="nav-item" data-page="scheduler" title="Calendar">
+                        <i class="fas fa-calendar-alt fa-fw"></i>
+                        <span class="nav-text">Calendar</span>
+                    </button>
+                    <button class="nav-item" data-page="export" title="Export & Backup">
+                        <i class="fas fa-file-export fa-fw"></i>
+                        <span class="nav-text">Export</span>
+                    </button>
+                     <button class="nav-item" data-page="security" title="Security Settings">
+                        <i class="fas fa-shield-alt fa-fw"></i>
+                        <span class="nav-text">Security</span>
                     </button>
                 </div>
             </nav>
-            
+
             <div class="sidebar-footer">
-                <button class="nav-item" data-page="profile">
+                <button class="nav-item" data-page="profile" title="Profile & Settings">
                     <div class="profile-avatar" id="sidebarAvatar">
                         <i class="fas fa-user"></i>
                     </div>
-                    <span>Profile</span>
+                    <span class="nav-text">Profile</span>
                 </button>
+                <!-- Theme toggle can be added here if desired -->
             </div>
         </div>
-        
-        <!-- Main Content -->
+
+        <!-- Main Content Area -->
         <div class="main-content">
             <!-- Top Bar -->
             <div class="top-bar">
                 <div class="top-bar-left">
-                    <button class="mobile-menu-btn" id="mobileMenuBtn">
+                    <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Toggle Menu">
                         <i class="fas fa-bars"></i>
                     </button>
                     <div class="breadcrumb" id="breadcrumb">
                         <span>Dashboard</span>
                     </div>
                 </div>
-                
+
                 <div class="top-bar-center">
                     <div class="quick-search">
-                        <input type="text" placeholder="Quick search..." id="quickSearch">
-                        <i class="fas fa-search"></i>
+                        <i class="fas fa-search search-icon"></i>
+                        <input type="text" placeholder="Quick search..." id="quickSearch" aria-label="Quick Search">
                     </div>
                 </div>
-                
+
                 <div class="top-bar-right">
-                    <button class="action-btn" id="quickNote" title="Quick Note">
+                    <button class="action-btn" id="quickNote" title="New Quick Note (Ctrl+N)">
                         <i class="fas fa-plus"></i>
                     </button>
-                    <button class="action-btn" id="fullScreenBtn" title="Full Screen">
+                    <button class="action-btn" id="fullScreenBtn" title="Toggle Full Screen">
                         <i class="fas fa-expand"></i>
                     </button>
+                    <!-- Add theme toggle button here if preferred over sidebar -->
                 </div>
             </div>
-            
+
             <!-- Page Container -->
             <div class="page-container" id="pageContainer">
-                <!-- Dashboard Page -->
-                <div class="page active" id="dashboardPage">
-                    <div class="dashboard">
-                        <div class="dashboard-header">
-                            <h1>Welcome back!</h1>
-                            <p>Here's what's happening with your notes today.</p>
-                        </div>
-                        
-                        <div class="stats-grid">
-                            <div class="stat-card">
-                                <div class="stat-icon bg-1">
-                                    <i class="fas fa-book"></i>
-                                </div>
-                                <div class="stat-content">
-                                    <h3 id="totalBooks">0</h3>
-                                    <p>Books</p>
-                                </div>
-                            </div>
-                            <div class="stat-card">
-                                <div class="stat-icon bg-2">
-                                    <i class="fas fa-sticky-note"></i>
-                                </div>
-                                <div class="stat-content">
-                                    <h3 id="totalNotes">0</h3>
-                                    <p>Notes</p>
-                                </div>
-                            </div>
-                            <div class="stat-card">
-                                <div class="stat-icon bg-3">
-                                    <i class="fas fa-calendar"></i>
-                                </div>
-                                <div class="stat-content">
-                                    <h3 id="totalEvents">0</h3>
-                                    <p>Events</p>
-                                </div>
-                            </div>
-                            <div class="stat-card">
-                                <div class="stat-icon bg-4">
-                                    <i class="fas fa-shield-alt"></i>
-                                </div>
-                                <div class="stat-content">
-                                    <h3 id="encryptedItems">0</h3>
-                                    <p>Encrypted</p>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="dashboard-content">
-                            <div class="dashboard-section">
-                                <div class="section-header">
-                                    <h2>Recent Books</h2>
-                                    <button class="btn btn--secondary btn--sm" data-page="books">View All</button>
-                                </div>
-                                <div class="recent-books" id="recentBooks">
-                                    <!-- Recent books will be populated here -->
-                                </div>
-                            </div>
-                            
-                            <div class="dashboard-section">
-                                <div class="section-header">
-                                    <h2>Recent Notes</h2>
-                                    <button class="btn btn--secondary btn--sm" data-page="notes">View All</button>
-                                </div>
-                                <div class="recent-notes" id="recentNotes">
-                                    <!-- Recent notes will be populated here -->
-                                </div>
-                            </div>
-                            
-                            <div class="dashboard-section">
-                                <div class="section-header">
-                                    <h2>Quick Actions</h2>
-                                </div>
-                                <div class="quick-actions">
-                                    <button class="quick-action" data-action="newBook">
-                                        <i class="fas fa-plus"></i>
-                                        <span>New Book</span>
-                                    </button>
-                                    <button class="quick-action" data-action="newNote">
-                                        <i class="fas fa-file-alt"></i>
-                                        <span>New Note</span>
-                                    </button>
-                                    <button class="quick-action" data-action="newCanvas">
-                                        <i class="fas fa-paint-brush"></i>
-                                        <span>New Canvas</span>
-                                    </button>
-                                    <button class="quick-action" data-action="recordAudio">
-                                        <i class="fas fa-microphone"></i>
-                                        <span>Record Audio</span>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Other pages will be added dynamically by JavaScript -->
+                <!-- Pages will be loaded here by JavaScript -->
+                <div class="page active" id="dashboardPage"></div>
                 <div class="page" id="booksPage"></div>
                 <div class="page" id="notesPage"></div>
                 <div class="page" id="canvasPage"></div>
-                <div class="page" id="audioPage">
-    <div class="audio-container">
-        <div class="audio-recorder">
-            <h2>Voice Recorder</h2>
-            <div class="recorder-display">
-                <div id="waveform"></div>
-                <div id="recordingTimer" class="timer">00:00</div>
-            </div>
-            <div class="recorder-controls">
-                <button id="recordBtn" class="record-btn">
-                    <i class="fas fa-microphone"></i>
-                </button>
-                <button id="stopBtn" class="btn btn--secondary" disabled>
-                   <i class="fas fa-stop"></i> Stop
-                </button>
-                <button id="playBtn" class="btn btn--secondary" disabled>
-                   <i class="fas fa-play"></i> Play Last
-                </button>
-            </div>
-        </div>
-
-        <div class="audio-library">
-            <h3>Audio Library</h3>
-            <div id="audioList">
-                </div>
-        </div>
-    </div>
-</div>
-
+                <div class="page" id="audioPage"></div>
                 <div class="page" id="searchPage"></div>
                 <div class="page" id="bookmarksPage"></div>
                 <div class="page" id="tagsPage"></div>
@@ -261,51 +166,75 @@
             </div>
         </div>
     </div>
-    
-    <!-- Quick Note Popup -->
-    <div class="quick-note-popup hidden" id="quickNotePopup">
-        <div class="quick-note-container">
-            <div class="quick-note-header">
-                <h3>Quick Note</h3>
-                <button class="close-btn" id="closeQuickNote">
+
+    <!-- Modals and Overlays -->
+    <div class="quick-note-popup hidden" id="quickNotePopup" role="dialog" aria-modal="true" aria-labelledby="quickNoteTitleLabel">
+        <div class="modal-content quick-note-container">
+            <div class="modal-header">
+                <h3 id="quickNoteTitleLabel">Quick Note</h3>
+                <button class="close-btn" id="closeQuickNote" aria-label="Close Quick Note">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
-            <div class="quick-note-body">
-                <input type="text" placeholder="Note title..." id="quickNoteTitle">
-                <textarea placeholder="Write your note..." id="quickNoteContent"></textarea>
+            <div class="modal-body quick-note-body">
+                <input type="text" placeholder="Note title..." id="quickNoteTitle" aria-label="Note Title">
+                <textarea placeholder="Write your note..." id="quickNoteContent" aria-label="Note Content"></textarea>
             </div>
-            <div class="quick-note-footer">
+            <div class="modal-footer quick-note-footer">
                 <button class="btn btn--secondary" id="cancelQuickNote">Cancel</button>
                 <button class="btn btn--primary" id="saveQuickNote">Save Note</button>
             </div>
         </div>
     </div>
-    
-    <!-- Toast Notifications -->
-    <div class="toast-container" id="toastContainer"></div>
-    
-    <!-- Loading Overlay -->
-    <div class="loading-overlay hidden" id="loadingOverlay">
+
+    <div class="toast-container" id="toastContainer" aria-live="assertive"></div>
+
+    <div class="loading-overlay hidden" id="loadingOverlay" role="alert" aria-busy="true">
         <div class="loading-spinner">
-            <i class="fas fa-spinner fa-spin"></i>
+            <i class="fas fa-spinner fa-spin" aria-hidden="true"></i>
+            <span class="sr-only">Loading...</span>
         </div>
     </div>
-    
-    <!-- Include all JavaScript files -->
-    <script src="app.js"></script>
-    <script src="crypto.js"></script>
-    <script src="autoencryption.js"></script>
-    <script src="security.js"></script>
-    <script src="editor.js"></script>
+
+    <!-- Modular JavaScript Files (Order is important!) -->
+
+    <!-- External Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script> <!-- Added CryptoJS -->
+    <!-- JSZip is loaded dynamically in export.js -->
+
+    <!-- Core App Logic & Utilities -->
+    <script src="app.js"></script>          <!-- Main coordinator (needs window.app first) -->
+    <script src="ui.js"></script>           <!-- General UI interactions -->
+    <script src="crypto.js"></script>       <!-- Core crypto functions -->
+    <script src="dashboard.js"></script>    <!-- Dashboard specific logic -->
+
+    <!-- Editor Modules (Sub-modules first, then coordinator) -->
+    <script src="editor_core.js"></script>
+    <script src="editor_toolbar.js"></script>
+    <script src="editor_features.js"></script>
+    <script src="item_editor.js"></script>
+    <script src="editor.js"></script>        <!-- Editor coordinator -->
+
+    <!-- Canvas Modules (Sub-modules first, then coordinator) -->
+    <script src="canvas_core.js"></script>
+    <script src="canvas_tools.js"></script>
+    <script src="canvas_ui.js"></script>
+    <script src="canvas.js"></script>        <!-- Canvas coordinator -->
+
+    <!-- Other Feature Modules -->
+    <script src="security.js"></script>     <!-- Handles security UI, uses crypto.js -->
+    <script src="autoencryption.js"></script><!-- Uses crypto.js and CryptoJS -->
     <script src="search.js"></script>
     <script src="scheduler.js"></script>
-    <script src="canvas.js"></script>
     <script src="audio.js"></script>
-    <script src="export.js"></script>
+    <script src="export.js"></script>       <!-- Loads JSZip dynamically -->
     <script src="templates.js"></script>
     <script src="profile.js"></script>
-    <script src="keyboard.js"></script>
-    
+    <script src="keyboard.js"></script>     <!-- Global keyboard shortcuts -->
+
+    <!-- Initialization Script (Optional - app.js constructor calls init) -->
+    <!-- <script> document.addEventListener('DOMContentLoaded', () => { window.app.init(); }); </script> -->
+
 </body>
 </html>
+
