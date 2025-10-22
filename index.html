@@ -4,25 +4,26 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Shiro Notes - Professional Note-Taking</title>
+
     <!-- External Libraries -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" xintegrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
     <!-- Favicon -->
-    <link rel="icon" type="image/x-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E📝%3C/text%3E%3C/svg%3E">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E📝%3C/text%3E%3C/svg%3E">
 
     <!-- Modular CSS Files -->
     <link rel="stylesheet" href="base.css">
     <link rel="stylesheet" href="layout.css">
     <link rel="stylesheet" href="components.css">
     <link rel="stylesheet" href="dashboard.css">
-    <link rel="stylesheet" href="editor.css">     <!-- Consolidated editor styles -->
+    <link rel="stylesheet" href="editor.css">
     <link rel="stylesheet" href="search.css">
     <link rel="stylesheet" href="security.css">
     <link rel="stylesheet" href="calendar.css">
-    <link rel="stylesheet" href="canvas.css">     <!-- Consolidated canvas styles -->
+    <link rel="stylesheet" href="canvas.css">
     <link rel="stylesheet" href="audio.css">
     <link rel="stylesheet" href="profile.css">
     <link rel="stylesheet" href="export.css">
-    <!-- Add links for templates.css if created, etc. -->
 
 </head>
 <body>
@@ -34,7 +35,7 @@
             <div class="sidebar-header">
                 <div class="logo">
                     <i class="fas fa-feather-alt"></i>
-                    <span class="logo-text">Shiro Notes</span> <!-- Added class for collapsing -->
+                    <span class="logo-text">Shiro Notes</span>
                 </div>
                 <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle Sidebar">
                     <i class="fas fa-chevron-left"></i>
@@ -42,10 +43,11 @@
             </div>
 
             <nav class="sidebar-nav">
+                <!-- Nav Section: Main -->
                 <div class="nav-section">
                     <h3 class="nav-section-title">Main</h3>
                     <button class="nav-item active" data-page="dashboard" title="Dashboard">
-                        <i class="fas fa-home fa-fw"></i> <!-- Added fa-fw for fixed width -->
+                        <i class="fas fa-home fa-fw"></i>
                         <span class="nav-text">Dashboard</span>
                     </button>
                     <button class="nav-item" data-page="books" title="Books">
@@ -68,6 +70,7 @@
                     </button>
                 </div>
 
+                <!-- Nav Section: Organization -->
                 <div class="nav-section">
                     <h3 class="nav-section-title">Organization</h3>
                     <button class="nav-item" data-page="search" title="Search">
@@ -88,13 +91,14 @@
                     </button>
                 </div>
 
+                <!-- Nav Section: Tools -->
                 <div class="nav-section">
                     <h3 class="nav-section-title">Tools</h3>
                     <button class="nav-item" data-page="scheduler" title="Calendar">
                         <i class="fas fa-calendar-alt fa-fw"></i>
                         <span class="nav-text">Calendar</span>
                     </button>
-                    <button class="nav-item" data-page="export" title="Export & Backup">
+                     <button class="nav-item" data-page="export" title="Export & Backup">
                         <i class="fas fa-file-export fa-fw"></i>
                         <span class="nav-text">Export</span>
                     </button>
@@ -108,11 +112,10 @@
             <div class="sidebar-footer">
                 <button class="nav-item" data-page="profile" title="Profile & Settings">
                     <div class="profile-avatar" id="sidebarAvatar">
-                        <i class="fas fa-user"></i>
+                         <i class="fas fa-user"></i>
                     </div>
                     <span class="nav-text">Profile</span>
                 </button>
-                <!-- Theme toggle can be added here if desired -->
             </div>
         </div>
 
@@ -131,8 +134,8 @@
 
                 <div class="top-bar-center">
                     <div class="quick-search">
-                        <i class="fas fa-search search-icon"></i>
-                        <input type="text" placeholder="Quick search..." id="quickSearch" aria-label="Quick Search">
+                         <i class="fas fa-search search-icon"></i>
+                        <input type="text" placeholder="Quick search..." id="quickSearch" aria-label="Quick Search Input">
                     </div>
                 </div>
 
@@ -143,13 +146,12 @@
                     <button class="action-btn" id="fullScreenBtn" title="Toggle Full Screen">
                         <i class="fas fa-expand"></i>
                     </button>
-                    <!-- Add theme toggle button here if preferred over sidebar -->
                 </div>
             </div>
 
             <!-- Page Container -->
             <div class="page-container" id="pageContainer">
-                <!-- Pages will be loaded here by JavaScript -->
+                <!-- Empty Page Containers (Content loaded dynamically) -->
                 <div class="page active" id="dashboardPage"></div>
                 <div class="page" id="booksPage"></div>
                 <div class="page" id="notesPage"></div>
@@ -168,17 +170,17 @@
     </div>
 
     <!-- Modals and Overlays -->
-    <div class="quick-note-popup hidden" id="quickNotePopup" role="dialog" aria-modal="true" aria-labelledby="quickNoteTitleLabel">
+    <div class="quick-note-popup hidden" id="quickNotePopup" role="dialog" aria-modal="true" aria-labelledby="quickNotePopupTitle">
         <div class="modal-content quick-note-container">
             <div class="modal-header">
-                <h3 id="quickNoteTitleLabel">Quick Note</h3>
-                <button class="close-btn" id="closeQuickNote" aria-label="Close Quick Note">
+                <h3 id="quickNotePopupTitle">Quick Note</h3>
+                <button class="close-btn" id="closeQuickNote" aria-label="Close">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
             <div class="modal-body quick-note-body">
-                <input type="text" placeholder="Note title..." id="quickNoteTitle" aria-label="Note Title">
-                <textarea placeholder="Write your note..." id="quickNoteContent" aria-label="Note Content"></textarea>
+                <input type="text" placeholder="Note title..." id="quickNoteTitle" aria-label="Quick Note Title">
+                <textarea placeholder="Write your note..." id="quickNoteContent" aria-label="Quick Note Content"></textarea>
             </div>
             <div class="modal-footer quick-note-footer">
                 <button class="btn btn--secondary" id="cancelQuickNote">Cancel</button>
@@ -196,45 +198,49 @@
         </div>
     </div>
 
-    <!-- Modular JavaScript Files (Order is important!) -->
+    <!-- JavaScript Files (Order is crucial!) -->
 
     <!-- External Libraries -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script> <!-- Added CryptoJS -->
-    <!-- JSZip is loaded dynamically in export.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js" xintegrity="sha512-E8QSvWZ0eCLGk4km3hxSsNmGWbLtSCSUcewDQPQWZF6pEU8GlT8a5fF32wOl1i8ftdMhssTrF/OhyGWwonTcXA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
-    <!-- Core App Logic & Utilities -->
-    <script src="app.js"></script>          <!-- Main coordinator (needs window.app first) -->
-    <script src="ui.js"></script>           <!-- General UI interactions -->
-    <script src="crypto.js"></script>       <!-- Core crypto functions -->
-    <script src="dashboard.js"></script>    <!-- Dashboard specific logic -->
+    <!-- Core App Logic & Base Modules -->
+    <script src="app.js"></script>          <!-- MUST be first to create window.app -->
+    <script src="ui.js"></script>           <!-- Needs window.app -->
+    <script src="crypto.js"></script>       <!-- Needs window.app -->
+    <script src="dashboard.js"></script>    <!-- Needs window.app -->
 
     <!-- Editor Modules (Sub-modules first, then coordinator) -->
-    <script src="editor_core.js"></script>
-    <script src="editor_toolbar.js"></script>
-    <script src="editor_features.js"></script>
-    <script src="item_editor.js"></script>
-    <script src="editor.js"></script>        <!-- Editor coordinator -->
+    <script src="editor_core.js"></script>   <!-- Needs window.app -->
+    <script src="editor_toolbar.js"></script><!-- Needs window.app, window.editorCore -->
+    <script src="editor_features.js"></script><!-- Needs window.app, window.editorCore -->
+    <script src="item_editor.js"></script>  <!-- Needs window.app, window.editorCore, window.cryptoModule? -->
+    <script src="editor.js"></script>        <!-- Coordinator (Needs sub-modules, window.app) -->
 
     <!-- Canvas Modules (Sub-modules first, then coordinator) -->
-    <script src="canvas_core.js"></script>
-    <script src="canvas_tools.js"></script>
-    <script src="canvas_ui.js"></script>
-    <script src="canvas.js"></script>        <!-- Canvas coordinator -->
+    <script src="canvas_core.js"></script>   <!-- Needs window.app -->
+    <script src="canvas_tools.js"></script>  <!-- Needs window.canvasCore -->
+    <script src="canvas_ui.js"></script>     <!-- Needs window.app, window.canvasCore -->
+    <script src="canvas.js"></script>        <!-- Coordinator (Needs sub-modules, window.app) -->
 
     <!-- Other Feature Modules -->
-    <script src="security.js"></script>     <!-- Handles security UI, uses crypto.js -->
-    <script src="autoencryption.js"></script><!-- Uses crypto.js and CryptoJS -->
-    <script src="search.js"></script>
-    <script src="scheduler.js"></script>
-    <script src="audio.js"></script>
-    <script src="export.js"></script>       <!-- Loads JSZip dynamically -->
-    <script src="templates.js"></script>
-    <script src="profile.js"></script>
-    <script src="keyboard.js"></script>     <!-- Global keyboard shortcuts -->
+    <script src="security.js"></script>     <!-- Needs window.app, window.cryptoModule -->
+    <script src="autoencryption.js"></script><!-- Needs window.app, CryptoJS -->
+    <script src="search.js"></script>       <!-- Needs window.app -->
+    <script src="scheduler.js"></script>    <!-- Needs window.app -->
+    <script src="audio.js"></script>        <!-- Needs window.app -->
+    <script src="export.js"></script>       <!-- Needs window.app -->
+    <script src="templates.js"></script>    <!-- Needs window.app, potentially editor modules -->
+    <script src="profile.js"></script>      <!-- Needs window.app -->
+    <script src="keyboard.js"></script>     <!-- Needs window.app -->
 
-    <!-- Initialization Script (Optional - app.js constructor calls init) -->
-    <!-- <script> document.addEventListener('DOMContentLoaded', () => { window.app.init(); }); </script> -->
+    <!--
+        Note: The `new ShiroNotes()` constructor in app.js calls `this.init()`,
+        which includes the async `loadData()` and `setupEventListeners()`.
+        The UI initialization (`uiModule.initUI()`) is now also hooked into `app.init`.
+        This should handle the initialization sequence.
+    -->
 
 </body>
 </html>
+
 
