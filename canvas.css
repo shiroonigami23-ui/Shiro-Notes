@@ -1,0 +1,139 @@
+/* ================================== */
+/* == Canvas Page Styles           == */
+/* ================================== */
+
+/* Main container uses flexbox to stack toolbar and canvas vertically */
+.canvas-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%; /* Ensure it takes up the full page height */
+    width: 100%;
+    overflow: hidden; /* Prevent the container itself from scrolling */
+    background-color: var(--color-background); /* Background for the drawing area */
+}
+
+/* Horizontal toolbar at the top */
+.canvas-toolbar {
+    display: flex;
+    align-items: center;
+    padding: var(--space-2) var(--space-4);
+    background-color: var(--color-surface);
+    border-bottom: 1px solid var(--color-card-border);
+    gap: var(--space-3);
+    overflow-x: auto; /* Allows horizontal scrolling if needed */
+    flex-shrink: 0;
+    flex-wrap: wrap; /* Allows wrapping on smaller screens */
+}
+
+/* Visual separators for tool groups */
+.canvas-toolbar .tool-group {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: 0 var(--space-3);
+    border-right: 1px solid var(--color-border);
+}
+.canvas-toolbar .tool-group:last-child { border-right: none; }
+
+/* Wrapper for the canvas element */
+.canvas-wrapper {
+    flex-grow: 1; /* Makes the wrapper fill remaining vertical space */
+    overflow: auto; /* Adds scrollbars when the canvas is larger */
+    position: relative;
+    padding: var(--space-4); /* Padding around the canvas */
+    display: flex;
+    justify-content: center; /* Horizontally centers canvas */
+    /* align-items: flex-start; /* Aligns canvas to the top */
+}
+
+/* The drawing canvas itself */
+#drawingCanvas {
+    background-color: white;
+    border-radius: var(--radius-base);
+    box-shadow: var(--shadow-md); /* Subtle shadow */
+    cursor: crosshair;
+    display: block; /* Prevent extra space below canvas */
+    /* Width and height set dynamically in JS */
+}
+
+/* Toolbar Buttons */
+.canvas-toolbar .tool-btn {
+    width: 32px; height: 32px; /* Smaller buttons */
+    border: none; background-color: transparent; color: var(--color-text-secondary);
+    border-radius: var(--radius-base); cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all var(--transition-fast); flex-shrink: 0;
+    position: relative; /* For potential badges or indicators */
+}
+.canvas-toolbar .tool-btn:hover { background-color: var(--color-secondary); color: var(--color-primary); transform: scale(1.05); }
+.canvas-toolbar .tool-btn.active { background-color: var(--color-primary); color: var(--color-btn-primary-text); transform: scale(1); }
+
+/* Dropdowns */
+.tool-dropdown { position: relative; display: inline-block; }
+.tool-dropdown:hover .dropdown-content { display: block; opacity: 1; transform: translateY(0); }
+.tool-dropdown .dropdown-content {
+    display: none; opacity: 0; transform: translateY(-5px);
+    position: absolute; background-color: var(--color-surface);
+    min-width: 150px; /* Adjust width as needed */
+    box-shadow: var(--shadow-lg); border-radius: var(--radius-base);
+    border: 1px solid var(--color-card-border); padding: var(--space-2);
+    z-index: 100; margin-top: var(--space-2);
+    transition: opacity var(--duration-fast), transform var(--duration-fast);
+}
+.dropdown-content .tool-btn, .dropdown-content .filter-btn {
+    width: 100%; justify-content: flex-start; gap: var(--space-2);
+    padding: var(--space-2); background: none; text-align: left;
+    font-weight: var(--font-weight-normal); font-size: var(--font-size-sm);
+    border-radius: var(--radius-sm);
+}
+.dropdown-content .tool-btn:hover, .dropdown-content .filter-btn:hover {
+    background-color: var(--color-secondary);
+    color: var(--color-primary);
+}
+.dropdown-content .tool-btn i, .dropdown-content .filter-btn i {
+    width: 16px; text-align: center; opacity: 0.8;
+}
+
+/* Brush Settings Controls */
+.brush-settings {
+    display: flex; align-items: center; gap: var(--space-3);
+    background: var(--color-background); padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius-base); border: 1px solid var(--color-border);
+}
+.toolbar-label { display: flex; align-items: center; gap: var(--space-1); font-size: var(--font-size-xs); color: var(--color-text-secondary); }
+.toolbar-label input[type="range"] { vertical-align: middle; height: 16px; cursor: pointer; max-width: 80px; }
+.toolbar-label input[type="color"] { width: 24px; height: 24px; border: none; padding: 0; border-radius: var(--radius-sm); cursor: pointer; background: none; }
+.toolbar-label input[type="checkbox"] { margin-right: 2px; }
+
+/* Layers Panel Modal Styles */
+.layers-panel { max-width: 350px; } /* Slightly narrower */
+.layers-list { max-height: 40vh; overflow-y: auto; margin-bottom: var(--space-4); }
+.layer-item {
+    display: flex; align-items: center; gap: var(--space-3);
+    padding: var(--space-2); border: 1px solid var(--color-border);
+    border-radius: var(--radius-base); margin-bottom: var(--space-2);
+    cursor: pointer; transition: all var(--transition-fast);
+}
+.layer-item:hover { background-color: var(--color-secondary); }
+.layer-item.active { border-color: var(--color-primary); background-color: var(--color-bg-1); }
+
+.layer-preview { width: 40px; height: 30px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); overflow: hidden; background: white; flex-shrink: 0; }
+.layer-preview canvas { width: 100%; height: 100%; display: block; }
+
+.layer-info { flex-grow: 1; min-width: 0; }
+.layer-info input[type="text"] { width: 100%; padding: var(--space-1); border-radius: var(--radius-sm); margin-bottom: var(--space-1); font-size: var(--font-size-sm); }
+.layer-controls { display: flex; align-items: center; gap: var(--space-3); font-size: var(--font-size-xs); color: var(--color-text-secondary); }
+.layer-controls label { display: flex; align-items: center; gap: var(--space-1); cursor: pointer; }
+.layer-controls input[type="range"] { max-width: 80px; height: 16px; }
+
+.layer-delete { background: none; border: none; color: var(--color-error); cursor: pointer; padding: var(--space-1); opacity: 0.7; }
+.layer-delete:hover { opacity: 1; }
+.layer-delete:disabled { opacity: 0.3; cursor: not-allowed; }
+
+/* Responsive Canvas */
+@media (max-width: 768px) {
+    .canvas-toolbar { padding: var(--space-2); gap: var(--space-2); }
+    .canvas-toolbar .tool-group { padding: 0 var(--space-2); }
+    .canvas-wrapper { padding: var(--space-2); }
+    .brush-settings { flex-wrap: wrap; } /* Allow settings to wrap */
+}
