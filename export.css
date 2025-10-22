@@ -1,0 +1,174 @@
+/* ================================== */
+/* == Export & Backup Page Styles  == */
+/* ================================== */
+
+.export-container {
+  max-width: 900px; /* Adjusted max-width */
+  margin: 0 auto;
+  padding: var(--space-4);
+}
+
+.export-container h1 {
+  text-align: center;
+  margin-bottom: var(--space-8);
+  font-size: var(--font-size-3xl);
+}
+
+.export-sections {
+  display: grid;
+  gap: var(--space-6); /* Consistent gap */
+  margin-bottom: var(--space-8);
+}
+
+.export-section {
+  background-color: var(--color-surface);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  border: 1px solid var(--color-card-border);
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow var(--transition-normal);
+}
+.export-section:hover {
+  box-shadow: var(--shadow-md);
+}
+
+.section-header {
+  margin-bottom: var(--space-5); /* Adjusted margin */
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.section-header h3 {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-1); /* Reduced margin */
+  font-size: var(--font-size-lg); /* Adjusted size */
+  color: var(--color-text);
+  font-weight: var(--font-weight-semibold);
+}
+.section-header h3 i {
+  color: var(--color-primary);
+  font-size: var(--font-size-base); /* Match text size */
+}
+
+.section-header p {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  margin: 0;
+}
+
+.export-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); /* Adjusted minmax */
+  gap: var(--space-4);
+}
+
+.export-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3); /* Adjusted padding */
+  background-color: var(--color-background);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-base); /* Use base radius */
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  text-align: left;
+  width: 100%;
+}
+
+.export-btn:hover {
+  background-color: var(--color-secondary);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--color-primary); /* Add border highlight */
+}
+
+.export-btn i {
+  font-size: var(--font-size-xl); /* Adjusted icon size */
+  color: var(--color-primary);
+  flex-shrink: 0;
+  width: 24px; /* Give icon fixed width */
+  text-align: center;
+}
+
+.export-btn div { flex-grow: 1; } /* Allow text content to fill space */
+
+.export-btn strong {
+  display: block;
+  font-size: var(--font-size-sm); /* Adjusted size */
+  font-weight: var(--font-weight-medium); /* Adjusted weight */
+  color: var(--color-text);
+  margin-bottom: 2px;
+}
+
+.export-btn small {
+  font-size: var(--font-size-xs); /* Adjusted size */
+  color: var(--color-text-secondary);
+}
+
+/* Specific button colors */
+.export-btn.primary {
+  background-color: var(--color-primary);
+  color: var(--color-btn-primary-text);
+  border-color: var(--color-primary);
+}
+.export-btn.primary:hover { background-color: var(--color-primary-hover); }
+.export-btn.primary i,
+.export-btn.primary strong,
+.export-btn.primary small { color: var(--color-btn-primary-text); }
+
+.export-btn.secondary { /* For Restore button */
+  background-color: var(--color-warning);
+  color: white;
+  border-color: var(--color-warning);
+}
+.export-btn.secondary:hover { background-color: var(--color-orange-400); } /* Use defined hover if available */
+.export-btn.secondary i,
+.export-btn.secondary strong,
+.export-btn.secondary small { color: white; }
+
+/* Info Card at the bottom */
+.export-info {
+  margin-top: var(--space-6); /* Adjusted margin */
+}
+
+.info-card {
+  background-color: var(--color-bg-1); /* Use background token */
+  border: 1px solid rgba(var(--color-teal-500-rgb), 0.2); /* Use primary color with opacity */
+  border-radius: var(--radius-lg);
+  padding: var(--space-5); /* Adjusted padding */
+}
+
+.info-card h4 {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-3) 0; /* Adjusted margin */
+  color: var(--color-primary);
+  font-size: var(--font-size-base); /* Adjusted size */
+  font-weight: var(--font-weight-semibold);
+}
+.info-card h4 i { font-size: var(--font-size-base); }
+
+.info-card ul {
+  margin: 0;
+  padding-left: var(--space-5); /* Adjusted padding */
+  list-style-type: disc; /* Use standard disc */
+}
+
+.info-card li {
+  margin-bottom: var(--space-2);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm); /* Adjusted size */
+  line-height: 1.4;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .export-options { grid-template-columns: 1fr; } /* Stack buttons */
+  .export-btn { padding: var(--space-3); }
+  .export-btn i { font-size: var(--font-size-lg); }
+  .export-container { padding: var(--space-3); }
+}
