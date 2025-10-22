@@ -1,0 +1,139 @@
+/* ================================== */
+/* == Profile Page Styles          == */
+/* ================================== */
+
+.profile-container {
+    max-width: 700px; /* Adjusted max-width */
+    margin: 0 auto;
+    padding: var(--space-4);
+}
+
+/* Profile Header Card */
+.profile-header-card {
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-card-border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-6);
+    display: flex;
+    align-items: center;
+    gap: var(--space-5); /* Adjusted gap */
+    margin-bottom: var(--space-6); /* Reduced margin */
+    position: relative; /* For button positioning if needed */
+}
+
+.profile-avatar-large {
+    width: 72px; height: 72px; /* Slightly smaller avatar */
+    border-radius: var(--radius-full);
+    background-color: var(--color-secondary);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--color-primary); /* Use primary color for icon */
+    font-size: var(--font-size-3xl);
+    flex-shrink: 0;
+    overflow: hidden;
+    border: 3px solid var(--color-surface);
+    box-shadow: 0 0 0 2px var(--color-primary);
+}
+.profile-avatar-large img { width: 100%; height: 100%; object-fit: cover; }
+
+.profile-header-info { flex-grow: 1; }
+.profile-name-display { display: block; font-size: var(--font-size-xl); font-weight: var(--font-weight-bold); margin-bottom: 2px; }
+.profile-email-display { display: block; color: var(--color-text-secondary); font-size: var(--font-size-sm); }
+
+.profile-header-card .btn--secondary {
+    position: absolute; /* Position button */
+    top: var(--space-4);
+    right: var(--space-4);
+}
+
+/* Tab Navigation */
+.profile-tabs {
+    display: flex;
+    gap: var(--space-1);
+    border-bottom: 1px solid var(--color-border); /* Thinner border */
+    margin-bottom: var(--space-6);
+}
+.profile-tab {
+    padding: var(--space-3) var(--space-4);
+    border: none; background: none; cursor: pointer;
+    font-size: var(--font-size-sm); /* Smaller tabs */
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text-secondary);
+    border-bottom: 2px solid transparent; /* Thinner active border */
+    transform: translateY(1px); /* Align with border */
+    transition: all var(--transition-fast);
+    display: flex; align-items: center; gap: var(--space-2);
+}
+.profile-tab i { font-size: var(--font-size-base); } /* Consistent icon size */
+.profile-tab:hover { color: var(--color-text); background-color: var(--color-secondary); }
+.profile-tab.active { color: var(--color-primary); border-bottom-color: var(--color-primary); }
+
+/* Tab Content */
+.profile-tab-content { display: none; }
+.profile-tab-content.active { display: block; animation: fadeIn 0.3s ease; }
+
+.profile-card {
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-card-border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-6);
+    margin-bottom: var(--space-6);
+}
+.profile-card h3 { font-size: var(--font-size-lg); margin-bottom: var(--space-5); border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-3); color: var(--color-text); }
+
+.profile-form .form-group { margin-bottom: var(--space-4); }
+/* Form styles inherit from components.css */
+
+/* Preferences Tab */
+.preference-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-4) 0;
+    border-bottom: 1px solid var(--color-border);
+}
+.preference-item:last-child { border-bottom: none; }
+.preference-item div:first-child { flex-grow: 1; padding-right: var(--space-4); } /* Ensure text has space */
+.preference-item strong { display: block; font-weight: var(--font-weight-medium); margin-bottom: 2px; }
+.preference-item p { font-size: var(--font-size-sm); color: var(--color-text-secondary); margin: 0; line-height: 1.4; }
+.preference-item .form-control { max-width: 120px; font-size: var(--font-size-sm); } /* Smaller select */
+/* Toggle switch styles inherit from components.css */
+
+/* Account Tab */
+.account-actions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); /* Responsive grid */
+    gap: var(--space-4);
+}
+.account-actions .btn { justify-content: flex-start; } /* Align button text left */
+
+.danger-zone { border-color: var(--color-error); margin-top: var(--space-8); }
+.danger-zone h3 { color: var(--color-error); border-color: var(--color-error); }
+.danger-zone-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--space-4);
+}
+.danger-zone-item div:first-child { flex-grow: 1; }
+.danger-zone-item strong { display: block; font-weight: var(--font-weight-medium); margin-bottom: 2px; }
+.danger-zone-item p { margin: 0; color: var(--color-text-secondary); font-size: var(--font-size-sm); }
+/* Danger button styles inherit from components.css */
+
+/* Responsive Profile Page */
+@media(max-width: 600px) {
+    .profile-header-card { flex-direction: column; align-items: flex-start; text-align: center; }
+    .profile-avatar-large { margin: 0 auto var(--space-4); }
+    .profile-header-card .btn--secondary { position: static; margin-top: var(--space-4); width: 100%; }
+    .profile-tabs { justify-content: space-around; }
+    .profile-tab { flex-grow: 1; justify-content: center; padding: var(--space-2) var(--space-3); }
+    .preference-item, .danger-zone-item { flex-direction: column; align-items: flex-start; gap: var(--space-3); }
+    .preference-item .form-control { max-width: 100%; }
+    .account-actions { grid-template-columns: 1fr; }
+    .danger-zone-item .btn { width: 100%; }
+}
+
+/* Keyframes for fadeIn (if not global) */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
