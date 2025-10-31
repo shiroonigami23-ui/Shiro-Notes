@@ -203,7 +203,10 @@
     <!-- JavaScript Files (Order is crucial!) -->
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js" integrity="sha512-E8QSvWZ0eCLGk4km3hxSsNmGWbLtSCSUcewDQPQWZF6pEU8GlT8a5fF32wOl1i8ftdMhssTrF/OhyGWwonTcXA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-
+<script>
+    lucide.createIcons();
+</script>
+    
     <!-- Core App Logic & Base Modules -->
     <script src="app.js"></script>          <!-- MUST be first to create window.app -->
     <script src="ui.js"></script>           <!-- Needs window.app -->
@@ -237,9 +240,6 @@
     document.addEventListener('DOMContentLoaded', () => {
         window.app.init();
     });
-</script>
-<script>
-    lucide.createIcons();
 </script>
 
     <!--
