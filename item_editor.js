@@ -7,6 +7,10 @@ class ItemEditor {
     }
 
     // --- Entry Points for Editing ---
+    
+    setMainModule(mainModule) {
+    this.mainModule = mainModule;
+}
 
     editBook(bookId) {
         const book = this.app.data.books.find(b => b.id === bookId);

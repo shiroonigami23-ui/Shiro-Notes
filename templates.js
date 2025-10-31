@@ -118,12 +118,7 @@ class TemplatesModule {
     setTimeout(() => modal.classList.add('visible'), 10);
     setTimeout(() => document.getElementById('templateName').focus(), 100);
   }
-
-
-    document.body.appendChild(modal);
-    setTimeout(() => modal.classList.add('visible'), 10);
-    setTimeout(() => document.getElementById('templateName').focus(), 100);
-  }
+  
 
   // Save or update a template
   saveTemplate(templateId) {

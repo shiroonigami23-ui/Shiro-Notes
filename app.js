@@ -34,7 +34,7 @@ class ShiroNotes {
         // Make the instance globally available EARLY
         window.app = this;
         // Start the initialization process
-        this.init();
+        0
     }
 
     // --- Initialization Sequence ---
@@ -347,7 +347,7 @@ class ShiroNotes {
             switch (pageId) {
                 case 'dashboard':
                     // Delegate to dashboard module
-                    window.dashboardModule?.loadDashboardContent(pageElement);
+                    window.dashboardModule?.loadDashboard(pageElement);
                     break;
                 case 'books':
                     this.renderBooksPage(pageElement);
@@ -725,7 +725,7 @@ renderBooksPage(pageElement) {
 
     updateStats() {
         // Update dashboard stats (delegate to dashboard module)
-        window.dashboardModule?.updateDashboardStats();
+        window.dashboardModule?.updateStats();
 
         // Update sidebar counts
         const booksCountEl = document.getElementById('booksCount');
@@ -873,19 +873,4 @@ renderBooksPage(pageElement) {
 // --- Global Initialization ---
 // Create the main application instance
 // This also sets window.app within the constructor
-document.addEventListener('DOMContentLoaded', () => {
-     try {
-         // Check if app was already created (unlikely but safe)
-         if (!window.app) {
-              new ShiroNotes();
-         } else {
-              console.warn("ShiroNotes instance already exists.");
-              // Optionally re-run parts of init if needed on DOM ready
-              window.uiModule?.initUI(); // Re-run UI init maybe?
-         }
-     } catch (error) {
-          console.error("Error during DOMContentLoaded ShiroNotes initialization:", error);
-           document.body.innerHTML = '<div style="padding: 20px; text-align: center;"><h1>Application Error</h1><p>Shiro Notes failed to start after loading. Please check the console for details.</p></div>';
-     }
-});
-    
+window.app = new ShiroNotes();

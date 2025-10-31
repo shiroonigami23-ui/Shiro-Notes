@@ -232,6 +232,11 @@
     <script src="templates.js"></script>    <!-- Needs window.app, potentially editor modules -->
     <script src="profile.js"></script>      <!-- Needs window.app -->
     <script src="keyboard.js"></script>     <!-- Needs window.app -->
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        window.app.init();
+    });
+</script>
 
     <!--
         Note: The `new ShiroNotes()` constructor in app.js calls `this.init()`,

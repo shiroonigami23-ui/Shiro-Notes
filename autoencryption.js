@@ -6,7 +6,7 @@ class AutoEncryption {
     }
 
     init() {
-        this.setupShareButtons();
+        
     }
 
     // Generate strong random password

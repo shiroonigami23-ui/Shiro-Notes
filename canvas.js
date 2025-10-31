@@ -27,12 +27,10 @@ class CanvasModule {
 
         // Establish connections between modules
         if (this.core && this.ui && this.tools) {
-            this.core.setUIHandler(this.ui); // Core needs UI for grid drawing, history updates
             this.core.setToolHandler(this.tools); // Core needs tools for drawing actions
             this.ui.setCore(this.core); // UI needs core for actions like undo/redo, layer ops
             this.ui.setTools(this.tools); // UI needs tools for filter actions
-            this.tools.setCore(this.core); // Tools need core for layer context, image data
-            this.tools.setUIHandler(this.ui); // Tools need UI for getting settings, picking color
+            
         } else {
              console.error("Canvas sub-module linking failed.");
         }

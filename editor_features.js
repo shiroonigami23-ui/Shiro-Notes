@@ -18,6 +18,9 @@ class EditorFeatures {
     }
 
     // --- Feature Implementations ---
+setMainModule(mainModule) {
+    this.mainModule = mainModule;
+}
 
     insertLink() {
         this.saveSelection(); // Save selection before showing prompt

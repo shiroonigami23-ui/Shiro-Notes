@@ -593,7 +593,6 @@ if (window.app) {
     window.canvasUI = new CanvasUI(window.app);
      // Connect to core module if it exists
      if(window.canvasCore) {
-         window.canvasCore.setUIHandler(window.canvasUI);
          window.canvasUI.setCore(window.canvasCore); // Bi-directional link
      }
       if(window.canvasTools) {

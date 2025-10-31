@@ -206,5 +206,4 @@ if (window.app) {
 } else {
     console.error("Main app instance not found for EditorCore initialization.");
 }
-```eof
 
