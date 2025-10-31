@@ -17,6 +17,40 @@ class AudioModule {
     this.waveformCtx = null;
   }
 
+  loadAudioPageContent(pageElement) {
+    pageElement.innerHTML = `
+    <div class="audio-container">
+        <div class="audio-recorder">
+            <h2><i class="fas fa-microphone-alt"></i> Audio Recorder</h2>
+            <div class="recorder-display">
+                <div id="waveform"></div>
+                <div class="timer" id="recordingTimer">00:00</div>
+            </div>
+            <div class="recorder-controls">
+                <button class="btn btn--primary record-btn" id="recordBtn" onclick="window.audioModule.toggleRecording()">
+                    <i class="fas fa-microphone"></i>
+                </button>
+                <button class="btn btn--secondary" id="playBtn" onclick="window.audioModule.playRecording()" disabled>
+                    <i class="fas fa-play"></i> Play
+                </button>
+                <button class="btn btn--secondary" id="stopBtn" onclick="window.audioModule.stopRecording()" disabled>
+                    <i class="fas fa-stop"></i> Stop
+                </button>
+            </div>
+        </div>
+
+        <div class="audio-library">
+            <h3><i class="fas fa-list-ul"></i> Your Recordings</h3>
+            <div id="audioList" class="audio-list-grid">
+                </div>
+        </div>
+    </div>
+    `;
+
+    // Initialize the module's UI elements
+    this.init(); 
+}
+
   async init() {
     try {
       await this.setupAudioContext();

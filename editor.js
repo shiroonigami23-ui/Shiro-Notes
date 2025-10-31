@@ -26,22 +26,23 @@ class EditorModule {
 
     // --- Public Methods Called by App ---
 
-    createNewBook() {
+    createBook() {
         if (!this.itemManager) return console.error("Item Editor not loaded");
         this.isEditing = true;
-        this.itemManager.createNewBook();
+        this.itemManager.createBook();
         // Item manager will call createEditor internally
     }
 
-    createNewNote() {
+    createNote() {
         if (!this.itemManager) return console.error("Item Editor not loaded");
         this.isEditing = true;
-        this.itemManager.createNewNote();
+        this.itemManager.createNote();
         // Item manager will call createEditor internally
     }
 
     editBook(bookId) {
         if (!this.itemManager) return console.error("Item Editor not loaded");
+        this.app.showPage('books');
         this.isEditing = true;
         this.currentItem = this.app.data.books.find(b => b.id === bookId);
         if (this.currentItem) {
@@ -55,6 +56,7 @@ class EditorModule {
 
     editNote(noteId) {
         if (!this.itemManager) return console.error("Item Editor not loaded");
+        this.app.showPage('notes');
         this.isEditing = true;
         this.currentItem = this.app.data.notes.find(n => n.id === noteId);
          if (this.currentItem) {
@@ -68,25 +70,25 @@ class EditorModule {
 
     // --- Editor Lifecycle & Coordination ---
 
-    // Called by item_editor.js after it creates the editor structure
     registerEditorInstance(editorElement, item) {
-        if (!this.core || !this.toolbar) {
-             console.error("Core or Toolbar module not ready for registration.");
-             return;
-        }
-        this.currentEditorInstance = editorElement;
-        this.currentItem = item;
-        this.core.currentEditor = editorElement; // Link core to the element
-        this.core.currentItem = item;           // Link core to the item
-        this.core.resetHistory(item.content || ''); // Initialize history
-        this.toolbar.setEditor(editorElement); // Link toolbar to the element
-        this.toolbar.updateToolbarState();     // Set initial toolbar state
-        this.features.setEditor(editorElement); // Link features to the element
-        this.updateWordCount();
-        this.startAutoSave();
-        this.isEditing = true;
-        console.log("Editor instance registered for item:", item.id);
+    if (!this.core || !this.toolbar) {
+         console.error("Core or Toolbar module not ready for registration.");
+         return;
     }
+    this.currentEditorInstance = editorElement;
+    this.currentItem = item;
+    this.core.currentEditor = editorElement; // Link core to the element
+    this.core.currentItem = item;           // Link core to the item
+    this.core.resetHistory(item.content || ''); // Initialize history
+
+    //  ADD THIS LINE TO FIX THE EDITOR:
+    this.toolbar.setEditor(editorElement); // Link toolbar to the element
+    this.toolbar.updateToolbarState();     // Set initial toolbar state
+    this.updateWordCount();
+    this.startAutoSave();
+    this.isEditing = true;
+    console.log("Editor instance registered for item:", item.id);
+}
 
     // --- Auto-Save ---
 

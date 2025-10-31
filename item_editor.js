@@ -7,7 +7,53 @@ class ItemEditor {
     }
 
     // --- Entry Points for Editing ---
-    
+    // --- Entry Points for Creating ---
+
+createBook() {
+    const newBook = {
+        id: this.app.generateId(),
+        title: 'New Book',
+        description: '',
+        chapters: [],
+        cover: { type: 'icon', value: 'fas fa-book' },
+        created: new Date().toISOString(),
+        lastModified: new Date().toISOString(),
+        tags: [],
+        bookmarked: false,
+        encrypted: false
+    };
+
+    this.app.data.books.push(newBook);
+    this.app.saveData();
+    this.app.updateUI(); // Update sidebar counts
+
+    // Open the editor for the new book
+    this.app.showPage('books');
+    this.editBook(newBook.id);
+}
+
+createNote() {
+    const newNote = {
+        id: this.app.generateId(),
+        title: 'New Note',
+        content: '<p><br></p>', // Start with an empty paragraph
+        type: 'text',
+        created: new Date().toISOString(),
+        lastModified: new Date().toISOString(),
+        tags: [],
+        bookmarked: false,
+        encrypted: false
+    };
+
+    this.app.data.notes.push(newNote);
+    this.app.saveData();
+    this.app.updateUI(); // Update sidebar counts
+
+    // Open the editor for the new note
+    this.app.showPage('notes');
+    this.editNote(newNote.id);
+}
+
     setMainModule(mainModule) {
     this.mainModule = mainModule;
 }
@@ -123,7 +169,8 @@ class ItemEditor {
       renderChapterEditorContent(chapter, index) {
           return `
             <input type="text" class="chapter-title-input" value="${this.app.escapeHtml(chapter.title)}" placeholder="Chapter title..." data-index="${index}" oninput="window.itemEditor.updateChapterTitle(${index}, this.value)">
-            <div id="chapterContentWrapper" class="editor-content-host">
+             <div class="editor-toolbar"></div>
+          <div id="chapterContentWrapper" class="editor-content-host">
                 <!-- Rich text editor will be created here by createEditorInstance -->
             </div>
           `;
@@ -166,10 +213,19 @@ class ItemEditor {
                     <i class="fas fa-lock"></i> Encrypt
                  </label>
              </div>
-
+<div class="editor-toolbar"></div>
             <div id="noteContentWrapper" class="editor-content-host">
                  <!-- Rich text editor will be created here -->
             </div>
+         <div class="editor-status-bar">
+            <div class="status-left">
+                <span id="wordCountStatus">0 words</span>
+                <span id="charCountStatus">0 characters</span>
+            </div>
+            <div class="status-right">
+                <span id="autoSaveStatus" class="saved">Saved</span>
+            </div>
+        </div>
           </div>
         `;
 
@@ -186,7 +242,7 @@ class ItemEditor {
      setupEditorDependencies(editorInstance) {
          // Assuming editorModule holds references or methods to connect sub-modules
          if (window.editorModule) {
-            window.editorModule.connectEditorInstance(editorInstance);
+            window.editorModule.registerEditorInstance(editorInstance, window.editorCore.currentItem);
          } else {
              console.error("Main EditorModule not found to connect dependencies.");
          }

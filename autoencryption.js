@@ -84,7 +84,8 @@ async autoEncryptAndShare(note, isDestructive = false) {
     const password = this.generatePassword();
 
     // Encrypt note content
-    const encrypted = CryptoJS.AES.encrypt(note.content, password).toString();
+    const liveContent = window.editorCore?.currentEditor?.innerHTML || note.content;
+const encrypted = CryptoJS.AES.encrypt(liveContent, password).toString();
 
     // Create encrypted message file
     const messageFile = {
@@ -355,4 +356,4 @@ showOneTimeView(title, content) {
 }
 
 // Initialize
-const autoEncryption = new AutoEncryption();
+window.autoEncryption = new AutoEncryption();

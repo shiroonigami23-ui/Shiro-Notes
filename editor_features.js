@@ -21,6 +21,59 @@ class EditorFeatures {
 setMainModule(mainModule) {
     this.mainModule = mainModule;
 }
+    updateWordCount(editorElement) {
+        if (!editorElement) return;
+
+        const text = editorElement.innerText || '';
+        const words = text.trim().split(/\s+/).filter(Boolean);
+        const wordCount = words.length === 1 && words[0] === '' ? 0 : words.length;
+        const charCount = text.length;
+
+        const wordCountEl = document.getElementById('wordCountStatus');
+        const charCountEl = document.getElementById('charCountStatus');
+
+        if (wordCountEl) {
+            wordCountEl.textContent = `${wordCount} words`;
+        }
+        if (charCountEl) {
+            charCountEl.textContent = `${charCount} characters`;
+        }
+    }
+
+    showWordCount() {
+        const editor = window.editorCore?.currentEditor;
+        if (!editor) return;
+
+        const text = editor.innerText || '';
+        const words = text.trim().split(/\s+/).filter(Boolean);
+        const wordCount = words.length === 1 && words[0] === '' ? 0 : words.length;
+        const charCount = text.length;
+        const charCountNoSpaces = text.replace(/\s/g, '').length;
+        const paragraphs = editor.querySelectorAll('p, h1, h2, h3, h4, h5, h6, li, blockquote');
+        
+        const modal = document.createElement('div');
+        modal.className = 'modal-overlay visible';
+        modal.innerHTML = `
+          <div class="modal-content stats-modal" style="max-width: 400px;">
+            <div class="modal-header">
+              <h3><i class="fas fa-calculator"></i> Content Statistics</h3>
+              <button class="close-btn" onclick="this.closest('.modal-overlay').remove()">&times;</button>
+            </div>
+            <div class="modal-body">
+              <div class="stats-grid">
+                <div class="stat-item"><span class="stat-label">Words</span> <span class="stat-value">${wordCount}</span></div>
+                <div class="stat-item"><span class="stat-label">Characters</span> <span class="stat-value">${charCount}</span></div>
+                <div class="stat-item"><span class="stat-label">Characters (no spaces)</span> <span class="stat-value">${charCountNoSpaces}</span></div>
+                <div class="stat-item"><span class="stat-label">Paragraphs/Blocks</span> <span class="stat-value">${paragraphs.length}</span></div>
+              </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn--primary" onclick="this.closest('.modal-overlay').remove()">Close</button>
+            </div>
+          </div>
+        `;
+        document.body.appendChild(modal);
+    }
 
     insertLink() {
         this.saveSelection(); // Save selection before showing prompt

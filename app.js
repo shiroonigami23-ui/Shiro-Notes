@@ -347,7 +347,8 @@ class ShiroNotes {
             switch (pageId) {
                 case 'dashboard':
                     // Delegate to dashboard module
-                    window.dashboardModule?.loadDashboard(pageElement);
+window.dashboardModule?.loadDashboardContent(pageElement);
+
                     break;
                 case 'books':
                     this.renderBooksPage(pageElement);
@@ -355,16 +356,86 @@ class ShiroNotes {
                 case 'notes':
                     this.renderNotesPage(pageElement);
                     break;
-                case 'canvas':
-                    // Structure is minimal, coordinator handles init
+                
+                                case 'canvas':
                     pageElement.innerHTML = `
-                        <div class="canvas-container">
-                            <div class="canvas-toolbar"></div>
-                            <div class="canvas-wrapper"><canvas id="drawingCanvas"></canvas></div>
-                        </div>`;
-                    window.canvasModule?.initCanvas();
+                    <div class="canvas-container">
+                        <div class="canvas-toolbar">
+                            <div class="tool-group">
+                                <button class="tool-btn" onclick="window.canvasModule.saveCanvas()" title="Save as PNG"><i data-lucide="save"></i></button>
+                                <button class="tool-btn" onclick="window.canvasModule.saveToNotes()" title="Save to Notes"><i data-lucide="file-export"></i></button>
+                                <button class="tool-btn" onclick="window.canvasModule.loadImage()" title="Load Image"><i data-lucide="image-plus"></i></button>
+                                <button class="tool-btn" onclick="window.canvasModule.clear()" title="Clear All"><i data-lucide="trash-2"></i></button>
+                            </div>
+                            
+                            <div class="tool-group">
+                                <button class="tool-btn" id="canvasUndoBtn" onclick="window.canvasModule.undo()" title="Undo"><i data-lucide="undo-2"></i></button>
+                                <button class="tool-btn" id="canvasRedoBtn" onclick="window.canvasModule.redo()" title="Redo"><i data-lucide="redo-2"></i></button>
+                            </div>
+                            
+                            <div class="tool-group">
+                                <button class="tool-btn" data-tool="select" title="Select Tool"><i data-lucide="mouse-pointer"></i></button>
+                                <button class="tool-btn active" data-tool="pen" title="Pen"><i data-lucide="pen-line"></i></button>
+                                <button class="tool-btn" data-tool="eraser" title="Eraser"><i data-lucide="eraser"></i></button>
+                                <button class="tool-btn" data-tool="text" title="Text Tool"><i data-lucide="type"></i></button>
+                                <button class="tool-btn" data-tool="eyedropper" title="Eyedropper"><i data-lucide="pipette"></i></button>
+                            </div>
+
+                            <div class="tool-group tool-dropdown">
+                                <button class="tool-btn"><i data-lucide="brush"></i></button>
+                                <div class="dropdown-content">
+                                    <button class="tool-btn" data-tool="brush" title="Brush"><i data-lucide="brush"></i> Brush</button>
+                                    <button class="tool-btn" data-tool="spray" title="Spray Can"><i data-lucide="spray-can"></i> Spray</button>
+                                    <button class="tool-btn" data-tool="calligraphy" title="Calligraphy"><i data-lucide="signature"></i> Calligraphy</button>
+                                </div>
+                            </div>
+                            
+                            <div class="tool-group tool-dropdown">
+                                <button class="tool-btn"><i data-lucide="shapes"></i></button>
+                                <div class="dropdown-content">
+                                    <button class="tool-btn" data-tool="line" title="Line"><i data-lucide="minus"></i> Line</button>
+                                    <button class="tool-btn" data-tool="rectangle" title="Rectangle"><i data-lucide="rectangle-horizontal"></i> Rectangle</button>
+                                    <button class="tool-btn" data-tool="circle" title="Circle"><i data-lucide="circle"></i> Circle</button>
+                                    <button class="tool-btn" data-tool="arrow" title="Arrow"><i data-lucide="arrow-right"></i> Arrow</button>
+                                </div>
+                            </div>
+
+                            <div class="brush-settings">
+                                <label class="toolbar-label" for="canvasColor" title="Color">
+                                    <i data-lucide="palette"></i>
+                                    <input type="color" id="canvasColor" value="#000000">
+                                </label>
+                                <label class="toolbar-label" for="canvasSize" title="Brush Size">
+                                    <i data-lucide="circle-dot"></i>
+                                    <input type="range" id="canvasSize" min="1" max="50" value="5">
+                                </label>
+                                <label class="toolbar-label" for="canvasOpacity" title="Opacity">
+                                    <i data-lucide="blinds"></i>
+                                    <input type="range" id="canvasOpacity" min="0.1" max="1" step="0.1" value="1">
+                                </label>
+                                <label class="toolbar-label" for="fillShapeToggle" title="Fill Shape">
+                                    <input type="checkbox" id="fillShapeToggle">
+                                    <i data-lucide="paint-bucket"></i>
+                                </label>
+                            </div>
+
+                            <div class="tool-group" style="margin-left: auto;">
+                                <button class="tool-btn" onclick="window.canvasModule.toggleGrid()" title="Toggle Grid"><i data-lucide="grid-3x3"></i></button>
+                                <button class="tool-btn" onclick="window.canvasModule.showLayersPanel()" title="Show Layers"><i data-lucide="layers"></i></button>
+                            </div>
+                        </div>
+
+                        <div class="canvas-wrapper">
+                            <canvas id="drawingCanvas"></canvas>
+                        </div>
+                    </div>
+                    `;
+                    // Delay init slightly to ensure DOM is ready
+                    setTimeout(() => window.canvasModule?.initCanvas(), 50);
                     break;
-                case 'audio':
+
+                
+        case 'audio':
                      // Delegate to audio module (assuming it handles innerHTML)
                      if (window.audioModule?.loadAudioPageContent) {
                          window.audioModule.loadAudioPageContent(pageElement);
@@ -393,14 +464,15 @@ class ShiroNotes {
                           console.warn("templatesModule.loadTemplatesPageContent not found.");
                      }
                     break;
-                case 'scheduler':
+                                case 'scheduler':
                     // Delegate to scheduler module
-                     if (window.schedulerModule?.loadSchedulerPageContent) {
-                          window.schedulerModule.loadSchedulerPageContent(pageElement);
-                     } else {
+                    if (window.schedulerModule?.loadSchedulerPage) {
+                         window.schedulerModule.loadSchedulerPage(pageElement);
+                         window.schedulerModule.renderCalendar(); // <-- ADD THIS LINE
+                    } else {
                            pageElement.innerHTML = `<h2>Calendar</h2><p>Calendar module content goes here.</p>`;
-                           console.warn("schedulerModule.loadSchedulerPageContent not found.");
-                     }
+                           console.warn("schedulerModule.loadSchedulerPage not found.");
+                    }
                     break;
                 case 'export':
                     // Delegate to export module
@@ -441,13 +513,13 @@ renderBooksPage(pageElement) {
         pageElement.innerHTML = `
           <div class="page-header">
             <h1>Books</h1>
-            <button class="btn btn--primary" onclick="window.editorModule?.createNewBook()">
+            <button class="btn btn--primary" onclick="window.editorModule?.createBook()">
               <i class="fas fa-plus"></i> New Book
             </button>
           </div>
           <div class="books-grid" id="booksGrid">
             ${books.length === 0 ?
-              '<div class="empty-state"><i class="fas fa-book"></i><h3>No books yet</h3><p>Create your first book to get started.</p><button class="btn btn--primary mt-4" onclick="window.editorModule?.createNewBook()">Create Book</button></div>' :
+              '<div class="empty-state"><i class="fas fa-book"></i><h3>No books yet</h3><p>Create your first book to get started.</p><button class="btn btn--primary mt-4" onclick="window.editorModule?.createBook()">Create Book</button></div>' :
               books.map(book => this.createBookCard(book)).join('')
             }
           </div>
@@ -463,13 +535,13 @@ renderBooksPage(pageElement) {
         pageElement.innerHTML = `
           <div class="page-header">
             <h1>All Notes</h1>
-            <button class="btn btn--primary" onclick="window.editorModule?.createNewNote()">
+            <button class="btn btn--primary" onclick="window.editorModule?.createNote()">
               <i class="fas fa-plus"></i> New Note
             </button>
           </div>
           <div class="notes-grid" id="notesGrid">
             ${textNotes.length === 0 ?
-              '<div class="empty-state"><i class="fas fa-sticky-note"></i><h3>No notes yet</h3><p>Create your first note to get started.</p><button class="btn btn--primary mt-4" onclick="window.editorModule?.createNewNote()">Create Note</button></div>' :
+              '<div class="empty-state"><i class="fas fa-sticky-note"></i><h3>No notes yet</h3><p>Create your first note to get started.</p><button class="btn btn--primary mt-4" onclick="window.editorModule?.createNote()">Create Note</button></div>' :
               textNotes.map(note => this.createNoteCard(note)).join('')
             }
           </div>
@@ -611,7 +683,7 @@ renderBooksPage(pageElement) {
         } else {
             // Delegate opening to editor module
             window.editorModule?.editBook(bookId);
-             this.showPage('books'); // Navigate to the books page where editor will appear
+              // Navigate to the books page where editor will appear
         }
     }
 
@@ -636,7 +708,7 @@ renderBooksPage(pageElement) {
                   // Potentially highlight the specific audio card
              } else {
                  window.editorModule?.editNote(noteId);
-                  this.showPage('notes'); // Navigate to the notes page
+                   // Navigate to the notes page
              }
         }
     }

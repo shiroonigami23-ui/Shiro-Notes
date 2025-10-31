@@ -10,6 +10,109 @@ class SecurityModule {
   // Passcode Management
   // In security.js
 // --- ADD THESE NEW FUNCTIONS FOR MASTER PASSWORD MANAGEMENT ---
+loadSecurityPageContent(pageElement) {
+    const hasMasterPassword = !!this.app.data.settings.masterPasswordHash;
+    const autoLock = this.app.data.settings.autoLock;
+    const lockTimeoutMinutes = this.app.data.settings.lockTimeout / 60000;
+
+    pageElement.innerHTML = `
+    <div class="security-container">
+        <div class="page-header">
+            <h1>Security Settings</h1>
+            <p>Manage your application lock, master password, and other security features.</p>
+        </div>
+
+        <div class="security-grid">
+            <div class="security-card">
+                <div class="card-header">
+                    <i class="fas fa-shield-alt"></i>
+                    <h3>Master Password</h3>
+                </div>
+                <div class="card-body">
+                    <p>Set a Master Password to encrypt and decrypt individual notes and books. <strong>This password cannot be recovered!</strong></p>
+                    <div class="setting-item">
+                        <span>Status:</span>
+                        ${hasMasterPassword ? '<span class="badge status--success">Set</span>' : '<span class="badge status--error">Not Set</span>'}
+                    </div>
+                    <button class="btn btn--primary" onclick="securityModule.setupMasterPassword()">
+                        ${hasMasterPassword ? 'Change' : 'Set'} Master Password
+                    </button>
+                </div>
+            </div>
+
+            <div class="security-card">
+                <div class="card-header">
+                    <i class="fas fa-lock"></i>
+                    <h3>App Lock</h3>
+                </div>
+                <div class="card-body">
+                    <p>Automatically lock the application after a period of inactivity. Requires Master Password to be set.</p>
+                    <div class="preference-item">
+                        <div>
+                            <strong>Auto-Lock</strong>
+                            <p>Lock app when idle</p>
+                        </div>
+                        <div class="toggle-switch">
+                            <input type="checkbox" id="autoLockToggle" onchange="securityModule.updateAutoLock(this.checked)" ${autoLock ? 'checked' : ''} ${!hasMasterPassword ? 'disabled' : ''}>
+                            <span class="slider"></span>
+                        </div>
+                    </div>
+                    <div class="preference-item">
+                        <div>
+                            <strong>Lock Timeout</strong>
+                            <p>Time in minutes</p>
+                        </div>
+                        <select id="lockTimeoutSelect" class="form-control" onchange="securityModule.updateLockTimeout(this.value)" ${!autoLock ? 'disabled' : ''}>
+                            <option value="1" ${lockTimeoutMinutes == 1 ? 'selected' : ''}>1 Minute</option>
+                            <option value="5" ${lockTimeoutMinutes == 5 ? 'selected' : ''}>5 Minutes</option>
+                            <option value="15" ${lockTimeoutMinutes == 15 ? 'selected' : ''}>15 Minutes</option>
+                            <option value="30" ${lockTimeoutMinutes == 30 ? 'selected' : ''}>30 Minutes</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="security-card">
+                <div class="card-header">
+                    <i class="fas fa-key"></i>
+                    <h3>Tools</h3>
+                </div>
+                <div class="card-body">
+                    <p>Generate a strong, secure password for your accounts or for encryption.</p>
+                    <button class="btn btn--secondary" onclick="securityModule.generatePassword()">
+                        <i class="fas fa-key"></i> Password Generator
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    `;
+}
+
+updateAutoLock(isEnabled) {
+    if (!this.app.data.settings.masterPasswordHash) {
+        this.app.showToast('Set a Master Password first.', 'warning');
+        document.getElementById('autoLockToggle').checked = false;
+        return;
+    }
+    this.app.data.settings.autoLock = isEnabled;
+    this.app.saveData();
+    this.app.showToast(`Auto-lock ${isEnabled ? 'enabled' : 'disabled'}.`, 'success');
+    document.getElementById('lockTimeoutSelect').disabled = !isEnabled;
+
+    if (isEnabled) {
+        this.app.resetLockTimer(); // Start timer
+    } else {
+        clearTimeout(this.app.lockTimer); // Stop timer
+    }
+}
+
+updateLockTimeout(minutes) {
+    this.app.data.settings.lockTimeout = parseInt(minutes) * 60000;
+    this.app.saveData();
+    this.app.showToast(`Lock timeout set to ${minutes} minutes.`, 'success');
+    this.app.resetLockTimer(); // Reset timer with new value
+}
 
 setupMasterPassword() {
     const isChanging = !!this.app.data.settings.masterPasswordHash;

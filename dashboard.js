@@ -3,14 +3,87 @@ class DashboardModule {
   constructor(app) {
     this.app = app;
   }
+loadDashboardContent(pageElement) {
+    pageElement.innerHTML = `
+    <div class="dashboard">
+        <div class="dashboard-header">
+            <h1>Dashboard</h1>
+            <p>Welcome back, ${this.app.escapeHtml(this.app.data.settings.profile.name) || 'User'}!</p>
+        </div>
 
-  // Load dashboard content
-  loadDashboard() {
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon bg-1"><i class="fas fa-book"></i></div>
+                <div class="stat-content">
+                    <h3 id="totalBooks">0</h3>
+                    <p>Total Books</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon bg-2"><i class="fas fa-sticky-note"></i></div>
+                <div class="stat-content">
+                    <h3 id="totalNotes">0</h3>
+                    <p>Total Notes</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon bg-3"><i class="fas fa-calendar-alt"></i></div>
+                <div class="stat-content">
+                    <h3 id="totalEvents">0</h3>
+                    <p>Upcoming Events</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon bg-4"><i class="fas fa-lock"></i></div>
+                <div class="stat-content">
+                    <h3 id="encryptedItems">0</h3>
+                    <p>Encrypted Items</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="dashboard-content">
+            <div class="dashboard-section quick-actions-section">
+                <div class="section-header"><h2>Quick Actions</h2></div>
+                <div class="quick-actions">
+                    <button class="quick-action" data-action="newBook"><i class="fas fa-book-medical"></i><span>New Book</span></button>
+                    <button class="quick-action" data-action="newNote"><i class="fas fa-file-alt"></i><span>New Note</span></button>
+                    <button class="quick-action" data-action="newCanvas"><i class="fas fa-paint-brush"></i><span>New Canvas</span></button>
+                    <button class="quick-action" data-action="recordAudio"><i class="fas fa-microphone"></i><span>Record Audio</span></button>
+                </div>
+            </div>
+
+            <div class="dashboard-section recent-books-section">
+                <div class="section-header">
+                    <h2>Recent Books</h2>
+                    <button class="btn btn--secondary btn--sm" data-page="books">View All</button>
+                </div>
+                <div class="recent-items-list" id="recentBooks">
+                    </div>
+            </div>
+
+            <div class="dashboard-section recent-notes-section">
+                <div class="section-header">
+                    <h2>Recent Notes</h2>
+                    <button class="btn btn--secondary btn--sm" data-page="notes">View All</button>
+                </div>
+                <div class="recent-items-list" id="recentNotes">
+                    </div>
+            </div>
+        </div>
+    </div>
+    `;
+    // Now populate the data
+    this.populateDashboardData();
+}
+  
+populateDashboardData() {
     this.updateStats();
     this.loadRecentBooks();
     this.loadRecentNotes();
     this.setupDashboardEventListeners(); // Add listener setup
-  }
+}
+
 
   // Update dashboard stats
   updateStats() {

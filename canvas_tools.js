@@ -166,9 +166,22 @@ class CanvasTools {
 
     // Brush-like tools (draw on layerCtx continuously)
     drawPen(ctx, pos, details, toolSettings) {
-        ctx.lineTo(pos.x, pos.y);
-        ctx.stroke();
-    }
+    // Use the settings that are being passed in
+    ctx.globalAlpha = toolSettings.opacity;
+    ctx.lineWidth = toolSettings.size;
+    ctx.strokeStyle = toolSettings.color;
+    ctx.globalCompositeOperation = 'source-over';
+
+    // Draw ONLY the new line segment
+    ctx.lineTo(pos.x, pos.y);
+    ctx.stroke();
+
+    // Move to the new position for the next frame
+    ctx.beginPath();
+    ctx.moveTo(pos.x, pos.y);
+}
+
+
 
     drawBrush(ctx, pos, details, toolSettings) {
         // Could add pressure sensitivity or different brush styles here later
@@ -177,10 +190,21 @@ class CanvasTools {
     }
 
     drawEraser(ctx, pos, details, toolSettings) {
-        // Uses destination-out composite operation set in startDrawing
-        ctx.lineTo(pos.x, pos.y);
-        ctx.stroke();
-    }
+    // Use the settings
+    ctx.globalAlpha = 1; // Eraser is always full opacity
+    ctx.lineWidth = toolSettings.size * 1.5; // Eraser is bigger
+    ctx.globalCompositeOperation = 'destination-out';
+
+    // Draw ONLY the new line segment
+    ctx.lineTo(pos.x, pos.y);
+    ctx.stroke();
+
+    // Move to the new position for the next frame
+    ctx.beginPath();
+    ctx.moveTo(pos.x, pos.y);
+}
+
+
 
     drawCalligraphy(ctx, pos, details, toolSettings) {
         // Simple variable width effect

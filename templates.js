@@ -1,8 +1,63 @@
-// Templates Module for Shiro Notes
+ // Templates Module for Shiro Notes
 class TemplatesModule {
   constructor(app) {
     this.app = app;
   }
+loadTemplatesPageContent(pageElement) {
+    pageElement.innerHTML = `
+    <div class="page-header">
+        <h1>Templates</h1>
+        <button class="btn btn--primary" onclick="templatesModule.createTemplate()">
+            <i class="fas fa-plus"></i> New Template
+        </button>
+    </div>
+    <div class="templates-grid" id="templatesGrid">
+        </div>
+    `;
+
+    // Now render the templates
+    this.renderTemplatesList();
+}
+
+renderTemplatesList() {
+    const grid = document.getElementById('templatesGrid');
+    if (!grid) return;
+
+    const templates = this.app.data.templates;
+
+    if (templates.length === 0) {
+        grid.innerHTML = `<div class="empty-state">
+            <i class="fas fa-file-alt"></i>
+            <h3>No templates yet</h3>
+            <p>Create a template to reuse content easily.</p>
+            <button class="btn btn--primary" onclick="templatesModule.createTemplate()">Create Template</button>
+        </div>`;
+        return;
+    }
+
+    grid.innerHTML = templates.map(template => `
+        <div class="template-card">
+            <div class="card-body">
+                <div class="template-header">
+                    <i class="fas fa-file-alt"></i>
+                    <h4>${this.app.escapeHtml(template.name)}</h4>
+                </div>
+                <p class="template-desc">${this.app.escapeHtml(template.description) || 'No description.'}</p>
+            </div>
+            <div class="card-footer template-actions">
+                <button class="btn btn--primary btn--sm" onclick="templatesModule.useTemplate('${template.id}')">
+                    <i class="fas fa-play"></i> Use
+                </button>
+                <button class="btn btn--secondary btn--sm" onclick="templatesModule.editTemplate('${template.id}')">
+                    <i class="fas fa-edit"></i> Edit
+                </button>
+                <button class="btn btn--danger btn--sm" onclick="app.deleteTemplate('${template.id}')">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        </div>
+    `).join('');
+}
 
   // Create a new template
   createTemplate() {

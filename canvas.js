@@ -23,7 +23,6 @@ class CanvasModule {
     init() {
         console.log("Canvas Module Coordinator Initialized");
         // Inject canvas-specific CSS
-        this.injectCanvasStyles();
 
         // Establish connections between modules
         if (this.core && this.ui && this.tools) {
@@ -59,7 +58,7 @@ class CanvasModule {
 
         console.log("Initializing Canvas...");
         // Core initialization finds the canvas element and sets up contexts
-        if (this.core.initCanvasElement('drawingCanvas')) {
+        if (this.core.initCanvas('drawingCanvas')) {
             // UI initialization finds toolbar elements and attaches listeners
             if (this.ui.initUI('.canvas-toolbar')) {
                 this.isInitialized = true;

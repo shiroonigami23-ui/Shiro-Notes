@@ -4,6 +4,90 @@ class EditorToolbar {
         this.app = app;
         this.toolbarElement = null; // Reference to the main toolbar container
     }
+setEditor(editorElement) {
+    // Find the toolbar *relative* to the editor element
+    const toolbarEl = editorElement.closest('.editor-host').querySelector('.editor-toolbar');
+    if (toolbarEl) {
+        this.toolbarElement = toolbarEl;
+
+        // Now that we have the toolbar, load its HTML and set up listeners
+        this.loadToolbarHTML();
+        this.setupToolbarEventListeners();
+        this.initializeColorPickers();
+    } else {
+        console.error("Could not find a toolbar for this editor instance!");
+    }
+}
+loadToolbarHTML() {
+    if (!this.toolbarElement) return;
+    this.toolbarElement.innerHTML = `
+        <div class="toolbar-group">
+            <button class="toolbar-btn" data-command="undo" title="Undo (Ctrl+Z)"><i class="fas fa-undo"></i></button>
+            <button class="toolbar-btn" data-command="redo" title="Redo (Ctrl+Y)"><i class="fas fa-redo"></i></button>
+        </div>
+        <div class="toolbar-separator"></div>
+        <div class="toolbar-group">
+            <select class="toolbar-select" data-command="formatBlock" title="Headings">
+                <option value="p">Paragraph</option>
+                <option value="h1">Heading 1</option>
+                <option value="h2">Heading 2</option>
+                <option value="h3">Heading 3</option>
+                <option value="blockquote">Quote</option>
+            </select>
+            <select class="toolbar-select" data-command="fontName" title="Font">
+                <option value="Arial">Arial</option>
+                <option value="Georgia">Georgia</option>
+                <option value="Times New Roman">Times New Roman</option>
+                <option value="Verdana">Verdana</option>
+                <option value="monospace">Monospace</option>
+            </select>
+        </div>
+        <div class="toolbar-separator"></div>
+        <div class="toolbar-group">
+            <button class="toolbar-btn" data-command="bold" title="Bold (Ctrl+B)"><i class="fas fa-bold"></i></button>
+            <button class="toolbar-btn" data-command="italic" title="Italic (Ctrl+I)"><i class="fas fa-italic"></i></button>
+            <button class="toolbar-btn" data-command="underline" title="Underline (Ctrl+U)"><i class="fas fa-underline"></i></button>
+            <button class="toolbar-btn" data-command="strikeThrough" title="Strikethrough"><i class="fas fa-strikethrough"></i></button>
+        </div>
+        <div class="toolbar-group color-pickers">
+            <button class="toolbar-btn color-btn" id="textColorBtn" title="Text Color">
+                <i class="fas fa-font"></i>
+                <span class="color-indicator" id="textColorIndicator"></span>
+                <input type="color" id="textColorPicker" value="#000000">
+            </button>
+            <button class="toolbar-btn color-btn" id="bgColorBtn" title="Highlight Color">
+                <i class="fas fa-highlighter"></i>
+                <span class="color-indicator" id="bgColorIndicator"></span>
+                <input type="color" id="bgColorPicker" value="#ffff00">
+            </button>
+        </div>
+        <div class="toolbar-separator"></div>
+        <div class="toolbar-group">
+            <button class="toolbar-btn" data-command="justifyLeft" title="Align Left"><i class="fas fa-align-left"></i></button>
+            <button class="toolbar-btn" data-command="justifyCenter" title="Align Center"><i class="fas fa-align-center"></i></button>
+            <button class="toolbar-btn" data-command="justifyRight" title="Align Right"><i class="fas fa-align-right"></i></button>
+            <button class="toolbar-btn" data-command="insertUnorderedList" title="Bullet List"><i class="fas fa-list-ul"></i></button>
+            <button class="toolbar-btn" data-command="insertOrderedList" title="Numbered List"><i class="fas fa-list-ol"></i></button>
+        </div>
+        <div class="toolbar-separator"></div>
+        <div class="toolbar-group">
+            <button class="toolbar-btn" onclick="window.editorFeatures.insertLink()" title="Insert Link"><i class="fas fa-link"></i></button>
+            <button class="toolbar-btn" onclick="window.editorFeatures.insertImage()" title="Insert Image"><i class="fas fa-image"></i></button>
+            <button class="toolbar-btn" onclick="window.editorFeatures.insertTable()" title="Insert Table"><i class="fas fa-table"></i></button>
+            <button class="toolbar-btn" onclick="window.editorFeatures.insertAudio()" title="Insert Audio"><i class="fas fa-file-audio"></i></button>
+            <button class="toolbar-btn" onclick="window.editorFeatures.insertMath()" title="Insert Math"><i class="fas fa-square-root-alt"></i></button>
+            <button class="toolbar-btn" onclick="window.editorFeatures.toggleEmojiPanel()" title="Emoji"><i class="fas fa-smile"></i></button>
+        </div>
+        <div class="toolbar-separator"></div>
+        <div class="toolbar-group">
+            <button class="toolbar-btn" id="dictationBtn" onclick="window.editorFeatures.toggleDictation()" title="Start Dictation"><i class="fas fa-microphone"></i></button>
+            <button class="toolbar-btn" onclick="window.editorFeatures.findAndReplace()" title="Find & Replace"><i class="fas fa-search"></i></button>
+            <button class="toolbar-btn" onclick="window.editorFeatures.toggleMarkdown()" title="Toggle Markdown"><i class="fab fa-markdown"></i></button>
+            <button class="toolbar-btn" onclick="window.editorFeatures.showWordCount()" title="Content Statistics"><i class="fas fa-calculator"></i></button>
+            <button class="toolbar-btn" onclick="window.editorFeatures.toggleFullscreen()" title="Full Screen"><i class="fas fa-expand"></i></button>
+        </div>
+    `;
+}
 
     // --- Toolbar Initialization ---
 
@@ -81,7 +165,7 @@ class EditorToolbar {
             { selector: '[onclick*="findAndReplace"]', func: () => window.editorFeatures?.findAndReplace() },
             { selector: '[onclick*="toggleMarkdown"]', func: () => window.editorFeatures?.toggleMarkdown() },
             { selector: '[onclick*="toggleFullscreen"]', func: () => window.editorFeatures?.toggleFullscreen() },
-            { selector: '[onclick*="showWordCount"]', func: () => window.editorModule?.showWordCount() }, // Word count modal might stay in main module
+            { selector: '[onclick*="showWordCount"]', func: () => window.editorFeatures?.showWordCount() },// Word count modal might stay in main module
             // Add other buttons calling specific functions here
         ];
 

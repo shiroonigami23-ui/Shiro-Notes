@@ -52,6 +52,7 @@ class CanvasCore {
         }
 
         console.log("Canvas Core Initialized");
+        return true;
     }
 
     setupCanvasProperties() {
@@ -115,7 +116,9 @@ class CanvasCore {
         this.currentY = pos.y;
 
         // Delegate the start action to the current tool handler
-        this.toolHandler?.startDrawing(this.getActiveLayerContext(), pos);
+        const toolSettings = window.canvasUI?.getToolSettings();
+this.toolHandler?.startDrawing(this.getActiveLayerContext(), pos, toolSettings);
+
 
         // Specific handling for select tool needs to be here as it modifies core state
          const currentTool = window.canvasUI?.currentTool || 'pen'; // Get tool from UI module
@@ -132,16 +135,16 @@ class CanvasCore {
         const prevY = this.currentY;
         this.currentX = pos.x;
         this.currentY = pos.y;
+const currentTool = window.canvasUI?.currentTool || 'pen';
+const toolSettings = window.canvasUI?.getToolSettings(); // <-- ADD THIS
 
-         const currentTool = window.canvasUI?.currentTool || 'pen';
-
-        // Handle select tool's move/resize directly
-         if (currentTool === 'select' && (this.selectedImage || this.transformHandle)) {
-             this.transformImage(pos.x, pos.y);
-         } else {
-             // Delegate drawing action to the tool handler
-             this.toolHandler?.draw(this.getActiveLayerContext(), pos, { startX: this.startX, startY: this.startY, prevX, prevY });
-         }
+// Handle select tool's move/resize directly
+ if (currentTool === 'select' && (this.selectedImage || this.transformHandle)) {
+     this.transformImage(pos.x, pos.y);
+ } else {
+     // Delegate drawing action to the tool handler
+     this.toolHandler?.draw(this.getActiveLayerContext(), this.ctx, pos, { startX: this.startX, startY: this.startY, prevX, prevY }, toolSettings); // <-- PASS SETTINGS HERE
+ }
 
         // For shape tools, renderLayers + drawPreview happens in toolHandler.draw
         // For brush tools, renderLayers happens after toolHandler.draw finishes drawing on layerCtx
@@ -154,7 +157,8 @@ class CanvasCore {
 
         // Delegate the stop action to the tool handler
         const layerCtx = this.getActiveLayerContext();
-        this.toolHandler?.stopDrawing(layerCtx, pos, { startX: this.startX, startY: this.startY });
+        const toolSettings = window.canvasUI?.getToolSettings();
+this.toolHandler?.stopDrawing(layerCtx, pos, { startX: this.startX, startY: this.startY }, toolSettings);
 
         // Final render and save state
         this.renderLayers(); // Ensure final state is drawn correctly
