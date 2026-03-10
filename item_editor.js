@@ -190,11 +190,11 @@ createNote() {
               <input type="text" class="note-title-input" value="${this.app.escapeHtml(note.title)}" placeholder="Note title..." oninput="window.itemEditor.updateNoteTitle(this.value)">
                <div class="note-actions">
                  <!-- Share buttons moved here for better visibility -->
-                 <button class="btn btn--secondary btn--sm" onclick="window.autoEncryption?.autoEncryptAndShare(window.editorCore?.currentItem, false)" title="Encrypt & Share">
-                   <i class="fas fa-share-alt"></i> Share
+                 <button class="btn btn--secondary btn--sm" onclick="window.autoEncryption?.autoEncryptAndShare(window.editorCore?.currentItem, false)" title="Encrypt for recipient and share">
+                   <i class="fas fa-share-alt"></i> Secure Share
                  </button>
-                 <button class="btn btn--secondary btn--sm btn--danger" onclick="window.autoEncryption?.autoEncryptAndShare(window.editorCore?.currentItem, true)" title="Share once & Delete">
-                   <i class="fas fa-fire"></i> Share & Destroy
+                 <button class="btn btn--secondary btn--sm btn--danger" onclick="window.autoEncryption?.autoEncryptAndShare(window.editorCore?.currentItem, true)" title="Secure share then delete local note">
+                   <i class="fas fa-fire"></i> Secure Share & Destroy
                  </button>
                  <div class="separator"></div>
                  <button class="btn btn--primary btn--sm" onclick="window.itemEditor.saveItem()" title="Save Note (Ctrl+S)"><i class="fas fa-save"></i> Save</button>

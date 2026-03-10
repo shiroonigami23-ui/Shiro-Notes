@@ -9,6 +9,72 @@ class AutoEncryption {
         
     }
 
+    toBase64(uint8Array) {
+        return btoa(String.fromCharCode(...uint8Array));
+    }
+
+    fromBase64(base64) {
+        return new Uint8Array(atob(base64).split('').map(c => c.charCodeAt(0)));
+    }
+
+    async fingerprintFromPublicKeyBase64(publicKeyB64) {
+        const hash = await crypto.subtle.digest('SHA-256', this.fromBase64(publicKeyB64));
+        const bytes = new Uint8Array(hash);
+        return Array.from(bytes.slice(0, 8)).map(b => b.toString(16).padStart(2, '0')).join(':').toUpperCase();
+    }
+
+    async generateRecipientIdentity() {
+        const keys = await crypto.subtle.generateKey(
+            {
+                name: 'RSA-OAEP',
+                modulusLength: 2048,
+                publicExponent: new Uint8Array([1, 0, 1]),
+                hash: 'SHA-256'
+            },
+            true,
+            ['encrypt', 'decrypt']
+        );
+
+        const publicSpki = await crypto.subtle.exportKey('spki', keys.publicKey);
+        const privatePkcs8 = await crypto.subtle.exportKey('pkcs8', keys.privateKey);
+        const publicKey = this.toBase64(new Uint8Array(publicSpki));
+        const privateKey = this.toBase64(new Uint8Array(privatePkcs8));
+        const fingerprint = await this.fingerprintFromPublicKeyBase64(publicKey);
+
+        window.app.data.settings.secureShare = {
+            publicKey,
+            privateKey,
+            fingerprint,
+            createdAt: new Date().toISOString()
+        };
+        window.app.saveData();
+        return window.app.data.settings.secureShare;
+    }
+
+    getIdentity() {
+        return window.app.data.settings.secureShare || {};
+    }
+
+    exportPublicIdentityFile() {
+        const identity = this.getIdentity();
+        if (!identity.publicKey) {
+            window.app.showToast('Generate identity first', 'warning');
+            return;
+        }
+        const payload = {
+            app: 'Shiro Notes',
+            type: 'sn_public_key',
+            version: '2.0',
+            algorithm: 'RSA-OAEP-2048-SHA256',
+            publicKey: identity.publicKey,
+            fingerprint: identity.fingerprint,
+            createdAt: identity.createdAt
+        };
+        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+        this.downloadFile(URL.createObjectURL(blob), `shiro-notes-public-key-${(identity.fingerprint || 'user').replace(/[:\s]/g, '')}.snpub.json`);
+        window.app.showToast('Public key exported', 'success');
+    }
+
     // Generate strong random password
     generatePassword(length = 32) {
         const charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+-=[]{}|;:,.<>?';
@@ -81,34 +147,10 @@ async autoEncryptAndShare(note, isDestructive = false) {
         }
     }
 
-    // Generate random password
-    const password = this.generatePassword();
+    const liveContent = window.editorCore?.currentEditor?.innerHTML || note.content || '';
+    const fileName = `${(note.title || 'note').replace(/[^a-z0-9]/gi, '_')}_encrypted`;
+    const noteIdToDelete = note.id;
 
-    // Encrypt note content
-    const liveContent = window.editorCore?.currentEditor?.innerHTML || note.content;
-const encrypted = CryptoJS.AES.encrypt(liveContent, password).toString();
-
-    // Create encrypted message file
-    const messageFile = {
-        version: '1.1', // New version to indicate it might be a one-time message
-        appName: 'Shiro Notes',
-        encrypted: true,
-        title: note.title,
-        content: encrypted,
-        timestamp: new Date().toISOString(),
-        id: Date.now().toString(36) + Math.random().toString(36).substr(2)
-    };
-    
-    const noteIdToDelete = note.id; // Store ID before creating blob
-
-    // Convert to blob for download
-    const messageBlob = new Blob([JSON.stringify(messageFile, null, 2)], {
-        type: 'application/json'
-    });
-
-    const fileName = `${note.title.replace(/[^a-z0-9]/gi, '_')}_encrypted`;
-
-    // The logic to handle the deletion after sharing
     const handlePostShare = () => {
         if (isDestructive) {
             const idx = appRef.data.notes.findIndex(n => n.id === noteIdToDelete);
@@ -123,49 +165,44 @@ const encrypted = CryptoJS.AES.encrypt(liveContent, password).toString();
         }
     };
 
-    // Show sharing modal, passing the post-share handler
-    this.showSharingModal(messageBlob, fileName, password, handlePostShare);
+    this.showRecipientKeyModal({
+        noteTitle: note.title,
+        noteContent: liveContent,
+        fileName,
+        onSuccess: handlePostShare
+    });
 }
 
-// Show sharing options modal
-showSharingModal(messageBlob, fileName, password, postShareCallback = () => {}) {
+showRecipientKeyModal({ noteTitle, noteContent, fileName, onSuccess }) {
     const modal = document.createElement('div');
     modal.className = 'modal-overlay visible';
     modal.id = 'autoShareModal';
 
     modal.innerHTML = `
-        <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-content" style="max-width: 560px;">
             <div class="modal-header">
-                <h2>Share Encrypted Note</h2>
+                <h2>Recipient-Only Encrypted Share</h2>
                 <button class="close-modal" onclick="this.closest('.modal-overlay').remove()">&times;</button>
             </div>
             <div class="modal-body" style="padding: 2rem;">
-                <div style="margin-bottom: 1.5rem;">
-                    <p style="color: var(--text-secondary); margin-bottom: 1rem;">
-                        <i class="fas fa-info-circle"></i> 
-                        Share the encrypted message first, then share the password file separately.
-                    </p>
+                <p style="color: var(--text-secondary); margin-bottom: 1rem;">
+                    <i class="fas fa-user-lock"></i>
+                    Upload recipient public key file (<code>.snpub.json</code>). Only their private key can decrypt.
+                </p>
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label>Recipient Public Key File</label>
+                    <input type="file" id="recipientPublicKeyFile" accept=".json,.snpub.json" class="file-input">
                 </div>
-
-                <div style="background: var(--surface); padding: 1.5rem; border-radius: var(--radius-md); margin-bottom: 1.5rem;">
-                    <h3 style="margin-bottom: 1rem; font-size: 1rem;">Step 1: Share Message File</h3>
-                    <div class="share-buttons" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                        <button class="btn-share" data-method="download" style="flex: 1; min-width: 120px;">
-                            <i class="fas fa-download"></i> Download
-                        </button>
-                        <button class="btn-share" data-method="native" style="flex: 1; min-width: 120px;">
-                            <i class="fas fa-share-alt"></i> Share...
-                        </button>
-                    </div>
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label>Or Paste Recipient Public Key</label>
+                    <textarea id="recipientPublicKeyText" class="form-control" rows="4" placeholder="Paste publicKey base64 from .snpub.json"></textarea>
                 </div>
-
-                <div id="passwordFileSection" style="background: var(--primary-light); padding: 1.5rem; border-radius: var(--radius-md); opacity: 0.5; pointer-events: none;">
-                    <h3 style="margin-bottom: 1rem; font-size: 1rem;">
-                        Step 2: Share Password File 
-                        <span style="font-size: 0.875rem; color: var(--text-secondary);">(after message is sent)</span>
-                    </h3>
-                    <button class="btn-primary" id="generatePasswordFile" style="width: 100%;" disabled>
-                        <i class="fas fa-key"></i> Generate & Download Password File
+                <div style="display:flex; gap:.5rem; flex-wrap:wrap;">
+                    <button class="btn btn--primary" id="generateRecipientLockedMessage">
+                        <i class="fas fa-lock"></i> Generate Secure Message
+                    </button>
+                    <button class="btn btn--secondary" onclick="window.autoEncryption.exportPublicIdentityFile()">
+                        <i class="fas fa-file-export"></i> Export My Public Key
                     </button>
                 </div>
             </div>
@@ -173,70 +210,71 @@ showSharingModal(messageBlob, fileName, password, postShareCallback = () => {}) 
     `;
 
     document.body.appendChild(modal);
+    const fileInput = modal.querySelector('#recipientPublicKeyFile');
+    const keyText = modal.querySelector('#recipientPublicKeyText');
+    const generateBtn = modal.querySelector('#generateRecipientLockedMessage');
 
-    const messageUrl = URL.createObjectURL(messageBlob);
+    generateBtn.addEventListener('click', async () => {
+        try {
+            generateBtn.disabled = true;
+            generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Encrypting...';
 
-    // Function to enable Step 2
-    const enableStep2 = () => {
-        const passwordSection = modal.querySelector('#passwordFileSection');
-        const passwordBtn = modal.querySelector('#generatePasswordFile');
-        passwordSection.style.opacity = '1';
-        passwordSection.style.pointerEvents = 'auto';
-        passwordBtn.disabled = false;
-        window.app.showToast('Message file ready to share!', 'success');
-    };
-
-    // Setup share button handlers
-    modal.querySelectorAll('.btn-share').forEach(btn => {
-        btn.addEventListener('click', async () => {
-            const method = btn.dataset.method;
-
-            if (method === 'download') {
-                this.downloadFile(messageUrl, fileName + '.json');
-                enableStep2();
-                // We assume the share is "successful" on download click for destructive mode
-                postShareCallback(); 
-            } else if (method === 'native') {
-                if (navigator.share) {
-                    try {
-                        const file = new File([messageBlob], fileName + '.json', { type: 'application/json' });
-                        await navigator.share({
-                            title: 'Encrypted Note',
-                            text: 'Encrypted note from Shiro Notes',
-                            files: [file]
-                        });
-                        enableStep2();
-                        // This callback runs after the share sheet is closed
-                        postShareCallback(); 
-                    } catch (err) {
-                        if (err.name !== 'AbortError') {
-                            this.downloadFile(messageUrl, fileName + '.json');
-                            enableStep2();
-                            postShareCallback();
-                        }
-                    }
-                } else {
-                    this.downloadFile(messageUrl, fileName + '.json');
-                    enableStep2();
-                    postShareCallback();
-                }
+            let recipientPublicKey = keyText.value.trim();
+            if (!recipientPublicKey && fileInput.files?.[0]) {
+                const raw = await this.readFile(fileInput.files[0]);
+                const parsed = JSON.parse(raw);
+                recipientPublicKey = parsed.publicKey || '';
             }
-        });
-    });
+            if (!recipientPublicKey) {
+                throw new Error('Recipient public key is required');
+            }
 
-    // Password file generation
-    modal.querySelector('#generatePasswordFile').addEventListener('click', () => {
-        const obfuscated = this.obfuscatePassword(password);
-        const passwordBlob = new Blob([JSON.stringify(obfuscated)], { type: 'application/octet-stream' });
-        const passwordUrl = URL.createObjectURL(passwordBlob);
-        this.downloadFile(passwordUrl, fileName + '.key');
-        window.app.showToast('Password file downloaded! Share it separately.', 'success');
+            const publicKey = await crypto.subtle.importKey(
+                'spki',
+                this.fromBase64(recipientPublicKey),
+                { name: 'RSA-OAEP', hash: 'SHA-256' },
+                false,
+                ['encrypt']
+            );
 
-        setTimeout(() => {
-            URL.revokeObjectURL(messageUrl);
-            URL.revokeObjectURL(passwordUrl);
+            const aesKey = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']);
+            const iv = crypto.getRandomValues(new Uint8Array(12));
+            const encryptedContent = await crypto.subtle.encrypt(
+                { name: 'AES-GCM', iv },
+                aesKey,
+                new TextEncoder().encode(noteContent)
+            );
+            const rawAes = await crypto.subtle.exportKey('raw', aesKey);
+            const encryptedKey = await crypto.subtle.encrypt({ name: 'RSA-OAEP' }, publicKey, rawAes);
+            const recipientFingerprint = await this.fingerprintFromPublicKeyBase64(recipientPublicKey);
+
+            const messageFile = {
+                version: '2.0',
+                appName: 'Shiro Notes',
+                mode: 'recipient_only',
+                algorithm: 'RSA-OAEP-2048 + AES-GCM-256',
+                title: noteTitle,
+                ciphertext: this.toBase64(new Uint8Array(encryptedContent)),
+                encryptedKey: this.toBase64(new Uint8Array(encryptedKey)),
+                iv: this.toBase64(iv),
+                recipientFingerprint,
+                createdAt: new Date().toISOString(),
+                id: Date.now().toString(36) + Math.random().toString(36).slice(2)
+            };
+
+            const blob = new Blob([JSON.stringify(messageFile, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            this.downloadFile(url, fileName + '.snmsg.json');
+            URL.revokeObjectURL(url);
+            window.app.showToast('Recipient-locked message generated', 'success');
+            onSuccess?.();
             modal.remove();
-        }, 2000);
+        } catch (error) {
+            window.app.showToast(`Share failed: ${error.message}`, 'error');
+        } finally {
+            generateBtn.disabled = false;
+            generateBtn.innerHTML = '<i class="fas fa-lock"></i> Generate Secure Message';
+        }
     });
 }
 
@@ -255,25 +293,27 @@ showSharingModal(messageBlob, fileName, password, postShareCallback = () => {}) 
 
 // Decrypt note with both files
 async decryptWithFiles() {
+    const identity = this.getIdentity();
+    if (!identity.privateKey) {
+        window.app.showToast('Generate your Secure Share Identity in Security first', 'warning');
+        return;
+    }
+
     const modal = document.createElement('div');
     modal.className = 'modal-overlay visible';
     modal.innerHTML = `
         <div class="modal-content" style="max-width: 500px;">
             <div class="modal-header">
-                <h2>Decrypt Note</h2>
+                <h2>Decrypt Recipient-Locked Message</h2>
                 <button class="close-modal" onclick="this.closest('.modal-overlay').remove()">&times;</button>
             </div>
             <div class="modal-body" style="padding: 2rem;">
                 <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">
-                    Select both the encrypted message file (.json) and the password file (.key) to decrypt.
+                    Select a message file (<code>.snmsg.json</code>) intended for your identity.
                 </p>
                 <div class="form-group">
-                    <label>Message File (.json)</label>
-                    <input type="file" id="messageFileInput" accept=".json" class="file-input">
-                </div>
-                <div class="form-group">
-                    <label>Password File (.key)</label>
-                    <input type="file" id="passwordFileInput" accept=".key" class="file-input">
+                    <label>Message File</label>
+                    <input type="file" id="messageFileInput" accept=".json,.snmsg.json" class="file-input">
                 </div>
                 <button class="btn-primary" id="decryptFilesBtn" style="width: 100%; margin-top: 1rem;">
                     <i class="fas fa-unlock"></i> Decrypt Note
@@ -285,27 +325,53 @@ async decryptWithFiles() {
 
     modal.querySelector('#decryptFilesBtn').addEventListener('click', async () => {
         const messageFile = modal.querySelector('#messageFileInput').files[0];
-        const passwordFile = modal.querySelector('#passwordFileInput').files[0];
 
-        if (!messageFile || !passwordFile) {
-            window.app.showToast('Please select both files', 'error');
+        if (!messageFile) {
+            window.app.showToast('Please select a message file', 'error');
             return;
         }
 
         try {
             const messageContent = await this.readFile(messageFile);
             const messageData = JSON.parse(messageContent);
-            const passwordContent = await this.readFile(passwordFile);
-            const passwordData = JSON.parse(passwordContent);
+            if (messageData.version !== '2.0' || messageData.mode !== 'recipient_only') {
+                throw new Error('Unsupported or legacy message format');
+            }
 
-            const password = this.deobfuscatePassword(passwordData);
-            if (!password) throw new Error('Invalid password file');
+            if (messageData.recipientFingerprint !== identity.fingerprint) {
+                throw new Error('This message is not intended for your identity');
+            }
 
-            const decrypted = CryptoJS.AES.decrypt(messageData.content, password).toString(CryptoJS.enc.Utf8);
+            const privateKey = await crypto.subtle.importKey(
+                'pkcs8',
+                this.fromBase64(identity.privateKey),
+                { name: 'RSA-OAEP', hash: 'SHA-256' },
+                false,
+                ['decrypt']
+            );
+
+            const rawAes = await crypto.subtle.decrypt(
+                { name: 'RSA-OAEP' },
+                privateKey,
+                this.fromBase64(messageData.encryptedKey)
+            );
+            const aesKey = await crypto.subtle.importKey(
+                'raw',
+                rawAes,
+                { name: 'AES-GCM' },
+                false,
+                ['decrypt']
+            );
+            const decryptedBuffer = await crypto.subtle.decrypt(
+                { name: 'AES-GCM', iv: this.fromBase64(messageData.iv) },
+                aesKey,
+                this.fromBase64(messageData.ciphertext)
+            );
+            const decrypted = new TextDecoder().decode(decryptedBuffer);
             if (!decrypted) throw new Error('Decryption failed');
 
             // Instead of saving, show the one-time view
-            this.showOneTimeView(messageData.title, decrypted);
+            this.showOneTimeView(messageData.title || 'Secure Message', decrypted);
             
             window.app.showToast('Note decrypted successfully!', 'success');
             modal.remove();

@@ -11,6 +11,12 @@ class ShiroNotes {
                 autoLock: false,
                 lockTimeout: 300000, // 5 minutes in milliseconds
                 masterPasswordHash: null, // Store hash of the master password
+                secureShare: {
+                    publicKey: null,
+                    privateKey: null,
+                    fingerprint: null,
+                    createdAt: null
+                },
                 profile: {
                     name: '',
                     email: '',
@@ -81,6 +87,11 @@ class ShiroNotes {
                 // Deep merge settings to avoid losing new default settings
                 if (parsedData.settings) {
                     parsedData.settings = { ...this.data.settings, ...parsedData.settings };
+                    if (parsedData.settings.secureShare) {
+                        parsedData.settings.secureShare = { ...this.data.settings.secureShare, ...parsedData.settings.secureShare };
+                    } else {
+                        parsedData.settings.secureShare = this.data.settings.secureShare;
+                    }
                     // Ensure nested profile object is also merged
                      if (parsedData.settings.profile) {
                          parsedData.settings.profile = { ...this.data.settings.profile, ...parsedData.settings.profile };

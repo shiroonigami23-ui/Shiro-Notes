@@ -14,6 +14,9 @@ loadSecurityPageContent(pageElement) {
     const hasMasterPassword = !!this.app.data.settings.masterPasswordHash;
     const autoLock = this.app.data.settings.autoLock;
     const lockTimeoutMinutes = this.app.data.settings.lockTimeout / 60000;
+    const secureShare = this.app.data.settings.secureShare || {};
+    const hasShareIdentity = !!(secureShare.publicKey && secureShare.privateKey);
+    const fingerprint = secureShare.fingerprint || '--';
 
     pageElement.innerHTML = `
     <div class="security-container">
@@ -91,11 +94,55 @@ loadSecurityPageContent(pageElement) {
                     <button class="btn btn--secondary" onclick="securityModule.generatePassword()">
                         <i class="fas fa-key"></i> Password Generator
                     </button>
+                    <hr style="margin: 1rem 0; border-color: var(--color-card-border);">
+                    <p><strong>Recipient-only Share Identity</strong></p>
+                    <p class="text-secondary" style="margin-bottom: .75rem;">Used for end-to-end share. Only your private key can decrypt messages intended for you.</p>
+                    <div class="setting-item" style="margin-bottom: .75rem;">
+                        <span>Status:</span>
+                        ${hasShareIdentity ? '<span class="badge status--success">Ready</span>' : '<span class="badge status--error">Not Set</span>'}
+                    </div>
+                    <div class="setting-item" style="margin-bottom: .75rem;">
+                        <span>Fingerprint:</span>
+                        <code style="font-size: 11px;">${this.app.escapeHtml(fingerprint)}</code>
+                    </div>
+                    <div style="display:flex; gap:.5rem; flex-wrap:wrap;">
+                        <button class="btn btn--primary btn--sm" onclick="securityModule.generateSecureShareIdentity()">
+                            <i class="fas fa-user-lock"></i> ${hasShareIdentity ? 'Regenerate Identity' : 'Generate Identity'}
+                        </button>
+                        <button class="btn btn--secondary btn--sm" onclick="securityModule.exportSecureSharePublicKey()" ${!hasShareIdentity ? 'disabled' : ''}>
+                            <i class="fas fa-file-export"></i> Export Public Key
+                        </button>
+                        <button class="btn btn--secondary btn--sm" onclick="window.autoEncryption?.decryptWithFiles()" ${!hasShareIdentity ? 'disabled' : ''}>
+                            <i class="fas fa-unlock"></i> Decrypt Message File
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
     `;
+}
+
+async generateSecureShareIdentity() {
+    try {
+        if (!window.autoEncryption?.generateRecipientIdentity) {
+            this.app.showToast('Secure share module unavailable', 'error');
+            return;
+        }
+        await window.autoEncryption.generateRecipientIdentity();
+        this.app.showToast('Secure share identity generated', 'success');
+        this.app.loadPageContent('security');
+    } catch (error) {
+        this.app.showToast(`Identity generation failed: ${error.message}`, 'error');
+    }
+}
+
+exportSecureSharePublicKey() {
+    if (!window.autoEncryption?.exportPublicIdentityFile) {
+        this.app.showToast('Secure share module unavailable', 'error');
+        return;
+    }
+    window.autoEncryption.exportPublicIdentityFile();
 }
 
 showLockScreen() {
