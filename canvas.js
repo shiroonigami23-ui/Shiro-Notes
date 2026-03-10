@@ -116,9 +116,7 @@ class CanvasModule {
 
     clear() {
         if (!this.isInitialized || !this.core) return;
-        if (confirm('Are you sure you want to clear the entire canvas? This cannot be undone.')) {
-            this.core.clearAllLayers();
-        }
+        this.core.clearCanvas();
     }
 
     toggleGrid() {

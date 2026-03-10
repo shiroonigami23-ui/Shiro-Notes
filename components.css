@@ -300,6 +300,39 @@ input:checked + .slider:before {
   transform: scale(1);
 }
 
+.custom-dialog {
+  border: 1px solid var(--color-card-border);
+}
+
+.custom-dialog.is-danger {
+  border-color: color-mix(in srgb, var(--color-error) 45%, var(--color-card-border));
+  box-shadow: 0 20px 44px rgba(0, 0, 0, 0.35);
+}
+
+.dialog-message {
+  margin: 0;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}
+
+.dialog-input {
+  width: 100%;
+  margin-top: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-base);
+  background: var(--color-background);
+  color: var(--color-text);
+  padding: var(--space-3);
+  font-size: var(--font-size-sm);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.dialog-input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 25%, transparent);
+  outline: none;
+}
+
 /* Modal Size Variants */
 .modal-content.modal--sm { max-width: 400px; }
 .modal-content.modal--lg { max-width: 800px; }

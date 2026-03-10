@@ -80,20 +80,20 @@ loadToolbarHTML() {
         </div>
         <div class="toolbar-separator"></div>
         <div class="toolbar-group">
-            <button class="toolbar-btn" onclick="window.editorFeatures.insertLink()" title="Insert Link"><i class="fas fa-link"></i></button>
-            <button class="toolbar-btn" onclick="window.editorFeatures.insertImage()" title="Insert Image"><i class="fas fa-image"></i></button>
-            <button class="toolbar-btn" onclick="window.editorFeatures.insertTable()" title="Insert Table"><i class="fas fa-table"></i></button>
-            <button class="toolbar-btn" onclick="window.editorFeatures.insertAudio()" title="Insert Audio"><i class="fas fa-file-audio"></i></button>
-            <button class="toolbar-btn" onclick="window.editorFeatures.insertMath()" title="Insert Math"><i class="fas fa-square-root-alt"></i></button>
-            <button class="toolbar-btn" onclick="window.editorFeatures.toggleEmojiPanel()" title="Emoji"><i class="fas fa-smile"></i></button>
+            <button class="toolbar-btn" data-feature="insertLink" title="Insert Link"><i class="fas fa-link"></i></button>
+            <button class="toolbar-btn" data-feature="insertImage" title="Insert Image"><i class="fas fa-image"></i></button>
+            <button class="toolbar-btn" data-feature="insertTable" title="Insert Table"><i class="fas fa-table"></i></button>
+            <button class="toolbar-btn" data-feature="insertAudio" title="Insert Audio"><i class="fas fa-file-audio"></i></button>
+            <button class="toolbar-btn" data-feature="insertMath" title="Insert Math"><i class="fas fa-square-root-alt"></i></button>
+            <button class="toolbar-btn" data-feature="toggleEmojiPanel" title="Emoji"><i class="fas fa-smile"></i></button>
         </div>
         <div class="toolbar-separator"></div>
         <div class="toolbar-group">
-            <button class="toolbar-btn" id="dictationBtn" onclick="window.editorFeatures.toggleDictation()" title="Start Dictation"><i class="fas fa-microphone"></i></button>
-            <button class="toolbar-btn" onclick="window.editorFeatures.findAndReplace()" title="Find & Replace"><i class="fas fa-search"></i></button>
-            <button class="toolbar-btn" onclick="window.editorFeatures.toggleMarkdown()" title="Toggle Markdown"><i class="fab fa-markdown"></i></button>
-            <button class="toolbar-btn" onclick="window.editorFeatures.showWordCount()" title="Content Statistics"><i class="fas fa-calculator"></i></button>
-            <button class="toolbar-btn" onclick="window.editorFeatures.toggleFullscreen()" title="Full Screen"><i class="fas fa-expand"></i></button>
+            <button class="toolbar-btn" id="dictationBtn" data-feature="toggleDictation" title="Start Dictation"><i class="fas fa-microphone"></i></button>
+            <button class="toolbar-btn" data-feature="findAndReplace" title="Find & Replace"><i class="fas fa-search"></i></button>
+            <button class="toolbar-btn" data-feature="toggleMarkdown" title="Toggle Markdown"><i class="fab fa-markdown"></i></button>
+            <button class="toolbar-btn" data-feature="showWordCount" title="Content Statistics"><i class="fas fa-calculator"></i></button>
+            <button class="toolbar-btn" data-feature="toggleFullscreen" title="Full Screen"><i class="fas fa-expand"></i></button>
         </div>
     `;
 }
@@ -111,6 +111,13 @@ loadToolbarHTML() {
     }
 
     setupToolbarEventListeners() {
+        if (!this.toolbarElement) return;
+
+        // Keep text selection active when clicking toolbar controls.
+        this.toolbarElement.querySelectorAll('.toolbar-btn, .toolbar-select').forEach(el => {
+            el.addEventListener('mousedown', (e) => e.preventDefault());
+        });
+
         // --- Standard Button Commands ---
         this.toolbarElement.querySelectorAll('.toolbar-btn[data-command]').forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -118,7 +125,7 @@ loadToolbarHTML() {
                 const command = btn.getAttribute('data-command');
                 const value = btn.getAttribute('data-value'); // For commands like formatBlock
                 if (command) {
-                    window.editorCore?.execCommand(command, value);
+                    this.executeEditorCommand(command, value);
                     // Don't toggle 'active' here, let updateToolbarState handle it
                 }
             });
@@ -130,7 +137,7 @@ loadToolbarHTML() {
                 const command = select.getAttribute('data-command');
                 const value = e.target.value;
                 if (command && value) {
-                    window.editorCore?.execCommand(command, value);
+                    this.executeEditorCommand(command, value);
                 }
             });
         });
@@ -142,54 +149,71 @@ loadToolbarHTML() {
         const bgColorPicker = this.toolbarElement.querySelector('#bgColorPicker');
 
         if (textColorBtn && textColorPicker) {
-            textColorBtn.addEventListener('click', () => textColorPicker.click());
+            textColorBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                textColorPicker.click();
+            });
             textColorPicker.addEventListener('input', (e) => { // Use 'input' for live preview if desired
-                window.editorCore?.execCommand('foreColor', e.target.value);
+                this.executeEditorCommand('foreColor', e.target.value);
                 this.updateColorIndicator('textColorIndicator', e.target.value);
             });
         }
 
         if (bgColorBtn && bgColorPicker) {
-            bgColorBtn.addEventListener('click', () => bgColorPicker.click());
+            bgColorBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                bgColorPicker.click();
+            });
             bgColorPicker.addEventListener('input', (e) => {
                 // Use hiliteColor for background/highlight
-                 window.editorCore?.execCommand('hiliteColor', e.target.value);
+                 this.executeEditorCommand('hiliteColor', e.target.value);
                  // Note: Some browsers might use backColor, hiliteColor is more common for WYSIWYG
                 this.updateColorIndicator('bgColorIndicator', e.target.value);
             });
         }
 
         // --- Buttons Calling Specific Feature Functions ---
-        // These buttons don't use execCommand directly but call functions
-        // in editor_features.js or the main editor module.
-        // We assume those functions exist on window.editorFeatures or window.editorModule.
-        const featureButtons = [
-            { selector: '[onclick*="insertLink"]', func: () => window.editorFeatures?.insertLink() },
-            { selector: '[onclick*="insertImage"]', func: () => window.editorFeatures?.insertImage() },
-            { selector: '[onclick*="insertAudio"]', func: () => window.editorFeatures?.insertAudio() },
-            { selector: '[onclick*="insertTable"]', func: () => window.editorFeatures?.insertTable() },
-            { selector: '[onclick*="insertEmoji"]', func: () => window.editorFeatures?.toggleEmojiPanel() }, // Changed to toggle panel
-            { selector: '[onclick*="insertMath"]', func: () => window.editorFeatures?.insertMath() },
-            { selector: '[onclick*="toggleDictation"]', func: () => window.editorFeatures?.toggleDictation() },
-            { selector: '[onclick*="findAndReplace"]', func: () => window.editorFeatures?.findAndReplace() },
-            { selector: '[onclick*="toggleMarkdown"]', func: () => window.editorFeatures?.toggleMarkdown() },
-            { selector: '[onclick*="toggleFullscreen"]', func: () => window.editorFeatures?.toggleFullscreen() },
-            { selector: '[onclick*="showWordCount"]', func: () => window.editorFeatures?.showWordCount() },// Word count modal might stay in main module
-            // Add other buttons calling specific functions here
-        ];
+        const featureHandlers = {
+            insertLink: () => window.editorFeatures?.insertLink(),
+            insertImage: () => window.editorFeatures?.insertImage(),
+            insertAudio: () => window.editorFeatures?.insertAudio(),
+            insertTable: () => window.editorFeatures?.insertTable(),
+            insertMath: () => window.editorFeatures?.insertMath(),
+            toggleEmojiPanel: () => window.editorFeatures?.toggleEmojiPanel(),
+            toggleDictation: () => window.editorFeatures?.toggleDictation(),
+            findAndReplace: () => window.editorFeatures?.findAndReplace(),
+            toggleMarkdown: () => window.editorFeatures?.toggleMarkdown(),
+            toggleFullscreen: () => window.editorFeatures?.toggleFullscreen(),
+            showWordCount: () => window.editorFeatures?.showWordCount()
+        };
 
-        featureButtons.forEach(item => {
-            const btn = this.toolbarElement.querySelector(item.selector);
-            if (btn) {
-                // Remove the old onclick attribute to prevent double execution
-                btn.removeAttribute('onclick');
-                // Add event listener
-                btn.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    item.func();
-                });
-            }
+        this.toolbarElement.querySelectorAll('.toolbar-btn[data-feature]').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.prepareEditorSelection();
+                const feature = btn.dataset.feature;
+                const handler = featureHandlers[feature];
+                if (handler) handler();
+            });
         });
+    }
+
+    prepareEditorSelection() {
+        const editor = window.editorCore?.currentEditor;
+        if (!editor) {
+            this.app.showToast('Editor is not ready', 'warning', 1200);
+            return false;
+        }
+
+        window.editorFeatures?.restoreSelection?.();
+        if (document.activeElement !== editor) editor.focus();
+        return true;
+    }
+
+    executeEditorCommand(command, value = null) {
+        if (!this.prepareEditorSelection()) return;
+        window.editorCore?.execCommand(command, value);
+        window.editorFeatures?.saveSelection?.();
     }
 
      initializeColorPickers() {

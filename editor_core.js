@@ -84,6 +84,7 @@ class EditorCore {
 
     handleSelectionChange() {
         if (this.currentEditor && document.activeElement === this.currentEditor) {
+            window.editorFeatures?.saveSelection?.();
             window.editorToolbar?.updateToolbarState();
         }
     }

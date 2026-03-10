@@ -13,12 +13,23 @@ class CanvasCore {
         this.historyStep = -1;       // Current position in the history stack
         this.layers = [];            // Array of layer objects {id, name, visible, opacity, canvas, ctx}
         this.currentLayer = 0;       // ID of the currently active layer
-        this.zoom = 1;               // Current zoom level (currently visual only via CSS)
-        this.panX = 0;               // Current horizontal pan (currently visual only via CSS)
-        this.panY = 0;               // Current vertical pan (currently visual only via CSS)
+        this.zoom = 1;               // Current zoom level
+        this.panX = 0;               // Current horizontal pan in screen space
+        this.panY = 0;               // Current vertical pan in screen space
+        this.minZoom = 0.2;
+        this.maxZoom = 5;
+        this.isPanning = false;
+        this.spacePressed = false;
+        this.lastPanClientX = 0;
+        this.lastPanClientY = 0;
+        this.autoExpandPadding = 320;
+        this.autoExpandStep = 1200;
+        this.lastRuntimeErrorAt = 0;
+        this.lastLayerWarningAt = 0;
         this.images = [];            // Array to hold image objects {element, x, y, width, height, layerId}
         this.selectedImage = null;   // Reference to the currently selected image object for transform
         this.transformHandle = null; // Which resize handle is being dragged ('top-left', etc.)
+        this.wrapper = null;         // Scroll container around canvas
 
         // Reference to the tool handler module (will be set externally)
         this.toolHandler = null; // e.g., window.canvasTools
@@ -33,6 +44,10 @@ class CanvasCore {
         this._boundTouchMove = null;
         this._boundTouchEnd = null;
         this._boundTouchCancel = null;
+        this._boundWheel = null;
+        this._boundContextMenu = null;
+        this._boundKeyDown = null;
+        this._boundKeyUp = null;
     }
 
     // --- Initialization ---
@@ -49,6 +64,7 @@ class CanvasCore {
             console.error("Failed to get 2D context for canvas.");
             return;
         }
+        this.wrapper = this.canvas.closest('.canvas-wrapper');
 
         this.setupCanvasProperties();
         this.setupEventListeners();
@@ -69,8 +85,8 @@ class CanvasCore {
     setupCanvasProperties() {
         // Set a large internal resolution for the canvas
         // The display size is controlled by CSS, allowing scrolling
-        this.canvas.width = 3000; // Example large width
-        this.canvas.height = 2000; // Example large height
+        if (this.canvas.width < 3000) this.canvas.width = 3000;
+        if (this.canvas.height < 2000) this.canvas.height = 2000;
 
         // Set default drawing styles
         this.ctx.lineCap = 'round';
@@ -111,6 +127,14 @@ class CanvasCore {
             e.preventDefault();
             this.handlePointerUp(e.changedTouches[0]);
         };
+        this._boundWheel = this.handleWheel.bind(this);
+        this._boundContextMenu = (e) => e.preventDefault();
+        this._boundKeyDown = (e) => {
+            if (e.code === 'Space') this.spacePressed = true;
+        };
+        this._boundKeyUp = (e) => {
+            if (e.code === 'Space') this.spacePressed = false;
+        };
 
         // Mouse Events
         this.canvas.addEventListener('mousedown', this._boundMouseDown);
@@ -123,6 +147,10 @@ class CanvasCore {
         this.canvas.addEventListener('touchmove', this._boundTouchMove, { passive: false });
         this.canvas.addEventListener('touchend', this._boundTouchEnd, { passive: false });
         this.canvas.addEventListener('touchcancel', this._boundTouchCancel, { passive: false });
+        this.canvas.addEventListener('wheel', this._boundWheel, { passive: false });
+        this.canvas.addEventListener('contextmenu', this._boundContextMenu);
+        window.addEventListener('keydown', this._boundKeyDown);
+        window.addEventListener('keyup', this._boundKeyUp);
 
         this._listenersAttached = true;
 
@@ -141,13 +169,41 @@ class CanvasCore {
         this.canvas.removeEventListener('touchmove', this._boundTouchMove);
         this.canvas.removeEventListener('touchend', this._boundTouchEnd);
         this.canvas.removeEventListener('touchcancel', this._boundTouchCancel);
+        this.canvas.removeEventListener('wheel', this._boundWheel);
+        this.canvas.removeEventListener('contextmenu', this._boundContextMenu);
+        window.removeEventListener('keydown', this._boundKeyDown);
+        window.removeEventListener('keyup', this._boundKeyUp);
 
         this._listenersAttached = false;
     }
 
     handlePointerDown(e) {
+        try {
+        const isPanGesture = (e.button === 1 || e.button === 2 || this.spacePressed);
+        if (isPanGesture) {
+            this.isPanning = true;
+            this.lastPanClientX = e.clientX;
+            this.lastPanClientY = e.clientY;
+            return;
+        }
+
+        const currentTool = window.canvasUI?.currentTool || 'pen';
+        const activeLayer = this.getActiveLayer();
+        const isDrawingTool = !['select', 'eyedropper'].includes(currentTool);
+        if (isDrawingTool && activeLayer) {
+            if (!activeLayer.visible) {
+                this.warnLayerBlocked('Selected layer is hidden. Enable visibility to draw.');
+                return;
+            }
+            if (activeLayer.locked) {
+                this.warnLayerBlocked('Selected layer is locked. Unlock the layer to edit.');
+                return;
+            }
+        }
+
         this.isDrawing = true;
         const pos = this.getPointerPos(e);
+        this.ensureCanvasBounds(pos.x, pos.y);
         this.startX = pos.x;
         this.startY = pos.y;
         this.currentX = pos.x;
@@ -157,18 +213,40 @@ class CanvasCore {
         const toolSettings = window.canvasUI?.getToolSettings();
 this.toolHandler?.startDrawing(this.getActiveLayerContext(), pos, toolSettings);
 
-
         // Specific handling for select tool needs to be here as it modifies core state
-         const currentTool = window.canvasUI?.currentTool || 'pen'; // Get tool from UI module
          if (currentTool === 'select') {
              this.startSelectionOrTransform(pos.x, pos.y);
          }
+        } catch (error) {
+            this.handleRuntimeError(error, 'Pointer down');
+        }
+    }
+
+    warnLayerBlocked(message) {
+        const now = Date.now();
+        if (now - this.lastLayerWarningAt < 900) return;
+        this.lastLayerWarningAt = now;
+        this.app.showToast(message, 'warning', 1800);
     }
 
     handlePointerMove(e) {
+        try {
+        if (this.isPanning) {
+            const rect = this.canvas.getBoundingClientRect();
+            const scaleX = this.canvas.width / rect.width;
+            const scaleY = this.canvas.height / rect.height;
+            this.panX += (e.clientX - this.lastPanClientX) * scaleX;
+            this.panY += (e.clientY - this.lastPanClientY) * scaleY;
+            this.lastPanClientX = e.clientX;
+            this.lastPanClientY = e.clientY;
+            this.renderLayers();
+            return;
+        }
+
         if (!this.isDrawing) return;
 
         const pos = this.getPointerPos(e);
+        this.ensureCanvasBounds(pos.x, pos.y);
         const prevX = this.currentX; // Store previous position for some tools
         const prevY = this.currentY;
         this.currentX = pos.x;
@@ -182,16 +260,29 @@ const toolSettings = window.canvasUI?.getToolSettings(); // <-- ADD THIS
  } else {
      // Delegate drawing action to the tool handler
      this.toolHandler?.draw(this.getActiveLayerContext(), this.ctx, pos, { startX: this.startX, startY: this.startY, prevX, prevY }, toolSettings); // <-- PASS SETTINGS HERE
+     if (['pen', 'brush', 'calligraphy', 'eraser', 'spray'].includes(currentTool)) {
+         this.renderLayers();
+     }
  }
 
         // For shape tools, renderLayers + drawPreview happens in toolHandler.draw
         // For brush tools, renderLayers happens after toolHandler.draw finishes drawing on layerCtx
+        } catch (error) {
+            this.handleRuntimeError(error, 'Pointer move');
+        }
     }
 
     handlePointerUp(e) {
+        try {
+        if (this.isPanning) {
+            this.isPanning = false;
+            return;
+        }
+
         if (!this.isDrawing) return;
         this.isDrawing = false;
         const pos = this.getPointerPos(e); // Get final position
+        this.ensureCanvasBounds(pos.x, pos.y);
 
         // Delegate the stop action to the tool handler
         const layerCtx = this.getActiveLayerContext();
@@ -214,7 +305,18 @@ this.toolHandler?.stopDrawing(layerCtx, pos, { startX: this.startX, startY: this
               }
              this.transformHandle = null; // Always reset transform handle on mouse up
          }
+        } catch (error) {
+            this.handleRuntimeError(error, 'Pointer up');
+        }
+    }
 
+    handleRuntimeError(error, context = 'Canvas') {
+        console.error(`[${context}]`, error);
+        const now = Date.now();
+        if (now - this.lastRuntimeErrorAt > 1200) {
+            this.lastRuntimeErrorAt = now;
+            this.app.showToast(`Canvas error: ${error.message || 'Unknown issue'}`, 'error', 2200);
+        }
     }
 
     getPointerPos(e) {
@@ -229,12 +331,12 @@ this.toolHandler?.stopDrawing(layerCtx, pos, { startX: this.startX, startY: this
         const scaleY = this.canvas.height / rect.height;
 
         // Calculate coordinates relative to the canvas's internal resolution
-        let x = (clientX - rect.left) * scaleX;
-        let y = (clientY - rect.top) * scaleY;
+        const screenX = (clientX - rect.left) * scaleX;
+        const screenY = (clientY - rect.top) * scaleY;
 
-        // --- Future: Apply inverse zoom/pan for coordinates relative to canvas content ---
-        // x = (x / this.zoom) + this.panX;
-        // y = (y / this.zoom) + this.panY;
+        // Convert from screen space to canvas world coordinates.
+        const x = (screenX - this.panX) / this.zoom;
+        const y = (screenY - this.panY) / this.zoom;
 
          // Snap to grid needs to happen in the tool drawing logic based on UI state
          // if (window.canvasUI?.snapToGrid && window.canvasUI?.gridEnabled) {
@@ -244,6 +346,80 @@ this.toolHandler?.stopDrawing(layerCtx, pos, { startX: this.startX, startY: this
          // }
 
         return { x, y };
+    }
+
+    handleWheel(e) {
+        if (!(e.ctrlKey || e.metaKey)) return;
+        e.preventDefault();
+
+        const rect = this.canvas.getBoundingClientRect();
+        const scaleX = this.canvas.width / rect.width;
+        const scaleY = this.canvas.height / rect.height;
+        const screenX = (e.clientX - rect.left) * scaleX;
+        const screenY = (e.clientY - rect.top) * scaleY;
+        const worldX = (screenX - this.panX) / this.zoom;
+        const worldY = (screenY - this.panY) / this.zoom;
+
+        const factor = e.deltaY < 0 ? 1.1 : 0.9;
+        const nextZoom = Math.max(this.minZoom, Math.min(this.maxZoom, this.zoom * factor));
+        if (nextZoom === this.zoom) return;
+
+        this.zoom = nextZoom;
+        this.panX = screenX - (worldX * this.zoom);
+        this.panY = screenY - (worldY * this.zoom);
+        this.renderLayers();
+    }
+
+    ensureCanvasBounds(x, y) {
+        const nearRight = x > this.canvas.width - this.autoExpandPadding;
+        const nearBottom = y > this.canvas.height - this.autoExpandPadding;
+        if (!nearRight && !nearBottom) return;
+
+        const targetWidth = nearRight
+            ? Math.max(this.canvas.width + this.autoExpandStep, Math.ceil((x + this.autoExpandPadding) / this.autoExpandStep) * this.autoExpandStep)
+            : this.canvas.width;
+        const targetHeight = nearBottom
+            ? Math.max(this.canvas.height + this.autoExpandStep, Math.ceil((y + this.autoExpandPadding) / this.autoExpandStep) * this.autoExpandStep)
+            : this.canvas.height;
+
+        this.resizeCanvasSurfaces(targetWidth, targetHeight);
+    }
+
+    resizeCanvasSurfaces(newWidth, newHeight) {
+        if (!this.canvas || (newWidth <= this.canvas.width && newHeight <= this.canvas.height)) return;
+
+        const oldWidth = this.canvas.width;
+        const oldHeight = this.canvas.height;
+        this.canvas.width = Math.max(newWidth, oldWidth);
+        this.canvas.height = Math.max(newHeight, oldHeight);
+        this.ctx = this.canvas.getContext('2d');
+        this.ctx.lineCap = 'round';
+        this.ctx.lineJoin = 'round';
+
+        this.layers = this.layers.map(layer => {
+            const resizedCanvas = document.createElement('canvas');
+            resizedCanvas.width = this.canvas.width;
+            resizedCanvas.height = this.canvas.height;
+            const resizedCtx = resizedCanvas.getContext('2d');
+            if (!resizedCtx) return layer;
+
+            resizedCtx.lineCap = 'round';
+            resizedCtx.lineJoin = 'round';
+            if (layer.id === 0 || layer.name === 'Background') {
+                resizedCtx.fillStyle = '#ffffff';
+                resizedCtx.fillRect(0, 0, resizedCanvas.width, resizedCanvas.height);
+            }
+            resizedCtx.drawImage(layer.canvas, 0, 0);
+
+            return {
+                ...layer,
+                canvas: resizedCanvas,
+                ctx: resizedCtx
+            };
+        });
+
+        this.renderLayers();
+        window.canvasUI?.updateLayersList(this.layers, this.currentLayer);
     }
 
 
@@ -285,7 +461,9 @@ this.toolHandler?.stopDrawing(layerCtx, pos, { startX: this.startX, startY: this
             id: id,
             name: name,
             visible: true,
+            locked: false,
             opacity: 1,
+            parallax: 1,
             canvas: layerCanvas,
             ctx: layerCtx
         };
@@ -306,16 +484,21 @@ this.toolHandler?.stopDrawing(layerCtx, pos, { startX: this.startX, startY: this
      renderLayers(options = { includeGrid: true, includeSelection: true }) {
          if (!this.ctx) return;
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height); // Clear main canvas
+        this.ctx.save();
+        this.ctx.setTransform(this.zoom, 0, 0, this.zoom, this.panX, this.panY);
 
         this.layers.forEach(layer => {
             if (layer.visible) {
                 this.ctx.save();
                 this.ctx.globalAlpha = layer.opacity;
+                const parallax = Number.isFinite(layer.parallax) ? layer.parallax : 1;
+                const layerOffsetX = (this.panX * (parallax - 1)) / this.zoom;
+                const layerOffsetY = (this.panY * (parallax - 1)) / this.zoom;
                 // Draw the layer's base content (drawn lines, shapes etc.)
-                this.ctx.drawImage(layer.canvas, 0, 0);
+                this.ctx.drawImage(layer.canvas, layerOffsetX, layerOffsetY);
                 // Draw any active image objects currently associated with this layer
                 this.images.filter(img => img.layerId === layer.id).forEach(img => {
-                     this.drawImageWithTransform(this.ctx, img);
+                     this.drawImageWithTransform(this.ctx, img, layerOffsetX, layerOffsetY);
                 });
                 this.ctx.restore();
             }
@@ -330,12 +513,13 @@ this.toolHandler?.stopDrawing(layerCtx, pos, { startX: this.startX, startY: this
         if (options.includeSelection && this.selectedImage) {
             this.toolHandler?.drawSelectionHandles(this.ctx, this.selectedImage);
         }
+        this.ctx.restore();
      }
 
       // Helper to draw image, potentially adding rotation/scale later
-      drawImageWithTransform(targetCtx, imageInfo) {
+      drawImageWithTransform(targetCtx, imageInfo, offsetX = 0, offsetY = 0) {
           // Basic draw for now
-           targetCtx.drawImage(imageInfo.element, imageInfo.x, imageInfo.y, imageInfo.width, imageInfo.height);
+           targetCtx.drawImage(imageInfo.element, imageInfo.x + offsetX, imageInfo.y + offsetY, imageInfo.width, imageInfo.height);
           // TODO: Add context saving, translation, rotation, scaling if needed
       }
 
@@ -369,6 +553,15 @@ this.toolHandler?.stopDrawing(layerCtx, pos, { startX: this.startX, startY: this
         }
     }
 
+    setLayerLock(layerId, isLocked) {
+        const layer = this.layers.find(l => l.id === layerId);
+        if (!layer || layer.name === 'Background') return;
+        layer.locked = Boolean(isLocked);
+        this.renderLayers();
+        this.saveState();
+        window.canvasUI?.updateLayersList(this.layers, this.currentLayer);
+    }
+
     setLayerOpacity(layerId, opacity) {
         const layer = this.layers.find(l => l.id === layerId);
         if (layer) {
@@ -377,6 +570,15 @@ this.toolHandler?.stopDrawing(layerCtx, pos, { startX: this.startX, startY: this
             // Opacity might not need history save if it's considered a view setting
             // this.saveState();
              window.canvasUI?.updateLayersList(this.layers, this.currentLayer); // Update UI slider value
+        }
+    }
+
+    setLayerParallax(layerId, parallax) {
+        const layer = this.layers.find(l => l.id === layerId);
+        if (layer) {
+            layer.parallax = Math.max(0.3, Math.min(2, parseFloat(parallax)));
+            this.renderLayers();
+            window.canvasUI?.updateLayersList(this.layers, this.currentLayer);
         }
     }
 
@@ -389,7 +591,7 @@ this.toolHandler?.stopDrawing(layerCtx, pos, { startX: this.startX, startY: this
         }
     }
 
-    deleteLayer(layerId) {
+    async deleteLayer(layerId) {
         // Prevent deleting the background layer
         const layerToDelete = this.layers.find(l => l.id === layerId);
         if (!layerToDelete || layerToDelete.name === 'Background' || this.layers.length <= 1) {
@@ -397,15 +599,21 @@ this.toolHandler?.stopDrawing(layerCtx, pos, { startX: this.startX, startY: this
             return false;
         }
 
-        if (confirm(`Are you sure you want to delete layer "${layerToDelete.name}"?`)) {
+        const confirmed = await (this.app.confirmDialog?.(
+            `Delete layer "${layerToDelete.name}"? This action cannot be undone.`,
+            { title: 'Delete Layer', confirmText: 'Delete Layer', variant: 'danger' }
+        ) ?? Promise.resolve(confirm(`Are you sure you want to delete layer "${layerToDelete.name}"?`)));
+
+        if (confirmed) {
+            const deletedIndex = this.layers.findIndex(l => l.id === layerId);
             this.layers = this.layers.filter(l => l.id !== layerId);
              // Also delete images associated with this layer
              this.images = this.images.filter(img => img.layerId !== layerId);
 
             // If the deleted layer was the current layer, switch to the one below or background
             if (this.currentLayer === layerId) {
-                 const currentIndex = this.layers.findIndex(l => l.id > layerId); // Find index *after* deletion
-                 this.currentLayer = this.layers[Math.max(0, currentIndex -1)]?.id ?? this.layers[0]?.id ?? 0; // Select previous or background
+                 const fallbackIndex = Math.max(0, deletedIndex - 1);
+                 this.currentLayer = this.layers[fallbackIndex]?.id ?? this.layers[0]?.id ?? 0;
             }
 
             this.renderLayers();
@@ -417,9 +625,29 @@ this.toolHandler?.stopDrawing(layerCtx, pos, { startX: this.startX, startY: this
         return false; // Indicate cancellation
     }
 
-     // TODO: Implement layer reordering (moveLayerUp, moveLayerDown) if needed
-     // This would involve changing the order in the this.layers array and updating IDs maybe?
-     // Then call renderLayers, saveState, updateLayersList.
+    moveLayerUp(layerId) {
+        const index = this.layers.findIndex(l => l.id === layerId);
+        if (index < 1 || index >= this.layers.length - 1) return false;
+
+        [this.layers[index], this.layers[index + 1]] = [this.layers[index + 1], this.layers[index]];
+        this.currentLayer = layerId;
+        this.renderLayers();
+        this.saveState();
+        window.canvasUI?.updateLayersList(this.layers, this.currentLayer);
+        return true;
+    }
+
+    moveLayerDown(layerId) {
+        const index = this.layers.findIndex(l => l.id === layerId);
+        if (index <= 1) return false; // Keep background at bottom
+
+        [this.layers[index], this.layers[index - 1]] = [this.layers[index - 1], this.layers[index]];
+        this.currentLayer = layerId;
+        this.renderLayers();
+        this.saveState();
+        window.canvasUI?.updateLayersList(this.layers, this.currentLayer);
+        return true;
+    }
 
 
     // --- History Management ---
@@ -436,7 +664,9 @@ this.toolHandler?.stopDrawing(layerCtx, pos, { startX: this.startX, startY: this
                 id: layer.id,
                 name: layer.name,
                 visible: layer.visible,
+                locked: Boolean(layer.locked),
                 opacity: layer.opacity,
+                parallax: Number.isFinite(layer.parallax) ? layer.parallax : 1,
                 // Store image data URL for history, more stable than ImageData across contexts
                 imageDataUrl: layer.canvas.toDataURL()
             })),
@@ -464,24 +694,24 @@ this.toolHandler?.stopDrawing(layerCtx, pos, { startX: this.startX, startY: this
         this.layers = []; // Clear current layers
         this.images = []; // Clear current images
 
-        const promises = stateToRestore.layers.map(layerState => {
+        const promises = stateToRestore.layers.map((layerState, orderIndex) => {
             return new Promise((resolve) => {
                 const newLayer = this.createLayerObject(layerState.id, layerState.name);
                 newLayer.visible = layerState.visible;
+                newLayer.locked = Boolean(layerState.locked);
                 newLayer.opacity = layerState.opacity;
+                newLayer.parallax = Number.isFinite(layerState.parallax) ? layerState.parallax : 1;
 
                 const img = new Image();
                 img.onload = () => {
                     newLayer.ctx.clearRect(0, 0, newLayer.canvas.width, newLayer.canvas.height); // Clear before drawing
                     newLayer.ctx.drawImage(img, 0, 0);
-                    this.layers.push(newLayer); // Add layer only after image is loaded
-                    resolve();
+                    resolve({ newLayer, orderIndex });
                 };
                  img.onerror = () => {
                      console.error("Failed to load layer image data from history.");
                      // Add an empty layer anyway to maintain structure
-                      this.layers.push(newLayer);
-                     resolve();
+                     resolve({ newLayer, orderIndex });
                  };
                 img.src = layerState.imageDataUrl;
             });
@@ -504,9 +734,9 @@ this.toolHandler?.stopDrawing(layerCtx, pos, { startX: this.startX, startY: this
          });
 
 
-        Promise.all(promises).then(() => {
-            // Sort layers by ID just in case async loading messed up order
-            this.layers.sort((a, b) => a.id - b.id);
+        Promise.all(promises).then((resolvedLayers) => {
+            resolvedLayers.sort((a, b) => a.orderIndex - b.orderIndex);
+            this.layers = resolvedLayers.map(entry => entry.newLayer);
             this.currentLayer = stateToRestore.currentLayer;
             this.renderLayers();
             window.canvasUI?.updateLayersList(this.layers, this.currentLayer); // Update UI
@@ -654,11 +884,15 @@ this.toolHandler?.stopDrawing(layerCtx, pos, { startX: this.startX, startY: this
     // --- Saving & Clearing ---
 
     clearCanvas() {
-        if (confirm('Are you sure you want to clear the entire canvas (all layers)?')) {
+        Promise.resolve(this.app.confirmDialog?.(
+            'Clear the entire canvas and all layers? This cannot be undone.',
+            { title: 'Clear Canvas', confirmText: 'Clear Canvas', variant: 'danger' }
+        ) ?? confirm('Are you sure you want to clear the entire canvas (all layers)?')).then((confirmed) => {
+            if (!confirmed) return;
             this.initializeLayers(); // Re-initialize to reset everything
             this.saveState(); // Save the cleared state
             this.app.showToast('Canvas cleared', 'success');
-        }
+        });
     }
 
     // Creates a flattened canvas image blob for saving/export
@@ -705,10 +939,13 @@ this.toolHandler?.stopDrawing(layerCtx, pos, { startX: this.startX, startY: this
     destroy() {
         this.teardownEventListeners();
         this.isDrawing = false;
+        this.isPanning = false;
+        this.spacePressed = false;
         this.selectedImage = null;
         this.transformHandle = null;
         this.canvas = null;
         this.ctx = null;
+        this.wrapper = null;
     }
 
     // Sets the reference to the tool handler module

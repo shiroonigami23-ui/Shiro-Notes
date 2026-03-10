@@ -52,7 +52,7 @@ class CanvasTools {
                 break;
             case 'text':
                 // Text is added immediately on click
-                this.addText(layerCtx, pos, toolSettings);
+                void this.addText(layerCtx, pos, toolSettings);
                 break;
             case 'eyedropper':
                  // Eyedropper picks color immediately on click
@@ -81,7 +81,7 @@ class CanvasTools {
                  if (!layerCtx) return;
                 const drawFuncBrush = this['draw' + tool.charAt(0).toUpperCase() + tool.slice(1)];
                 if (drawFuncBrush) {
-                    drawFuncBrush(layerCtx, pos, details, toolSettings);
+                    drawFuncBrush.call(this, layerCtx, pos, details, toolSettings);
                 }
                 break;
             case 'spray':
@@ -105,6 +105,10 @@ class CanvasTools {
                 const drawFuncShape = this['draw' + tool.charAt(0).toUpperCase() + tool.slice(1)];
                 if (drawFuncShape) {
                     mainCtx.save();
+                     const core = window.canvasCore;
+                     if (core) {
+                         mainCtx.setTransform(core.zoom, 0, 0, core.zoom, core.panX, core.panY);
+                     }
                      // Apply current tool settings to the preview context
                      mainCtx.globalAlpha = toolSettings.opacity * 0.7; // Preview slightly transparent
                      mainCtx.lineWidth = toolSettings.size;
@@ -170,45 +174,55 @@ class CanvasTools {
 
     // --- Specific Tool Drawing Implementations ---
 
+    drawInterpolatedStroke(ctx, fromX, fromY, toX, toY, spacing, size) {
+        const dx = toX - fromX;
+        const dy = toY - fromY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        if (distance === 0) {
+            ctx.beginPath();
+            ctx.arc(toX, toY, Math.max(1, size / 2), 0, Math.PI * 2);
+            ctx.fill();
+            return;
+        }
+
+        const steps = Math.max(1, Math.ceil(distance / Math.max(1, spacing)));
+        for (let i = 1; i <= steps; i++) {
+            const t = i / steps;
+            const x = fromX + (dx * t);
+            const y = fromY + (dy * t);
+            ctx.beginPath();
+            ctx.arc(x, y, Math.max(1, size / 2), 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+
     // Brush-like tools (draw on layerCtx continuously)
     drawPen(ctx, pos, details, toolSettings) {
-    // Use the settings that are being passed in
-    ctx.globalAlpha = toolSettings.opacity;
-    ctx.lineWidth = toolSettings.size;
-    ctx.strokeStyle = toolSettings.color;
-    ctx.globalCompositeOperation = 'source-over';
-
-    // Draw ONLY the new line segment
-    ctx.lineTo(pos.x, pos.y);
-    ctx.stroke();
-
-    // Move to the new position for the next frame
-    ctx.beginPath();
-    ctx.moveTo(pos.x, pos.y);
-}
+        ctx.globalAlpha = toolSettings.opacity;
+        ctx.lineWidth = toolSettings.size;
+        ctx.strokeStyle = toolSettings.color;
+        ctx.fillStyle = toolSettings.color;
+        ctx.globalCompositeOperation = 'source-over';
+        this.drawInterpolatedStroke(ctx, details.prevX, details.prevY, pos.x, pos.y, toolSettings.size * 0.35, toolSettings.size);
+    }
 
 
 
     drawBrush(ctx, pos, details, toolSettings) {
-        // Could add pressure sensitivity or different brush styles here later
-        ctx.lineTo(pos.x, pos.y);
-        ctx.stroke();
+        ctx.globalAlpha = toolSettings.opacity;
+        ctx.strokeStyle = toolSettings.color;
+        ctx.fillStyle = toolSettings.color;
+        ctx.globalCompositeOperation = 'source-over';
+        this.drawInterpolatedStroke(ctx, details.prevX, details.prevY, pos.x, pos.y, toolSettings.size * 0.25, toolSettings.size * 1.1);
     }
 
     drawEraser(ctx, pos, details, toolSettings) {
-    // Use the settings
-    ctx.globalAlpha = 1; // Eraser is always full opacity
-    ctx.lineWidth = toolSettings.size * 1.5; // Eraser is bigger
-    ctx.globalCompositeOperation = 'destination-out';
-
-    // Draw ONLY the new line segment
-    ctx.lineTo(pos.x, pos.y);
-    ctx.stroke();
-
-    // Move to the new position for the next frame
-    ctx.beginPath();
-    ctx.moveTo(pos.x, pos.y);
-}
+        ctx.globalAlpha = 1;
+        ctx.globalCompositeOperation = 'destination-out';
+        ctx.fillStyle = '#000000';
+        const eraserSize = Math.max(6, toolSettings.size * 2.1);
+        this.drawInterpolatedStroke(ctx, details.prevX, details.prevY, pos.x, pos.y, eraserSize * 0.3, eraserSize);
+    }
 
 
 
@@ -216,10 +230,10 @@ class CanvasTools {
         // Simple variable width effect
         const distance = Math.sqrt(Math.pow(pos.x - details.prevX, 2) + Math.pow(pos.y - details.prevY, 2));
         const thickness = Math.max(1, toolSettings.size - distance / 2); // Thinner on faster strokes
-        ctx.lineWidth = thickness;
-        ctx.lineTo(pos.x, pos.y);
-        ctx.stroke();
-        ctx.lineWidth = toolSettings.size; // Reset for next segment? Or keep varying? Keep varying for now.
+        ctx.globalAlpha = toolSettings.opacity;
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.fillStyle = toolSettings.color;
+        this.drawInterpolatedStroke(ctx, details.prevX, details.prevY, pos.x, pos.y, thickness * 0.3, thickness);
     }
 
     drawSpray(ctx, pos, details, toolSettings) {
@@ -423,9 +437,16 @@ class CanvasTools {
 
      // --- Other Tools ---
 
-     addText(layerCtx, pos, toolSettings) {
+     async addText(layerCtx, pos, toolSettings) {
          if (!layerCtx) return;
-         const text = prompt('Enter text:');
+         const text = await (this.app.promptDialog?.(
+             'Enter text for canvas',
+             {
+                 title: 'Add Text',
+                 placeholder: 'Type text...',
+                 confirmText: 'Insert Text'
+             }
+         ) ?? Promise.resolve(prompt('Enter text:')));
          if (!text) return;
 
          layerCtx.save();

@@ -595,8 +595,12 @@ class SchedulerModule {
     this.app.showToast(`Event ${eventId ? 'updated' : 'created'} successfully`, 'success');
   }
 
-  deleteEvent(eventId) {
-    if (!confirm('Are you sure you want to delete this event?')) return;
+  async deleteEvent(eventId) {
+    const confirmed = await (this.app.confirmDialog?.(
+      'Delete this event? This cannot be undone.',
+      { title: 'Delete Event', confirmText: 'Delete Event', variant: 'danger' }
+    ) ?? Promise.resolve(confirm('Are you sure you want to delete this event?')));
+    if (!confirmed) return;
     
     this.app.data.events = this.app.data.events.filter(e => e.id !== eventId);
     this.app.saveData();

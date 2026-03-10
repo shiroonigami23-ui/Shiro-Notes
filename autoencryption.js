@@ -142,7 +142,11 @@ async autoEncryptAndShare(note, isDestructive = false) {
     }
 
     if (isDestructive) {
-        if (!confirm("⚠️ Are you sure?\n\nThis will permanently delete this note from your device after sharing. This action cannot be undone.")) {
+        const confirmed = await (appRef.confirmDialog?.(
+            'This will permanently delete this note from your device after sharing. This action cannot be undone.',
+            { title: 'Share & Destroy', confirmText: 'Share and Destroy', variant: 'danger' }
+        ) ?? Promise.resolve(confirm("⚠️ Are you sure?\n\nThis will permanently delete this note from your device after sharing. This action cannot be undone.")));
+        if (!confirmed) {
             return;
         }
     }

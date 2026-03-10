@@ -126,10 +126,12 @@ class ShiroNotes {
                 console.log("No saved data found, using defaults.");
             }
 
-            // Initialize default templates if none exist
+            // Ensure built-in templates are available without overwriting custom templates.
             if (!this.data.templates || this.data.templates.length === 0) {
                 this.initializeDefaultTemplates();
                 console.log("Initialized default templates.");
+            } else {
+                this.ensureDefaultTemplates();
             }
 
         } catch (error) {
@@ -383,15 +385,15 @@ window.dashboardModule?.loadDashboardContent(pageElement);
                     <div class="canvas-container">
                         <div class="canvas-toolbar">
                             <div class="tool-group">
-                                <button class="tool-btn" onclick="window.canvasModule.saveCanvas()" title="Save as PNG"><i data-lucide="save"></i></button>
-                                <button class="tool-btn" onclick="window.canvasModule.saveToNotes()" title="Save to Notes"><i data-lucide="save"></i></button>
-                                <button class="tool-btn" onclick="window.canvasModule.loadImage()" title="Load Image"><i data-lucide="image-plus"></i></button>
-                                <button class="tool-btn" onclick="window.canvasModule.clear()" title="Clear All"><i data-lucide="trash-2"></i></button>
+                                <button class="tool-btn" data-canvas-action="saveCanvas" title="Save as PNG"><i data-lucide="save"></i></button>
+                                <button class="tool-btn" data-canvas-action="saveToNotes" title="Save to Notes"><i data-lucide="save"></i></button>
+                                <button class="tool-btn" data-canvas-action="loadImage" title="Load Image"><i data-lucide="image-plus"></i></button>
+                                <button class="tool-btn" data-canvas-action="clear" title="Clear All"><i data-lucide="trash-2"></i></button>
                             </div>
                             
                             <div class="tool-group">
-                                <button class="tool-btn" id="canvasUndoBtn" onclick="window.canvasModule.undo()" title="Undo"><i data-lucide="undo-2"></i></button>
-                                <button class="tool-btn" id="canvasRedoBtn" onclick="window.canvasModule.redo()" title="Redo"><i data-lucide="redo-2"></i></button>
+                                <button class="tool-btn" id="canvasUndoBtn" data-canvas-action="undo" title="Undo"><i data-lucide="undo-2"></i></button>
+                                <button class="tool-btn" id="canvasRedoBtn" data-canvas-action="redo" title="Redo"><i data-lucide="redo-2"></i></button>
                             </div>
                             
                             <div class="tool-group">
@@ -446,8 +448,8 @@ window.dashboardModule?.loadDashboardContent(pageElement);
                             </div>
 
                             <div class="tool-group" style="margin-left: auto;">
-                                <button class="tool-btn" onclick="window.canvasModule.toggleGrid()" title="Toggle Grid"><i data-lucide="grid-3x3"></i></button>
-                                <button class="tool-btn" onclick="window.canvasModule.showLayersPanel()" title="Show Layers"><i data-lucide="layers"></i></button>
+                                <button class="tool-btn" data-canvas-action="toggleGrid" title="Toggle Grid"><i data-lucide="grid-3x3"></i></button>
+                                <button class="tool-btn" data-canvas-action="showLayersPanel" title="Show Layers"><i data-lucide="layers"></i></button>
                             </div>
                         </div>
 
@@ -777,8 +779,10 @@ renderBooksPage(pageElement) {
              // Delegate password prompt to crypto module
              confirmed = await window.cryptoModule?.confirmActionWithMasterPassword(`delete this encrypted ${itemName.toLowerCase()}`);
          } else {
-             // Use a custom modal instead of confirm() later
-             confirmed = confirm(`Are you sure you want to delete "${item.title || 'this item'}"?`);
+             confirmed = await (this.confirmDialog?.(
+                 `Delete "${item.title || 'this item'}"? This cannot be undone.`,
+                 { title: `Delete ${itemName}`, confirmText: `Delete ${itemName}`, variant: 'danger' }
+             ) ?? Promise.resolve(confirm(`Are you sure you want to delete "${item.title || 'this item'}"?`)));
          }
 
          if (!confirmed) {
@@ -965,14 +969,40 @@ renderBooksPage(pageElement) {
      }
 
       // --- Default Templates ---
-      initializeDefaultTemplates() {
-          const defaultTemplates = [
-              { id: this.generateId(), name: 'Meeting Notes', type: 'text', content: `<h1>Meeting Notes</h1>\n<p><strong>Date:</strong> {{date}}</p>\n<p><strong>Attendees:</strong></p>\n<ul><li></li></ul>\n<h2>Agenda</h2>\n<ol><li></li></ol>\n<h2>Discussion Points</h2>\n<p></p>\n<h2>Action Items</h2>\n<ul><li>[ ] Task 1</li></ul>\n<h2>Next Steps</h2>\n<p></p>`, description: 'Standard template for meeting minutes' },
-              { id: this.generateId(), name: 'Project Plan', type: 'text', content: `<h1>Project Plan: [Project Name]</h1>\n<p><strong>Start Date:</strong> {{date}}</p>\n<p><strong>End Date:</strong></p>\n<p><strong>Team Members:</strong></p>\n<h2>Objectives</h2>\n<ul><li></li></ul>\n<h2>Milestones</h2>\n<ol><li>Milestone 1</li></ol>\n<h2>Resources Needed</h2>\n<p></p>\n<h2>Risks & Mitigation</h2>\n<p></p>`, description: 'Basic structure for project planning' },
-              { id: this.generateId(), name: 'Daily Journal', type: 'text', content: `<h1>Daily Journal - {{date}}</h1>\n<h2>What I accomplished today:</h2>\n<p></p>\n<h2>What I learned:</h2>\n<p></p>\n<h2>What I'm grateful for:</h2>\n<ul><li></li></ul>\n<h2>Tomorrow's priorities:</h2>\n<ol><li></li></ol>`, description: 'Template for daily reflection' }
+      getBuiltInTemplates() {
+          return [
+              { id: this.generateId(), name: 'Meeting Notes', type: 'text', description: 'Standard template for meeting minutes', content: `<h1>Meeting Notes</h1>\n<p><strong>Date:</strong> {{date}}</p>\n<p><strong>Time:</strong> {{time}}</p>\n<p><strong>Attendees:</strong></p>\n<ul><li></li></ul>\n<h2>Agenda</h2>\n<ol><li></li></ol>\n<h2>Discussion Points</h2>\n<p></p>\n<h2>Action Items</h2>\n<ul><li>[ ] Task 1</li></ul>\n<h2>Next Steps</h2>\n<p></p>` },
+              { id: this.generateId(), name: 'Project Plan', type: 'text', description: 'Basic structure for project planning', content: `<h1>Project Plan: [Project Name]</h1>\n<p><strong>Start Date:</strong> {{date}}</p>\n<p><strong>Owner:</strong> </p>\n<h2>Objectives</h2>\n<ul><li></li></ul>\n<h2>Scope</h2>\n<p>In Scope:</p>\n<ul><li></li></ul>\n<p>Out of Scope:</p>\n<ul><li></li></ul>\n<h2>Milestones</h2>\n<ol><li>Milestone 1</li></ol>\n<h2>Risks & Mitigation</h2>\n<p></p>` },
+              { id: this.generateId(), name: 'Daily Journal', type: 'text', description: 'Template for daily reflection', content: `<h1>Daily Journal - {{date}}</h1>\n<h2>Top 3 priorities</h2>\n<ol><li></li><li></li><li></li></ol>\n<h2>Wins</h2>\n<ul><li></li></ul>\n<h2>Challenges</h2>\n<ul><li></li></ul>\n<h2>What I learned</h2>\n<p></p>\n<h2>Tomorrow plan</h2>\n<ol><li></li></ol>` },
+              { id: this.generateId(), name: 'Weekly Review', type: 'text', description: 'Review progress and plan the upcoming week', content: `<h1>Weekly Review - Week of {{date}}</h1>\n<h2>Completed</h2>\n<ul><li></li></ul>\n<h2>Pending</h2>\n<ul><li></li></ul>\n<h2>Metrics</h2>\n<ul><li>Focus Hours:</li><li>Tasks Finished:</li></ul>\n<h2>Next Week Goals</h2>\n<ol><li></li><li></li><li></li></ol>` },
+              { id: this.generateId(), name: 'Study Notes', type: 'text', description: 'Structured study template for classes and courses', content: `<h1>Study Notes: [Subject]</h1>\n<p><strong>Date:</strong> {{date}}</p>\n<h2>Topic</h2>\n<p></p>\n<h2>Key Concepts</h2>\n<ul><li></li></ul>\n<h2>Formulas / Definitions</h2>\n<p></p>\n<h2>Examples</h2>\n<p></p>\n<h2>Doubts</h2>\n<ul><li></li></ul>\n<h2>Revision Checklist</h2>\n<ul><li>[ ] Revise once</li><li>[ ] Solve questions</li></ul>` },
+              { id: this.generateId(), name: 'Lecture Summary', type: 'text', description: 'Capture a lecture quickly and cleanly', content: `<h1>Lecture Summary</h1>\n<p><strong>Subject:</strong> </p>\n<p><strong>Date:</strong> {{date}}</p>\n<p><strong>Faculty:</strong> </p>\n<h2>Main Ideas</h2>\n<ul><li></li></ul>\n<h2>Important Examples</h2>\n<ul><li></li></ul>\n<h2>Assignments</h2>\n<ul><li>[ ] </li></ul>` },
+              { id: this.generateId(), name: 'Bug Report', type: 'text', description: 'Standard issue report template for debugging', content: `<h1>Bug Report</h1>\n<p><strong>Reported On:</strong> {{datetime}}</p>\n<p><strong>Module:</strong> </p>\n<p><strong>Severity:</strong> Low / Medium / High / Critical</p>\n<h2>Expected Behavior</h2>\n<p></p>\n<h2>Actual Behavior</h2>\n<p></p>\n<h2>Steps to Reproduce</h2>\n<ol><li></li></ol>\n<h2>Logs / Evidence</h2>\n<p></p>` },
+              { id: this.generateId(), name: 'API Endpoint Spec', type: 'text', description: 'Draft endpoint contracts before implementation', content: `<h1>API Endpoint Spec</h1>\n<p><strong>Endpoint:</strong> /api/</p>\n<p><strong>Method:</strong> GET/POST/PUT/DELETE</p>\n<p><strong>Auth:</strong> Required / Optional</p>\n<h2>Request</h2>\n<p><strong>Params:</strong></p>\n<pre>{}</pre>\n<h2>Response</h2>\n<pre>{}</pre>\n<h2>Error Cases</h2>\n<ul><li>400:</li><li>401:</li><li>500:</li></ul>` },
+              { id: this.generateId(), name: 'Code Review Checklist', type: 'text', description: 'Pre-merge quality checklist for developers', content: `<h1>Code Review Checklist</h1>\n<ul>\n<li>[ ] Requirements covered</li>\n<li>[ ] Edge cases handled</li>\n<li>[ ] Error handling present</li>\n<li>[ ] Security checks complete</li>\n<li>[ ] Performance impact acceptable</li>\n<li>[ ] Tests added/updated</li>\n<li>[ ] Docs/changelog updated</li>\n</ul>\n<h2>Reviewer Notes</h2>\n<p></p>` },
+              { id: this.generateId(), name: 'Feature Proposal', type: 'text', description: 'Pitch and scope a new feature idea', content: `<h1>Feature Proposal</h1>\n<p><strong>Proposed By:</strong> </p>\n<p><strong>Date:</strong> {{date}}</p>\n<h2>Problem Statement</h2>\n<p></p>\n<h2>Proposed Solution</h2>\n<p></p>\n<h2>User Impact</h2>\n<p></p>\n<h2>Implementation Outline</h2>\n<ol><li></li></ol>\n<h2>Risks</h2>\n<ul><li></li></ul>` },
+              { id: this.generateId(), name: 'Content Calendar Post', type: 'text', description: 'Plan social or blog content', content: `<h1>Content Plan</h1>\n<p><strong>Publish Date:</strong> {{date}}</p>\n<p><strong>Platform:</strong> </p>\n<h2>Topic</h2>\n<p></p>\n<h2>Hook</h2>\n<p></p>\n<h2>Outline</h2>\n<ol><li></li></ol>\n<h2>CTA</h2>\n<p></p>\n<h2>Assets Needed</h2>\n<ul><li></li></ul>` },
+              { id: this.generateId(), name: 'Resume Bullet Builder', type: 'text', description: 'Create impact-focused resume bullets', content: `<h1>Resume Bullet Builder</h1>\n<p><strong>Role/Project:</strong> </p>\n<h2>Situation</h2>\n<p></p>\n<h2>Action</h2>\n<p></p>\n<h2>Result (with numbers)</h2>\n<p></p>\n<h2>Final Bullets</h2>\n<ul><li></li><li></li><li></li></ul>` },
+              { id: this.generateId(), name: 'Interview Prep Sheet', type: 'text', description: 'Prepare answers and project talking points', content: `<h1>Interview Prep</h1>\n<p><strong>Company:</strong> </p>\n<p><strong>Role:</strong> </p>\n<h2>Why this role?</h2>\n<p></p>\n<h2>Top 5 stories (STAR)</h2>\n<ol><li></li><li></li><li></li><li></li><li></li></ol>\n<h2>Project Highlights</h2>\n<ul><li></li></ul>\n<h2>Questions to Ask</h2>\n<ul><li></li></ul>` },
+              { id: this.generateId(), name: 'Decision Matrix', type: 'text', description: 'Compare options with weighted criteria', content: `<h1>Decision Matrix</h1>\n<p><strong>Date:</strong> {{date}}</p>\n<h2>Options</h2>\n<ul><li>Option A</li><li>Option B</li><li>Option C</li></ul>\n<h2>Criteria and Weights</h2>\n<table style="border-collapse: collapse; width: 100%;"><tr><th style="border:1px solid #ccc;padding:6px;">Criteria</th><th style="border:1px solid #ccc;padding:6px;">Weight</th><th style="border:1px solid #ccc;padding:6px;">A</th><th style="border:1px solid #ccc;padding:6px;">B</th><th style="border:1px solid #ccc;padding:6px;">C</th></tr><tr><td style="border:1px solid #ccc;padding:6px;"></td><td style="border:1px solid #ccc;padding:6px;"></td><td style="border:1px solid #ccc;padding:6px;"></td><td style="border:1px solid #ccc;padding:6px;"></td><td style="border:1px solid #ccc;padding:6px;"></td></tr></table>\n<h2>Decision</h2>\n<p></p>` },
+              { id: this.generateId(), name: 'Sprint Retrospective', type: 'text', description: 'Retro template for engineering teams', content: `<h1>Sprint Retrospective</h1>\n<p><strong>Sprint:</strong> </p>\n<p><strong>Date:</strong> {{date}}</p>\n<h2>What went well</h2>\n<ul><li></li></ul>\n<h2>What did not go well</h2>\n<ul><li></li></ul>\n<h2>Action items</h2>\n<ul><li>[ ] </li></ul>\n<h2>Owners and deadlines</h2>\n<ul><li></li></ul>` }
           ];
-          this.data.templates = defaultTemplates;
-           // Don't save here, let loadData handle the save if needed
+      }
+
+      initializeDefaultTemplates() {
+          this.data.templates = this.getBuiltInTemplates();
+          // Don't save here, let loadData handle the save if needed
+      }
+
+      ensureDefaultTemplates() {
+          const builtIns = this.getBuiltInTemplates();
+          const existingNames = new Set((this.data.templates || []).map(t => (t.name || '').trim().toLowerCase()));
+          const missing = builtIns.filter(t => !existingNames.has((t.name || '').trim().toLowerCase()));
+          if (missing.length > 0) {
+              this.data.templates.push(...missing);
+              this.saveData();
+              console.log(`Added ${missing.length} new built-in templates.`);
+          }
       }
 
 } // End of ShiroNotes Class

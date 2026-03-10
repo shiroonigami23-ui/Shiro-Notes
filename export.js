@@ -964,7 +964,11 @@ class ExportModule {
           }
           
           // Confirm restore
-          if (!confirm('This will replace all current data. Are you sure you want to restore from backup?')) {
+          const confirmed = await (this.app.confirmDialog?.(
+            'This will replace all current data. Continue?',
+            { title: 'Restore Backup', confirmText: 'Restore Data', variant: 'danger' }
+          ) ?? Promise.resolve(confirm('This will replace all current data. Are you sure you want to restore from backup?')));
+          if (!confirmed) {
             return;
           }
           

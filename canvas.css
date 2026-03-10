@@ -9,7 +9,10 @@
     height: 100%; /* Ensure it takes up the full page height */
     width: 100%;
     overflow: hidden; /* Prevent the container itself from scrolling */
-    background-color: var(--color-background); /* Background for the drawing area */
+    background:
+      radial-gradient(circle at 20% 20%, color-mix(in srgb, var(--color-primary) 14%, transparent), transparent 40%),
+      radial-gradient(circle at 80% 80%, color-mix(in srgb, var(--color-success) 12%, transparent), transparent 35%),
+      var(--color-background);
 }
 
 /* Horizontal toolbar at the top */
@@ -17,11 +20,13 @@
     display: flex;
     align-items: center;
     padding: var(--space-2) var(--space-4);
-    background-color: var(--color-surface);
-    border-bottom: 1px solid var(--color-card-border);
+    background: color-mix(in srgb, var(--color-surface) 92%, transparent);
+    border-bottom: 1px solid var(--color-card-border-inner);
+    backdrop-filter: blur(10px);
     gap: var(--space-3);
     flex-shrink: 0;
     flex-wrap: wrap; /* Allows wrapping on smaller screens */
+    box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.02);
 }
 
 /* Visual separators for tool groups */
@@ -42,14 +47,18 @@
     padding: var(--space-4); /* Padding around the canvas */
     display: flex;
     justify-content: center; /* Horizontally centers canvas */
-    /* align-items: flex-start; /* Aligns canvas to the top */
+    background:
+      linear-gradient(transparent 23px, color-mix(in srgb, var(--color-border) 30%, transparent) 24px),
+      linear-gradient(90deg, transparent 23px, color-mix(in srgb, var(--color-border) 25%, transparent) 24px);
+    background-size: 24px 24px;
 }
 
 /* The drawing canvas itself */
 #drawingCanvas {
     background-color: white;
     border-radius: var(--radius-base);
-    box-shadow: var(--shadow-md); /* Subtle shadow */
+    border: 1px solid color-mix(in srgb, var(--color-border) 65%, transparent);
+    box-shadow: 0 14px 45px rgba(0, 0, 0, 0.2), var(--shadow-md);
     cursor: crosshair;
     display: block; /* Prevent extra space below canvas */
     /* Width and height set dynamically in JS */
@@ -65,7 +74,7 @@
     position: relative; /* For potential badges or indicators */
 }
 .canvas-toolbar .tool-btn:hover { background-color: var(--color-secondary); color: var(--color-primary); transform: scale(1.05); }
-.canvas-toolbar .tool-btn.active { background-color: var(--color-primary); color: var(--color-btn-primary-text); transform: scale(1); }
+.canvas-toolbar .tool-btn.active { background: linear-gradient(135deg, color-mix(in srgb, var(--color-primary) 90%, #fff), var(--color-primary)); color: var(--color-btn-primary-text); transform: scale(1); box-shadow: 0 6px 14px color-mix(in srgb, var(--color-primary) 30%, transparent); }
 
 /* Dropdowns */
 .tool-dropdown { position: relative; display: inline-block; }
@@ -96,7 +105,7 @@
 /* Brush Settings Controls */
 .brush-settings {
     display: flex; align-items: center; gap: var(--space-3);
-    background: var(--color-background); padding: var(--space-1) var(--space-2);
+    background: color-mix(in srgb, var(--color-background) 85%, var(--color-surface)); padding: var(--space-1) var(--space-2);
     border-radius: var(--radius-base); border: 1px solid var(--color-border);
 }
 .toolbar-label { display: flex; align-items: center; gap: var(--space-1); font-size: var(--font-size-xs); color: var(--color-text-secondary); }

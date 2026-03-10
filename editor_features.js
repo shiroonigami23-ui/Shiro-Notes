@@ -75,9 +75,12 @@ setMainModule(mainModule) {
         document.body.appendChild(modal);
     }
 
-    insertLink() {
+    async insertLink() {
         this.saveSelection(); // Save selection before showing prompt
-        const url = prompt('Enter URL (e.g., https://example.com):');
+        const url = await (this.app.promptDialog?.(
+            'Enter URL (e.g., https://example.com):',
+            { title: 'Insert Link', placeholder: 'https://example.com', confirmText: 'Next' }
+        ) ?? Promise.resolve(prompt('Enter URL (e.g., https://example.com):')));
         if (!url) {
             this.restoreSelection();
             return;
@@ -91,7 +94,10 @@ setMainModule(mainModule) {
 
         const selection = window.getSelection();
         const selectedText = selection.toString().trim();
-        const text = prompt('Enter link text (optional, uses selected text or URL if empty):', selectedText) || selectedText || url;
+        const text = await (this.app.promptDialog?.(
+            'Enter link text (optional):',
+            { title: 'Insert Link Text', defaultValue: selectedText, placeholder: 'Link text', confirmText: 'Insert Link' }
+        ) ?? Promise.resolve(prompt('Enter link text (optional, uses selected text or URL if empty):', selectedText))) || selectedText || url;
 
         this.restoreSelection(); // Restore selection before inserting HTML
 
@@ -189,10 +195,16 @@ setMainModule(mainModule) {
         input.click();
     }
 
-    insertTable() {
+    async insertTable() {
         this.saveSelection();
-        const rowsStr = prompt('Enter number of rows (e.g., 3):', '3');
-        const colsStr = prompt('Enter number of columns (e.g., 3):', '3');
+        const rowsStr = await (this.app.promptDialog?.(
+            'Enter number of rows:',
+            { title: 'Insert Table', defaultValue: '3', inputType: 'number', confirmText: 'Next' }
+        ) ?? Promise.resolve(prompt('Enter number of rows (e.g., 3):', '3')));
+        const colsStr = await (this.app.promptDialog?.(
+            'Enter number of columns:',
+            { title: 'Insert Table', defaultValue: '3', inputType: 'number', confirmText: 'Insert Table' }
+        ) ?? Promise.resolve(prompt('Enter number of columns (e.g., 3):', '3')));
         this.restoreSelection();
 
         const rows = parseInt(rowsStr);
@@ -286,10 +298,13 @@ setMainModule(mainModule) {
     }
 
 
-    insertMath() {
+    async insertMath() {
         this.saveSelection();
         // Placeholder for a potential Math editor (e.g., MathJax, KaTeX input)
-        const equation = prompt('Enter LaTeX equation (e.g., E=mc^2):');
+        const equation = await (this.app.promptDialog?.(
+            'Enter LaTeX equation (e.g., E=mc^2):',
+            { title: 'Insert Equation', placeholder: 'E=mc^2', confirmText: 'Insert Equation' }
+        ) ?? Promise.resolve(prompt('Enter LaTeX equation (e.g., E=mc^2):')));
         this.restoreSelection();
         if (equation && window.editorCore) {
             // Simple span for now, could be enhanced with rendering libraries
@@ -683,7 +698,7 @@ setMainModule(mainModule) {
         const isFullscreen = editorContainer.classList.contains('fullscreen');
 
         // Update button icon
-        const btn = document.querySelector('[onclick*="toggleFullscreen"]'); // Find button reliably
+        const btn = document.querySelector('.toolbar-btn[data-feature="toggleFullscreen"]');
         const icon = btn?.querySelector('i');
         if (icon) {
             icon.className = isFullscreen ? 'fas fa-compress' : 'fas fa-expand';

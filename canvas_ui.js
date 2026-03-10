@@ -44,10 +44,10 @@ class CanvasUI {
         this.sizeInput = this.toolbarElement.querySelector('#canvasSize');
         this.opacityInput = this.toolbarElement.querySelector('#canvasOpacity');
         this.fillToggle = this.toolbarElement.querySelector('#fillShapeToggle');
-        this.gridToggleBtn = this.toolbarElement.querySelector('[onclick*="toggleGrid"]'); // Find via onclick content
-        this.layersBtn = this.toolbarElement.querySelector('[onclick*="showLayersPanel"]');
-        this.undoBtn = this.toolbarElement.querySelector('[onclick*="undo"]');
-        this.redoBtn = this.toolbarElement.querySelector('[onclick*="redo"]');
+        this.gridToggleBtn = this.toolbarElement.querySelector('[data-canvas-action="toggleGrid"]');
+        this.layersBtn = this.toolbarElement.querySelector('[data-canvas-action="showLayersPanel"]');
+        this.undoBtn = this.toolbarElement.querySelector('[data-canvas-action="undo"]');
+        this.redoBtn = this.toolbarElement.querySelector('[data-canvas-action="redo"]');
 
 
         if (!this.colorInput || !this.sizeInput || !this.opacityInput || !this.fillToggle) {
@@ -154,17 +154,18 @@ class CanvasUI {
              this.fillToggle.checked = this.fillEnabled;
         }
 
-        // --- Action Buttons (Undo, Redo, Clear, Save, Load, Grid, Layers) ---
-        // These are typically handled by direct onclick attributes calling module functions
-        // Example: Update Undo/Redo button state based on core history
-        // Add event listeners if not using onclick:
-        /*
-        if (this.undoBtn) this.undoBtn.addEventListener('click', () => this.core?.undo());
-        if (this.redoBtn) this.redoBtn.addEventListener('click', () => this.core?.redo());
-        if (this.gridToggleBtn) this.gridToggleBtn.addEventListener('click', () => this.toggleGrid());
-        if (this.layersBtn) this.layersBtn.addEventListener('click', () => this.showLayersPanel());
-        // Add listeners for save, load, clear etc.
-        */
+        // --- Action Buttons (CSP-safe binding) ---
+        this.toolbarElement.querySelectorAll('[data-canvas-action]').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                const action = btn.getAttribute('data-canvas-action');
+                if (!action || !window.canvasModule || typeof window.canvasModule[action] !== 'function') {
+                    this.app.showToast('Canvas action unavailable', 'warning', 1500);
+                    return;
+                }
+                window.canvasModule[action]();
+            });
+        });
     }
 
     // --- Tool Management ---
@@ -284,8 +285,10 @@ class CanvasUI {
      pickColorAt(canvasX, canvasY) {
          if (!this.core?.ctx) return;
          try {
+             const screenX = Math.floor((canvasX * this.core.zoom) + this.core.panX);
+             const screenY = Math.floor((canvasY * this.core.zoom) + this.core.panY);
              // Get pixel data from the main visible canvas context
-             const pixelData = this.core.ctx.getImageData(Math.floor(canvasX), Math.floor(canvasY), 1, 1).data;
+             const pixelData = this.core.ctx.getImageData(screenX, screenY, 1, 1).data;
              // Convert RGB to HEX
              const hexColor = "#" + ("000000" + ((pixelData[0] << 16) | (pixelData[1] << 8) | pixelData[2]).toString(16)).slice(-6);
 
@@ -359,11 +362,15 @@ class CanvasUI {
             </div>
             <div class="layer-info">
               <input type="text" class="layer-name-input" value="${this.app.escapeHtml(layer.name)}" data-layer-id="${layer.id}" ${layer.name === 'Background' ? 'readonly' : ''}>
-              <div class="layer-controls">
+             <div class="layer-controls">
                 <input type="range" class="layer-opacity-slider" min="0" max="1" step="0.05" value="${layer.opacity}" data-layer-id="${layer.id}" title="Opacity: ${Math.round(layer.opacity*100)}%">
+                <input type="range" class="layer-parallax-slider" min="0.3" max="2" step="0.05" value="${Number.isFinite(layer.parallax) ? layer.parallax : 1}" data-layer-id="${layer.id}" title="Parallax: ${(Number.isFinite(layer.parallax) ? layer.parallax : 1).toFixed(2)}x">
               </div>
             </div>
              <div class="layer-visibility">
+                 <button class="btn btn--sm lock-toggle ${layer.locked ? 'is-visible' : ''}" data-layer-id="${layer.id}" title="${layer.locked ? 'Unlock Layer' : 'Lock Layer'}" ${layer.name === 'Background' ? 'disabled' : ''}>
+                   <i class="fas ${layer.locked ? 'fa-lock' : 'fa-unlock'}"></i>
+                 </button>
                  <button class="btn btn--sm visibility-toggle ${layer.visible ? 'is-visible' : ''}" data-layer-id="${layer.id}" title="${layer.visible ? 'Hide Layer' : 'Show Layer'}">
                    <i class="fas ${layer.visible ? 'fa-eye' : 'fa-eye-slash'}"></i>
                  </button>
@@ -407,11 +414,20 @@ class CanvasUI {
 
         // Attach listeners for footer buttons
         document.getElementById('deleteLayerBtn')?.addEventListener('click', () => {
-             if(this.core?.deleteLayer(this.core.currentLayer)) {
+             if(this.core?.deleteLayer) {
+                 Promise.resolve(this.core.deleteLayer(this.core.currentLayer)).then((deleted) => {
+                     if (deleted) {
                  // If deletion was successful, UI update is handled by core calling updateLayersList
+                     }
+                 });
              }
         });
-        // TODO: Add listeners for move up/down buttons, calling core.moveLayerUp/Down
+        document.getElementById('moveLayerUpBtn')?.addEventListener('click', () => {
+            this.core?.moveLayerUp?.(this.core.currentLayer);
+        });
+        document.getElementById('moveLayerDownBtn')?.addEventListener('click', () => {
+            this.core?.moveLayerDown?.(this.core.currentLayer);
+        });
 
         // Attach listeners for items within the list (delegated)
         this.attachLayerItemListeners();
@@ -446,6 +462,21 @@ class CanvasUI {
                   this.core?.saveState();
              });
 
+             item.querySelector('.layer-parallax-slider')?.addEventListener('input', (e) => {
+                 this.core?.setLayerParallax(layerId, e.target.value);
+                 e.target.title = `Parallax: ${parseFloat(e.target.value).toFixed(2)}x`;
+             });
+             item.querySelector('.layer-parallax-slider')?.addEventListener('change', () => {
+                 this.core?.saveState();
+             });
+
+             item.querySelector('.lock-toggle')?.addEventListener('click', (e) => {
+                 e.stopPropagation();
+                 const layer = this.core?.layers.find(l => l.id === layerId);
+                 if (layer) {
+                     this.core?.setLayerLock(layerId, !layer.locked);
+                 }
+             });
 
              // Toggle visibility on button click
              item.querySelector('.visibility-toggle')?.addEventListener('click', (e) => {
@@ -464,21 +495,22 @@ class CanvasUI {
 
      updateLayerActionButtons() {
          const deleteBtn = document.getElementById('deleteLayerBtn');
-         // const moveUpBtn = document.getElementById('moveLayerUpBtn');
-         // const moveDownBtn = document.getElementById('moveLayerDownBtn');
+         const moveUpBtn = document.getElementById('moveLayerUpBtn');
+         const moveDownBtn = document.getElementById('moveLayerDownBtn');
 
-          if (!this.core || !deleteBtn /* || !moveUpBtn || !moveDownBtn */ ) return;
+          if (!this.core || !deleteBtn || !moveUpBtn || !moveDownBtn) return;
 
           const currentLayerIndex = this.core.layers.findIndex(l => l.id === this.core.currentLayer);
           const isBackground = currentLayerIndex === 0;
           const isOnlyLayer = this.core.layers.length <= 1;
+          const canMoveUp = currentLayerIndex > 0 && currentLayerIndex < this.core.layers.length - 1;
+          const canMoveDown = currentLayerIndex > 1;
 
           // Enable/disable Delete button
           deleteBtn.disabled = isBackground || isOnlyLayer;
 
-          // TODO: Enable/disable Move Up/Down buttons based on index
-          // moveUpBtn.disabled = isBackground || currentLayerIndex >= this.core.layers.length - 1; // Cannot move top layer up
-          // moveDownBtn.disabled = isBackground || currentLayerIndex <= 1; // Cannot move layer below background down
+          moveUpBtn.disabled = !canMoveUp;
+          moveDownBtn.disabled = !canMoveDown;
      }
 
 

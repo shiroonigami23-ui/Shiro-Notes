@@ -6,6 +6,16 @@ class UIModule {
         this.originalButtonContent = new WeakMap();
     }
 
+    escapeHtml(text) {
+        if (typeof text !== 'string') return '';
+        return text
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
     // --- Theme Management ---
     initializeTheme() {
         const savedTheme = this.app.data.settings.theme;
@@ -248,6 +258,120 @@ class UIModule {
          }, { once: true });
      }
 
+    showDialog(options = {}) {
+        return new Promise((resolve) => {
+            const {
+                title = 'Confirm Action',
+                message = '',
+                confirmText = 'Confirm',
+                cancelText = 'Cancel',
+                variant = 'default',
+                input = false,
+                inputType = 'text',
+                placeholder = '',
+                defaultValue = '',
+                allowCancel = true
+            } = options;
+
+            const overlay = document.createElement('div');
+            overlay.className = 'modal-overlay visible';
+            overlay.innerHTML = `
+              <div class="modal-content custom-dialog ${variant === 'danger' ? 'is-danger' : ''}" role="dialog" aria-modal="true">
+                <div class="modal-header">
+                  <h3>${this.escapeHtml(title)}</h3>
+                  ${allowCancel ? '<button class="close-btn" type="button" data-role="cancel">&times;</button>' : ''}
+                </div>
+                <div class="modal-body">
+                  <p class="dialog-message">${this.escapeHtml(message)}</p>
+                  ${input ? `<input class="dialog-input" id="dialogInputField" type="${this.escapeHtml(inputType)}" placeholder="${this.escapeHtml(placeholder)}" value="${this.escapeHtml(defaultValue)}" />` : ''}
+                </div>
+                <div class="modal-footer">
+                  ${allowCancel ? `<button class="btn btn--secondary" type="button" data-role="cancel">${this.escapeHtml(cancelText)}</button>` : ''}
+                  <button class="btn ${variant === 'danger' ? 'btn--danger' : 'btn--primary'}" type="button" data-role="confirm">${this.escapeHtml(confirmText)}</button>
+                </div>
+              </div>
+            `;
+
+            const closeDialog = (value) => {
+                window.removeEventListener('keydown', onKeydown, true);
+                overlay.classList.remove('visible');
+                setTimeout(() => overlay.remove(), 150);
+                resolve(value);
+            };
+
+            const onKeydown = (event) => {
+                if (event.key === 'Escape' && allowCancel) {
+                    event.preventDefault();
+                    closeDialog(input ? null : false);
+                }
+                if (event.key === 'Enter') {
+                    const active = document.activeElement;
+                    if (active && active.classList.contains('dialog-input')) {
+                        event.preventDefault();
+                        closeDialog(active.value);
+                    }
+                }
+            };
+
+            overlay.querySelectorAll('[data-role="cancel"]').forEach(btn => {
+                btn.addEventListener('click', () => closeDialog(input ? null : false));
+            });
+
+            overlay.querySelector('[data-role="confirm"]')?.addEventListener('click', () => {
+                if (input) {
+                    const inputEl = overlay.querySelector('#dialogInputField');
+                    closeDialog(inputEl ? inputEl.value : '');
+                    return;
+                }
+                closeDialog(true);
+            });
+
+            document.body.appendChild(overlay);
+            window.addEventListener('keydown', onKeydown, true);
+            const inputEl = overlay.querySelector('#dialogInputField');
+            if (inputEl) {
+                inputEl.focus();
+                inputEl.select();
+            } else {
+                overlay.querySelector('[data-role="confirm"]')?.focus();
+            }
+        });
+    }
+
+    confirmDialog(message, options = {}) {
+        return this.showDialog({
+            title: options.title || 'Please Confirm',
+            message,
+            confirmText: options.confirmText || 'Confirm',
+            cancelText: options.cancelText || 'Cancel',
+            variant: options.variant || 'default',
+            allowCancel: true
+        });
+    }
+
+    promptDialog(message, options = {}) {
+        return this.showDialog({
+            title: options.title || 'Input Required',
+            message,
+            confirmText: options.confirmText || 'Submit',
+            cancelText: options.cancelText || 'Cancel',
+            input: true,
+            inputType: options.inputType || 'text',
+            placeholder: options.placeholder || '',
+            defaultValue: options.defaultValue || '',
+            allowCancel: true
+        });
+    }
+
+    alertDialog(message, options = {}) {
+        return this.showDialog({
+            title: options.title || 'Notice',
+            message,
+            confirmText: options.confirmText || 'OK',
+            allowCancel: false
+        });
+    }
+
 
     // --- Loading Overlay ---
     showLoading(message = 'Loading...') {
@@ -377,6 +501,9 @@ if (window.app) {
     window.app.hideQuickNote = () => window.uiModule.hideQuickNote();
     window.app.toggleFullScreen = () => window.uiModule.toggleFullScreen();
     window.app.closeModals = () => window.uiModule.closeModals();
+    window.app.confirmDialog = (message, options) => window.uiModule.confirmDialog(message, options);
+    window.app.promptDialog = (message, options) => window.uiModule.promptDialog(message, options);
+    window.app.alertDialog = (message, options) => window.uiModule.alertDialog(message, options);
      // Add initUI call within app.init
      const originalAppInit = window.app.init;
      window.app.init = async function() {

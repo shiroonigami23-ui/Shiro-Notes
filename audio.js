@@ -699,8 +699,12 @@ class AudioModule {
     this.app.showToast('Audio recording updated', 'success');
   }
 
-  deleteAudio(audioId) {
-    if (!confirm('Are you sure you want to delete this audio recording?')) return;
+  async deleteAudio(audioId) {
+    const confirmed = await (this.app.confirmDialog?.(
+      'Delete this audio recording? This cannot be undone.',
+      { title: 'Delete Audio', confirmText: 'Delete Audio', variant: 'danger' }
+    ) ?? Promise.resolve(confirm('Are you sure you want to delete this audio recording?')));
+    if (!confirmed) return;
     
     this.app.data.notes = this.app.data.notes.filter(note => note.id !== audioId);
     this.app.saveData();

@@ -99,14 +99,14 @@ createNote() {
         pageElement.innerHTML = `
           <div class="editor-host book-editor"> <!-- Added editor-host class -->
             <div class="book-header">
-               <button class="btn btn--secondary btn--sm cover-btn" onclick="window.itemEditor.showCoverModal('${book.id}')" title="Change Cover">
+               <button class="btn btn--secondary btn--sm cover-btn" title="Change Cover">
                    ${this.renderBookCoverIcon(book.cover)} Change Cover
                </button>
               <input type="text" class="book-title-input" value="${this.app.escapeHtml(book.title)}" placeholder="Book title..." oninput="window.itemEditor.updateBookTitle(this.value)">
               <div class="book-actions">
-                <button class="btn btn--secondary btn--sm" onclick="window.itemEditor.addChapter()" title="Add New Chapter"><i class="fas fa-plus"></i> Add Chapter</button>
-                <button class="btn btn--primary btn--sm" onclick="window.itemEditor.saveItem()" title="Save Changes (Ctrl+S)"><i class="fas fa-save"></i> Save</button>
-                <button class="btn btn--secondary btn--sm" onclick="window.itemEditor.closeEditor()" title="Close Editor (Esc)"><i class="fas fa-times"></i> Close</button>
+                <button class="btn btn--secondary btn--sm" id="bookAddChapterBtn" title="Add New Chapter"><i class="fas fa-plus"></i> Add Chapter</button>
+                <button class="btn btn--primary btn--sm" id="bookSaveBtn" title="Save Changes (Ctrl+S)"><i class="fas fa-save"></i> Save</button>
+                <button class="btn btn--secondary btn--sm" id="bookCloseBtn" title="Close Editor (Esc)"><i class="fas fa-times"></i> Close</button>
               </div>
             </div>
 
@@ -119,7 +119,7 @@ createNote() {
                     '<p class="empty-state-small">No chapters yet</p>'
                   }
                 </div>
-                 <button class="btn btn--secondary btn--sm add-chapter-sidebar" onclick="window.itemEditor.addChapter()">
+                 <button class="btn btn--secondary btn--sm add-chapter-sidebar" id="bookAddChapterSidebarBtn">
                     <i class="fas fa-plus"></i> Add Chapter
                  </button>
               </div>
@@ -141,6 +141,7 @@ createNote() {
         }
          // Add event listeners for chapter selection etc.
          this.setupBookEditorEventListeners();
+         this.setupBookHeaderEventListeners(book);
     }
 
      renderBookCoverIcon(cover) {
@@ -159,7 +160,7 @@ createNote() {
         return `
          <div class="chapter-item ${index === this.currentChapterIndex ? 'active' : ''}" data-index="${index}">
              <span class="chapter-title">${this.app.escapeHtml(chapter.title)}</span>
-             <button class="chapter-delete" onclick="event.stopPropagation(); window.itemEditor.deleteChapter(${index})" title="Delete Chapter">
+             <button class="chapter-delete" data-index="${index}" title="Delete Chapter">
                <i class="fas fa-trash"></i>
              </button>
          </div>
@@ -168,7 +169,7 @@ createNote() {
 
       renderChapterEditorContent(chapter, index) {
           return `
-            <input type="text" class="chapter-title-input" value="${this.app.escapeHtml(chapter.title)}" placeholder="Chapter title..." data-index="${index}" oninput="window.itemEditor.updateChapterTitle(${index}, this.value)">
+            <input type="text" class="chapter-title-input" value="${this.app.escapeHtml(chapter.title)}" placeholder="Chapter title..." data-index="${index}">
              <div class="editor-toolbar"></div>
           <div id="chapterContentWrapper" class="editor-content-host">
                 <!-- Rich text editor will be created here by createEditorInstance -->
@@ -190,26 +191,26 @@ createNote() {
               <input type="text" class="note-title-input" value="${this.app.escapeHtml(note.title)}" placeholder="Note title..." oninput="window.itemEditor.updateNoteTitle(this.value)">
                <div class="note-actions">
                  <!-- Share buttons moved here for better visibility -->
-                 <button class="btn btn--secondary btn--sm" onclick="window.autoEncryption?.autoEncryptAndShare(window.editorCore?.currentItem, false)" title="Encrypt for recipient and share">
+                 <button class="btn btn--secondary btn--sm" id="noteSecureShareBtn" title="Encrypt for recipient and share">
                    <i class="fas fa-share-alt"></i> Secure Share
                  </button>
-                 <button class="btn btn--secondary btn--sm btn--danger" onclick="window.autoEncryption?.autoEncryptAndShare(window.editorCore?.currentItem, true)" title="Secure share then delete local note">
+                 <button class="btn btn--secondary btn--sm btn--danger" id="noteSecureDestroyBtn" title="Secure share then delete local note">
                    <i class="fas fa-fire"></i> Secure Share & Destroy
                  </button>
                  <div class="separator"></div>
-                 <button class="btn btn--primary btn--sm" onclick="window.itemEditor.saveItem()" title="Save Note (Ctrl+S)"><i class="fas fa-save"></i> Save</button>
-                 <button class="btn btn--secondary btn--sm" onclick="window.itemEditor.closeEditor()" title="Close Editor (Esc)"><i class="fas fa-times"></i> Close</button>
+                 <button class="btn btn--primary btn--sm" id="noteSaveBtn" title="Save Note (Ctrl+S)"><i class="fas fa-save"></i> Save</button>
+                 <button class="btn btn--secondary btn--sm" id="noteCloseBtn" title="Close Editor (Esc)"><i class="fas fa-times"></i> Close</button>
                </div>
             </div>
 
              <div class="note-meta-bar">
-                 <input type="text" class="note-tags" value="${note.tags ? note.tags.join(', ') : ''}" placeholder="Tags (comma separated)..." onchange="window.itemEditor.updateNoteTags(this.value)" title="Add comma-separated tags">
+                 <input type="text" class="note-tags" id="noteTagsInput" value="${note.tags ? note.tags.join(', ') : ''}" placeholder="Tags (comma separated)..." title="Add comma-separated tags">
                  <label class="checkbox-label" title="Bookmark this note">
-                   <input type="checkbox" ${note.bookmarked ? 'checked' : ''} onchange="window.itemEditor.toggleNoteBookmark(this.checked)">
+                   <input type="checkbox" id="noteBookmarkToggle" ${note.bookmarked ? 'checked' : ''}>
                    <i class="fas fa-bookmark"></i> Bookmark
                  </label>
                  <label class="checkbox-label" title="Encrypt this note with Master Password">
-                   <input type="checkbox" ${note.encrypted ? 'checked' : ''} onchange="window.itemEditor.toggleNoteEncryption(this.checked)">
+                   <input type="checkbox" id="noteEncryptToggle" ${note.encrypted ? 'checked' : ''}>
                     <i class="fas fa-lock"></i> Encrypt
                  </label>
              </div>
@@ -252,17 +253,68 @@ createNote() {
          const chaptersList = document.getElementById('chaptersList');
          if (chaptersList) {
              chaptersList.addEventListener('click', (e) => {
+                 const deleteBtn = e.target.closest('.chapter-delete[data-index]');
+                 if (deleteBtn) {
+                     e.stopPropagation();
+                     const deleteIndex = parseInt(deleteBtn.dataset.index, 10);
+                     if (!Number.isNaN(deleteIndex)) void this.deleteChapter(deleteIndex);
+                     return;
+                 }
                  const chapterItem = e.target.closest('.chapter-item');
                  if (chapterItem && chapterItem.dataset.index) {
                      this.selectChapter(parseInt(chapterItem.dataset.index, 10));
                  }
              });
          }
+
+         const chapterTitleInput = document.querySelector('.chapter-title-input[data-index]');
+         if (chapterTitleInput) {
+             chapterTitleInput.addEventListener('input', (e) => {
+                 const idx = parseInt(e.target.dataset.index, 10);
+                 if (!Number.isNaN(idx)) this.updateChapterTitle(idx, e.target.value);
+             });
+         }
      }
 
       setupNoteEditorEventListeners() {
-          // Add specific listeners for note editor if any are needed beyond the input/change handlers
+          document.getElementById('noteSaveBtn')?.addEventListener('click', () => {
+              void this.saveItem();
+          });
+          document.getElementById('noteCloseBtn')?.addEventListener('click', () => {
+              this.closeEditor();
+          });
+          document.getElementById('noteSecureShareBtn')?.addEventListener('click', () => {
+              void window.autoEncryption?.autoEncryptAndShare(window.editorCore?.currentItem, false);
+          });
+          document.getElementById('noteSecureDestroyBtn')?.addEventListener('click', () => {
+              void window.autoEncryption?.autoEncryptAndShare(window.editorCore?.currentItem, true);
+          });
+
+          const titleInput = document.querySelector('.note-title-input');
+          if (titleInput) titleInput.addEventListener('input', (e) => this.updateNoteTitle(e.target.value));
+
+          const tagsInput = document.getElementById('noteTagsInput');
+          if (tagsInput) tagsInput.addEventListener('change', (e) => this.updateNoteTags(e.target.value));
+
+          const bookmarkToggle = document.getElementById('noteBookmarkToggle');
+          if (bookmarkToggle) bookmarkToggle.addEventListener('change', (e) => this.toggleNoteBookmark(e.target.checked));
+
+          const encryptToggle = document.getElementById('noteEncryptToggle');
+          if (encryptToggle) encryptToggle.addEventListener('change', (e) => this.toggleNoteEncryption(e.target.checked));
       }
+
+     setupBookHeaderEventListeners(book) {
+         const titleInput = document.querySelector('.book-title-input');
+         if (titleInput) titleInput.addEventListener('input', (e) => this.updateBookTitle(e.target.value));
+
+         document.getElementById('bookAddChapterBtn')?.addEventListener('click', () => this.addChapter());
+         document.getElementById('bookAddChapterSidebarBtn')?.addEventListener('click', () => this.addChapter());
+         document.getElementById('bookSaveBtn')?.addEventListener('click', () => void this.saveItem());
+         document.getElementById('bookCloseBtn')?.addEventListener('click', () => this.closeEditor());
+
+         const coverBtn = document.querySelector('.cover-btn');
+         if (coverBtn) coverBtn.addEventListener('click', () => this.showCoverModal(book.id));
+     }
 
 
     // --- Book Management ---
@@ -348,13 +400,18 @@ createNote() {
         }
     }
 
-    deleteChapter(index) {
+    async deleteChapter(index) {
         const book = window.editorCore?.currentItem;
         if (!book || !book.chapters?.[index]) return;
 
          const chapterTitle = book.chapters[index].title;
 
-        if (confirm(`Are you sure you want to delete "${chapterTitle}"?`)) {
+        const confirmed = await (this.app.confirmDialog?.(
+            `Delete chapter "${chapterTitle}"?`,
+            { title: 'Delete Chapter', confirmText: 'Delete Chapter', variant: 'danger' }
+        ) ?? Promise.resolve(confirm(`Are you sure you want to delete "${chapterTitle}"?`)));
+
+        if (confirmed) {
             book.chapters.splice(index, 1);
             book.lastModified = new Date().toISOString();
 
@@ -561,7 +618,15 @@ createNote() {
                  return;
              }
              // Prompt for password securely (using a modal is better than prompt)
-             const password = prompt(`Enter Master Password to ${operation} "${currentItem.title}":`);
+             const password = await (this.app.promptDialog?.(
+                 `Enter Master Password to ${operation} "${currentItem.title}":`,
+                 {
+                     title: 'Master Password Required',
+                     inputType: 'password',
+                     placeholder: 'Master Password',
+                     confirmText: 'Continue'
+                 }
+             ) ?? Promise.resolve(prompt(`Enter Master Password to ${operation} "${currentItem.title}":`)));
              if (!password) {
                  this.app.showToast('Save cancelled.', 'warning');
                  window.editorModule?.updateAutoSaveStatus('Save Cancelled');
@@ -657,10 +722,14 @@ createNote() {
             this.app.showPage(itemType);
 
             console.log("Editor closed.");
-        }).catch(error => {
+        }).catch(async error => {
             console.error("Error during save on close:", error);
             // Decide if we should still close or keep editor open
-             if (confirm("Could not save changes. Close anyway?")) {
+             const closeAnyway = await (this.app.confirmDialog?.(
+                 'Could not save changes. Close anyway?',
+                 { title: 'Save Failed', confirmText: 'Close Without Saving', variant: 'danger' }
+             ) ?? Promise.resolve(confirm("Could not save changes. Close anyway?")));
+             if (closeAnyway) {
                  const currentItem = window.editorCore?.currentItem;
                  const itemType = currentItem?.chapters === undefined ? 'notes' : 'books';
                  window.editorCore?.clearEditorState();
