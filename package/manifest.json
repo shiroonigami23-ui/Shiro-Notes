@@ -1,0 +1,8 @@
+﻿{
+  "name": "shiro-notes",
+  "version": "2.1.0",
+  "artifact": "dist-package/shiro-notes-v2.1.0.zip",
+  "type": "pwa",
+  "stack": ["vanilla-js", "tailwind", "typescript"],
+  "features": ["rich-editor", "canvas", "audio", "offline", "encryption"]
+}

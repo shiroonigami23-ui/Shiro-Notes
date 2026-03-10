@@ -106,6 +106,11 @@ class EditorModule {
         }, 3000); // Auto-save after 3 seconds of inactivity
     }
 
+    clearAutoSaveTimer() {
+        clearTimeout(this.autoSaveTimer);
+        this.autoSaveTimer = null;
+    }
+
     autoSave() {
         if (!this.isEditing || !this.currentItem || !this.currentEditorInstance) return;
 
@@ -169,7 +174,7 @@ class EditorModule {
         this.isEditing = false;
         this.currentItem = null;
         this.currentEditorInstance = null;
-        clearTimeout(this.autoSaveTimer);
+        this.clearAutoSaveTimer();
 
         // Clean up sub-modules
         this.core?.clearEditorState();

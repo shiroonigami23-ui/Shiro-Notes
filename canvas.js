@@ -47,13 +47,16 @@ class CanvasModule {
              return;
         }
 
-        if (this.isInitialized) {
-            console.log("Canvas already initialized, re-activating.");
-             // Potentially re-attach listeners or redraw if needed after page switch
-             this.core.setupEventListeners(); // Re-attach main canvas listeners
-             this.ui.initUI(); // Re-initialize UI listeners and state
-             this.core.renderLayers(); // Redraw
+        const latestCanvas = document.getElementById('drawingCanvas');
+        if (!latestCanvas) {
+            console.error("Canvas element #drawingCanvas not found.");
             return;
+        }
+
+        // If app re-rendered the page, the old canvas node is gone. Re-bind safely.
+        if (this.isInitialized && this.core.canvas && this.core.canvas !== latestCanvas) {
+            this.core.destroy();
+            this.isInitialized = false;
         }
 
         console.log("Initializing Canvas...");
@@ -239,13 +242,13 @@ if (window.app) {
 
     // Override app's loadCanvasPage method to use the coordinator
     // and add cleanup when navigating away
-    const originalLoadCanvasPage = window.app.loadCanvasPage;
-    window.app.loadCanvasPage = function(pageElement) {
-        // Call original to set up basic HTML structure (if it does that)
-        originalLoadCanvasPage.call(this, pageElement);
-        // Initialize the canvas via the coordinator
-        window.canvasModule.initCanvas();
-    };
+    if (typeof window.app.loadCanvasPage === 'function') {
+        const originalLoadCanvasPage = window.app.loadCanvasPage;
+        window.app.loadCanvasPage = function(pageElement) {
+            originalLoadCanvasPage.call(this, pageElement);
+            window.canvasModule.initCanvas();
+        };
+    }
 
     // Add cleanup hook (example - needs integration into app's navigation)
     // window.app.onNavigateAwayFromCanvas = () => {

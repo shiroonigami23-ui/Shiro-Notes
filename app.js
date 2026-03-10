@@ -33,8 +33,6 @@ class ShiroNotes {
         // --- Initialization ---
         // Make the instance globally available EARLY
         window.app = this;
-        // Start the initialization process
-        0
     }
 
     // --- Initialization Sequence ---
@@ -277,7 +275,7 @@ class ShiroNotes {
              this.showToast('App is locked. Please unlock first.', 'warning');
              return; // Don't navigate when locked
         }
-        console.log(`Navigating to page: ${pageId}`);
+        // Debug log intentionally disabled for routine navigation.
 
         // Hide all pages
         document.querySelectorAll('.page').forEach(page => {
@@ -299,6 +297,7 @@ class ShiroNotes {
 
             // Load specific page content
             this.loadPageContent(pageId);
+            this.refreshIcons();
         } else {
              console.error(`Page element not found for pageId: ${pageId}Page`);
              this.showPage('dashboard'); // Fallback to dashboard on error
@@ -307,6 +306,16 @@ class ShiroNotes {
 
         // Close mobile sidebar after navigation
          this.closeMobileSidebar(); // Use uiModule via app method overload
+    }
+
+    refreshIcons() {
+        try {
+            if (window.lucide && typeof window.lucide.createIcons === 'function') {
+                window.lucide.createIcons();
+            }
+        } catch (error) {
+            console.warn('Lucide icon refresh failed:', error);
+        }
     }
 
     getPageTitle(pageId) {
@@ -338,7 +347,7 @@ class ShiroNotes {
               return;
          }
 
-         console.log(`Loading content for: ${pageId}`);
+         // Debug log intentionally disabled for routine page renders.
 
         // Clear previous content? Maybe not necessary if pages are just hidden/shown
         // pageElement.innerHTML = ''; // Consider implications for complex modules like editor/canvas
@@ -363,7 +372,7 @@ window.dashboardModule?.loadDashboardContent(pageElement);
                         <div class="canvas-toolbar">
                             <div class="tool-group">
                                 <button class="tool-btn" onclick="window.canvasModule.saveCanvas()" title="Save as PNG"><i data-lucide="save"></i></button>
-                                <button class="tool-btn" onclick="window.canvasModule.saveToNotes()" title="Save to Notes"><i data-lucide="file-export"></i></button>
+                                <button class="tool-btn" onclick="window.canvasModule.saveToNotes()" title="Save to Notes"><i data-lucide="save"></i></button>
                                 <button class="tool-btn" onclick="window.canvasModule.loadImage()" title="Load Image"><i data-lucide="image-plus"></i></button>
                                 <button class="tool-btn" onclick="window.canvasModule.clear()" title="Clear All"><i data-lucide="trash-2"></i></button>
                             </div>

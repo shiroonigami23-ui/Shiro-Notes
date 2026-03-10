@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Shiro Notes - Professional Note-Taking</title>
+    <meta name="description" content="Shiro Notes is a feature-rich Notion and Canva inspired workspace with rich docs, drawing canvas, security features, and offline-ready PWA support.">
+    <meta name="theme-color" content="#111827">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com https://unpkg.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; img-src 'self' data: blob: https:; font-src 'self' data: https://cdnjs.cloudflare.com; media-src 'self' blob: data:; connect-src 'self' https://api.github.com; frame-ancestors 'self'; base-uri 'self'; form-action 'self';">
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="apple-touch-icon" sizes="192x192" href="icons/icon-192.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="icons/icon-192.png">
 
     <!-- External Libraries -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" xintegrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
@@ -26,6 +32,8 @@
     <link rel="stylesheet" href="audio.css">
     <link rel="stylesheet" href="profile.css">
     <link rel="stylesheet" href="export.css">
+    <link rel="stylesheet" href="pwa.css">
+    <link rel="stylesheet" href="dist/tailwind.css">
 
 </head>
 <body>
@@ -170,6 +178,8 @@
             </div>
         </div>
     </div>
+    <nav id="mobileBottomNav" class="mobile-bottom-nav" aria-label="Mobile bottom navigation"></nav>
+    <button id="installPwaBtn" class="pwa-install-btn hidden" type="button" aria-label="Install Shiro Notes app">Install App</button>
 
     <!-- Modals and Overlays -->
     <div class="quick-note-popup hidden" id="quickNotePopup" role="dialog" aria-modal="true" aria-labelledby="quickNotePopupTitle">
@@ -203,12 +213,10 @@
     <!-- JavaScript Files (Order is crucial!) -->
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js" integrity="sha512-E8QSvWZ0eCLGk4km3hxSsNmGWbLtSCSUcewDQPQWZF6pEU8GlT8a5fF32wOl1i8ftdMhssTrF/OhyGWwonTcXA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-<script>
-    lucide.createIcons();
-</script>
     
     <!-- Core App Logic & Base Modules -->
     <script src="app.js"></script>          <!-- MUST be first to create window.app -->
+    <script src="storage.js"></script>      <!-- Asset storage abstraction -->
     <script src="ui.js"></script>           <!-- Needs window.app -->
     <script src="crypto.js"></script>       <!-- Needs window.app -->
     <script src="dashboard.js"></script>    <!-- Needs window.app -->
@@ -236,18 +244,9 @@
     <script src="templates.js"></script>    <!-- Needs window.app, potentially editor modules -->
     <script src="profile.js"></script>      <!-- Needs window.app -->
     <script src="keyboard.js"></script>     <!-- Needs window.app -->
-    <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        window.app.init();
-    });
-</script>
-
-    <!--
-        Note: The `new ShiroNotes()` constructor in app.js calls `this.init()`,
-        which includes the async `loadData()` and `setupEventListeners()`.
-        The UI initialization (`uiModule.initUI()`) is now also hooked into `app.init`.
-        This should handle the initialization sequence.
-    -->
+    <!-- TS + Tailwind enhancement bootstrap (file:// safe) -->
+    <script src="dist-ts/shiro-enhancements.js"></script>
+    <script src="pwa.js"></script>
 
 </body>
 </html>

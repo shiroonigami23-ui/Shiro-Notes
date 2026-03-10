@@ -1,0 +1,66 @@
+﻿.mobile-bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 1400;
+  display: none;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 4px;
+  padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
+  background: rgba(17, 24, 39, 0.97);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(10px);
+}
+
+.mobile-bottom-nav .mb-nav-btn {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(31, 41, 55, 0.95);
+  color: #9ca3af;
+  border-radius: 12px;
+  min-height: 52px;
+  display: grid;
+  place-items: center;
+  gap: 2px;
+  font-size: 11px;
+  transition: all 0.2s ease;
+}
+
+.mobile-bottom-nav .mb-nav-btn i {
+  font-size: 13px;
+}
+
+.mobile-bottom-nav .mb-nav-btn.active {
+  background: linear-gradient(180deg, #2563eb, #1d4ed8);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.pwa-install-btn {
+  position: fixed;
+  bottom: 88px;
+  right: 14px;
+  z-index: 1450;
+  border: none;
+  background: linear-gradient(120deg, #10b981, #0ea5e9);
+  color: #ffffff;
+  border-radius: 999px;
+  padding: 10px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  box-shadow: 0 10px 24px rgba(14, 165, 233, 0.28);
+}
+
+.pwa-install-btn.hidden {
+  display: none;
+}
+
+@media (max-width: 960px) {
+  .mobile-bottom-nav {
+    display: grid;
+  }
+
+  .page-container {
+    padding-bottom: 72px;
+  }
+}

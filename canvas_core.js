@@ -22,6 +22,17 @@ class CanvasCore {
 
         // Reference to the tool handler module (will be set externally)
         this.toolHandler = null; // e.g., window.canvasTools
+
+        // Keep stable listener references so we can safely re-bind/destroy.
+        this._listenersAttached = false;
+        this._boundMouseDown = null;
+        this._boundMouseMove = null;
+        this._boundMouseUp = null;
+        this._boundMouseOut = null;
+        this._boundTouchStart = null;
+        this._boundTouchMove = null;
+        this._boundTouchEnd = null;
+        this._boundTouchCancel = null;
     }
 
     // --- Initialization ---
@@ -77,34 +88,61 @@ class CanvasCore {
     setupEventListeners() {
         if (!this.canvas) return;
 
-        // Mouse Events
-        this.canvas.addEventListener('mousedown', this.handlePointerDown.bind(this));
-        this.canvas.addEventListener('mousemove', this.handlePointerMove.bind(this));
-        this.canvas.addEventListener('mouseup', this.handlePointerUp.bind(this));
-        this.canvas.addEventListener('mouseout', this.handlePointerUp.bind(this)); // Treat mouse out as mouse up
+        // Avoid stacking duplicate listeners when returning to the canvas page.
+        this.teardownEventListeners();
 
-        // Touch Events (mapping to pointer events)
-        this.canvas.addEventListener('touchstart', (e) => {
-            e.preventDefault(); // Prevent scrolling/zooming while drawing
-            this.handlePointerDown(e.touches[0]); // Use first touch
-        }, { passive: false }); // Need passive: false to call preventDefault
-
-        this.canvas.addEventListener('touchmove', (e) => {
+        this._boundMouseDown = this.handlePointerDown.bind(this);
+        this._boundMouseMove = this.handlePointerMove.bind(this);
+        this._boundMouseUp = this.handlePointerUp.bind(this);
+        this._boundMouseOut = this.handlePointerUp.bind(this);
+        this._boundTouchStart = (e) => {
+            e.preventDefault();
+            this.handlePointerDown(e.touches[0]);
+        };
+        this._boundTouchMove = (e) => {
             e.preventDefault();
             this.handlePointerMove(e.touches[0]);
-        }, { passive: false });
-
-        this.canvas.addEventListener('touchend', (e) => {
+        };
+        this._boundTouchEnd = (e) => {
             e.preventDefault();
-            this.handlePointerUp(e.changedTouches[0]); // Use changed touch
-        });
-        this.canvas.addEventListener('touchcancel', (e) => {
-             e.preventDefault();
-            this.handlePointerUp(e.changedTouches[0]); // Treat cancel as touchend
-        });
+            this.handlePointerUp(e.changedTouches[0]);
+        };
+        this._boundTouchCancel = (e) => {
+            e.preventDefault();
+            this.handlePointerUp(e.changedTouches[0]);
+        };
+
+        // Mouse Events
+        this.canvas.addEventListener('mousedown', this._boundMouseDown);
+        this.canvas.addEventListener('mousemove', this._boundMouseMove);
+        this.canvas.addEventListener('mouseup', this._boundMouseUp);
+        this.canvas.addEventListener('mouseout', this._boundMouseOut); // Treat mouse out as mouse up
+
+        // Touch Events (mapping to pointer events)
+        this.canvas.addEventListener('touchstart', this._boundTouchStart, { passive: false });
+        this.canvas.addEventListener('touchmove', this._boundTouchMove, { passive: false });
+        this.canvas.addEventListener('touchend', this._boundTouchEnd, { passive: false });
+        this.canvas.addEventListener('touchcancel', this._boundTouchCancel, { passive: false });
+
+        this._listenersAttached = true;
 
         // Keyboard shortcuts (delegated from main keyboard module or app.js)
         // We might add specific canvas shortcuts here if needed (e.g., holding shift for straight lines)
+    }
+
+    teardownEventListeners() {
+        if (!this.canvas || !this._listenersAttached) return;
+
+        this.canvas.removeEventListener('mousedown', this._boundMouseDown);
+        this.canvas.removeEventListener('mousemove', this._boundMouseMove);
+        this.canvas.removeEventListener('mouseup', this._boundMouseUp);
+        this.canvas.removeEventListener('mouseout', this._boundMouseOut);
+        this.canvas.removeEventListener('touchstart', this._boundTouchStart);
+        this.canvas.removeEventListener('touchmove', this._boundTouchMove);
+        this.canvas.removeEventListener('touchend', this._boundTouchEnd);
+        this.canvas.removeEventListener('touchcancel', this._boundTouchCancel);
+
+        this._listenersAttached = false;
     }
 
     handlePointerDown(e) {
@@ -415,14 +453,14 @@ this.toolHandler?.stopDrawing(layerCtx, pos, { startX: this.startX, startY: this
             this.history.shift();
             this.historyStep--;
         }
-        console.log("State saved. History step:", this.historyStep, "History size:", this.history.length);
+        // Keep history saving silent during normal use to avoid console spam.
          window.canvasUI?.updateUndoRedoButtons(this.canUndo(), this.canRedo()); // Update UI buttons
     }
 
     restoreState(stateToRestore) {
         if (!stateToRestore) return;
 
-        console.log("Restoring state...");
+        // Restore runs often; avoid noisy debug output in production usage.
         this.layers = []; // Clear current layers
         this.images = []; // Clear current images
 
@@ -473,7 +511,7 @@ this.toolHandler?.stopDrawing(layerCtx, pos, { startX: this.startX, startY: this
             this.renderLayers();
             window.canvasUI?.updateLayersList(this.layers, this.currentLayer); // Update UI
              window.canvasUI?.updateUndoRedoButtons(this.canUndo(), this.canRedo());
-            console.log("State restored. Current layer:", this.currentLayer);
+            // Restore completed.
         });
     }
 
@@ -663,6 +701,15 @@ this.toolHandler?.stopDrawing(layerCtx, pos, { startX: this.startX, startY: this
     }
 
     // --- Utility ---
+
+    destroy() {
+        this.teardownEventListeners();
+        this.isDrawing = false;
+        this.selectedImage = null;
+        this.transformHandle = null;
+        this.canvas = null;
+        this.ctx = null;
+    }
 
     // Sets the reference to the tool handler module
     setToolHandler(handler) {

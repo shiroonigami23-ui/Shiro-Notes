@@ -1,20 +1,30 @@
 # 🚀 Quick Start Guide - Shiro Notes
 
-## Download & Setup (2 minutes)
+## Download & Setup (3 minutes)
 
-### Step 1: Extract Files
-1. Download `shiro-notes.tar.gz`
-2. Extract the archive:
+### Step 1: Clone Project
+```bash
+git clone https://github.com/shiroonigami23-ui/Shiro-Notes.git
+cd Shiro-Notes
+```
+
+### Step 2: Install + Build
+```bash
+npm install
+npm run build
+```
+
+### Step 3: Start App (recommended)
+```bash
+npm start
+```
+1. Open `http://localhost:3000`
+2. App runs with compiled Tailwind + TypeScript enhancements
+3. Optional live dev watchers:
    ```bash
-   tar -xzf shiro-notes.tar.gz
+   npm run dev:css
+   npm run dev:ts
    ```
-   Or use any archive tool (7-Zip, WinRAR, The Unarchiver, etc.)
-
-### Step 2: Open in Browser
-1. Navigate to the extracted `shiro-notes` folder
-2. Double-click `index.html` 
-3. The app opens in your default browser
-4. **That's it!** No installation needed.
 
 ## First Time Setup (30 seconds)
 
@@ -109,7 +119,7 @@
 ## Data & Privacy
 
 ✅ **100% Local** - All data stays on your device  
-✅ **No Server** - Works completely offline  
+✅ **Local First** - Works with local storage by default  
 ✅ **No Tracking** - Zero analytics or tracking  
 ✅ **Encrypted** - AES encryption for sensitive notes  
 

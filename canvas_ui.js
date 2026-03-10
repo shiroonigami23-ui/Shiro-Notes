@@ -27,6 +27,7 @@ class CanvasUI {
         this.undoBtn = null;
         this.redoBtn = null;
         // ... (cache other elements as needed)
+        this._listenersBoundFor = null;
     }
 
     // --- Initialization ---
@@ -54,7 +55,10 @@ class CanvasUI {
              // Continue initialization, but some features might not work
         }
 
-        this.setupToolbarListeners();
+        if (this._listenersBoundFor !== this.toolbarElement) {
+            this.setupToolbarListeners();
+            this._listenersBoundFor = this.toolbarElement;
+        }
         this.selectTool(this.currentTool); // Set initial tool state
         this.updateCursor();
         this.updateUndoRedoButtons(this.core?.canUndo() ?? false, this.core?.canRedo() ?? false);
@@ -166,7 +170,7 @@ class CanvasUI {
     // --- Tool Management ---
 
     selectTool(toolName) {
-        console.log("Selecting tool:", toolName);
+        // Keep tool switching silent during normal use.
         this.currentTool = toolName;
         // Remove active class from all tool buttons
         this.toolbarElement?.querySelectorAll('.tool-btn[data-tool].active')
@@ -319,7 +323,7 @@ class CanvasUI {
             </div>
             <div class="modal-body">
               <div class="layers-list" id="layersListContainer">
-                ${this.renderLayersList(this.core.layers, this.core.currentLayerId)}
+                ${this.renderLayersList(this.core.layers, this.core.currentLayer)}
               </div>
             </div>
              <div class="modal-footer layers-footer">
@@ -403,7 +407,7 @@ class CanvasUI {
 
         // Attach listeners for footer buttons
         document.getElementById('deleteLayerBtn')?.addEventListener('click', () => {
-             if(this.core?.deleteLayer(this.core.currentLayerId)) {
+             if(this.core?.deleteLayer(this.core.currentLayer)) {
                  // If deletion was successful, UI update is handled by core calling updateLayersList
              }
         });
@@ -465,7 +469,7 @@ class CanvasUI {
 
           if (!this.core || !deleteBtn /* || !moveUpBtn || !moveDownBtn */ ) return;
 
-          const currentLayerIndex = this.core.layers.findIndex(l => l.id === this.core.currentLayerId);
+          const currentLayerIndex = this.core.layers.findIndex(l => l.id === this.core.currentLayer);
           const isBackground = currentLayerIndex === 0;
           const isOnlyLayer = this.core.layers.length <= 1;
 
@@ -552,32 +556,47 @@ class CanvasUI {
              this.app.showToast("Saving to notes...", "info");
              const blob = await this.core.getCanvasAsBlob('image/png');
 
-             // Convert blob to dataURL for embedding in note content
-             const reader = new FileReader();
-             reader.onloadend = () => {
-                 const dataURL = reader.result;
-                 const timestamp = new Date().toLocaleString();
-                 const note = {
-                     id: this.app.generateId(),
-                     title: `Canvas Drawing - ${timestamp}`,
-                     content: `<img src="${dataURL}" alt="Canvas Drawing ${timestamp}" style="max-width: 100%; height: auto; border: 1px solid var(--color-border);">`,
-                     type: 'canvas', // Mark as canvas type
-                     created: new Date().toISOString(),
-                     lastModified: new Date().toISOString(),
-                     tags: ['canvas', 'drawing'],
-                     bookmarked: false,
-                     encrypted: false
-                 };
+             let imageUrl = null;
+             let assetPath = null;
+             const timestamp = new Date().toLocaleString();
 
-                 this.app.data.notes.push(note);
-                 this.app.saveData(); // Save main app data
-                 this.app.updateUI(); // Update overall app UI (like note counts)
-                 this.app.showToast('Canvas saved as a new note!', 'success');
+             if (window.storageModule?.uploadFile) {
+                 const upload = await window.storageModule.uploadFile(blob, {
+                     folder: 'canvas',
+                     filename: `canvas_${Date.now()}.png`,
+                     mimeType: 'image/png'
+                 });
+                 imageUrl = upload.url;
+                 assetPath = upload.path || null;
+                 if (upload.fallback) {
+                     this.app.showToast('Storage API unavailable, canvas stored locally.', 'warning');
+                 }
+             } else {
+                 const reader = new FileReader();
+                 imageUrl = await new Promise((resolve, reject) => {
+                     reader.onloadend = () => resolve(reader.result);
+                     reader.onerror = () => reject(new Error("Failed to convert canvas blob to data URL."));
+                     reader.readAsDataURL(blob);
+                 });
+             }
+
+             const note = {
+                 id: this.app.generateId(),
+                 title: `Canvas Drawing - ${timestamp}`,
+                 content: `<img src="${imageUrl}" alt="Canvas Drawing ${timestamp}" style="max-width: 100%; height: auto; border: 1px solid var(--color-border);">`,
+                 type: 'canvas', // Mark as canvas type
+                 created: new Date().toISOString(),
+                 lastModified: new Date().toISOString(),
+                 tags: ['canvas', 'drawing'],
+                 bookmarked: false,
+                 encrypted: false,
+                 assetPath
              };
-              reader.onerror = () => {
-                   throw new Error("Failed to convert canvas blob to data URL.");
-              };
-             reader.readAsDataURL(blob);
+
+             this.app.data.notes.push(note);
+             this.app.saveData(); // Save main app data
+             this.app.updateUI(); // Update overall app UI (like note counts)
+             this.app.showToast('Canvas saved as a new note!', 'success');
 
          } catch (error) {
              console.error('Error saving canvas to notes:', error);

@@ -1,0 +1,65 @@
+﻿@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html,
+  body {
+    @apply bg-slate-100 text-slate-900 antialiased;
+  }
+
+  [data-theme='dark'] body,
+  [data-theme='dark'] {
+    @apply bg-slate-950 text-slate-100;
+  }
+}
+
+@layer components {
+  .sn-glass {
+    @apply rounded-2xl border border-slate-200/70 bg-white/90 shadow-glass backdrop-blur;
+  }
+
+  .sn-dark .sn-glass {
+    @apply border-slate-700/70 bg-slate-900/90;
+  }
+
+  .sn-command-palette {
+    @apply fixed inset-0 z-[2000] hidden items-start justify-center bg-slate-950/45 p-4 pt-24;
+  }
+
+  .sn-command-palette.is-open {
+    @apply flex;
+  }
+
+  .sn-command-box {
+    @apply sn-glass w-full max-w-2xl overflow-hidden;
+  }
+
+  .sn-command-input {
+    @apply w-full border-0 border-b border-slate-200/70 bg-transparent px-5 py-4 text-base outline-none placeholder:text-slate-400;
+  }
+
+  .sn-command-list {
+    @apply max-h-80 overflow-y-auto p-2;
+  }
+
+  .sn-command-item {
+    @apply mb-1 flex cursor-pointer items-center justify-between rounded-xl px-3 py-2 text-sm transition hover:bg-slate-100;
+  }
+
+  .sn-command-key {
+    @apply rounded-md border border-slate-200 bg-white px-2 py-0.5 text-xs text-slate-500;
+  }
+
+  [data-theme='dark'] .sn-command-input {
+    @apply border-slate-700 placeholder:text-slate-500;
+  }
+
+  [data-theme='dark'] .sn-command-item {
+    @apply hover:bg-slate-800;
+  }
+
+  [data-theme='dark'] .sn-command-key {
+    @apply border-slate-700 bg-slate-900 text-slate-400;
+  }
+}

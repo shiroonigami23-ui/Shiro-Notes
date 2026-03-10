@@ -7,6 +7,7 @@ class EditorCore {
         this.editorHistory = [];
         this.historyIndex = -1;
         this.isComposing = false; // Flag for IME composition
+        this._boundSelectionChange = this.handleSelectionChange.bind(this);
     }
 
     // --- Editor Creation & Basic Setup ---
@@ -52,11 +53,8 @@ class EditorCore {
         this.currentEditor.addEventListener('keyup', () => window.editorToolbar?.updateToolbarState());
         this.currentEditor.addEventListener('click', () => window.editorToolbar?.updateToolbarState());
         // Listen for selection changes globally as well
-        document.addEventListener('selectionchange', () => {
-             if (this.currentEditor && document.activeElement === this.currentEditor) {
-                 window.editorToolbar?.updateToolbarState();
-             }
-         });
+        document.removeEventListener('selectionchange', this._boundSelectionChange);
+        document.addEventListener('selectionchange', this._boundSelectionChange);
 
 
         // Handle IME composition events (for languages like Chinese, Japanese, Korean)
@@ -81,6 +79,12 @@ class EditorCore {
            document.execCommand('insertText', false, text);
            */
         });
+    }
+
+    handleSelectionChange() {
+        if (this.currentEditor && document.activeElement === this.currentEditor) {
+            window.editorToolbar?.updateToolbarState();
+        }
     }
 
     handleKeyDown(e) {
@@ -195,8 +199,7 @@ class EditorCore {
         this.currentItem = null;
         this.editorHistory = [];
         this.historyIndex = -1;
-         // Remove global listeners if necessary, or ensure they check if currentEditor exists
-         document.removeEventListener('selectionchange', window.editorToolbar?.updateToolbarState); // Example cleanup
+         document.removeEventListener('selectionchange', this._boundSelectionChange);
     }
 }
 

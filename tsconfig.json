@@ -1,0 +1,22 @@
+﻿{
+    "compilerOptions":  {
+                            "target":  "ES2020",
+                            "module":  "None",
+                            "lib":  [
+                                        "ES2020",
+                                        "DOM",
+                                        "DOM.Iterable"
+                                    ],
+                            "strict":  true,
+                            "skipLibCheck":  true,
+                            "allowJs":  false,
+                            "noEmit":  false,
+                            "outDir":  "dist-ts"
+                        },
+    "include":  [
+                    "src/shiro-enhancements.ts"
+                ],
+    "exclude":  [
+                    "node_modules"
+                ]
+}

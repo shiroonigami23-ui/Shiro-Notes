@@ -1,0 +1,22 @@
+{
+  "name": "shiro-notes",
+  "version": "2.1.0",
+  "private": true,
+  "scripts": {
+    "start": "node server.js",
+    "serve": "node server.js",
+    "dev": "npm run build && node server.js",
+    "build": "npm run build:css && npm run build:ts",
+    "build:css": "tailwindcss -i ./src/styles/tailwind.css -o ./dist/tailwind.css --minify",
+    "build:ts": "tsc -p tsconfig.json",
+    "dev:css": "tailwindcss -i ./src/styles/tailwind.css -o ./dist/tailwind.css --watch",
+    "dev:ts": "tsc -p tsconfig.json --watch",
+    "package": "powershell -ExecutionPolicy Bypass -File ./scripts/package.ps1 -Version 2.1.0"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.47",
+    "tailwindcss": "^3.4.14",
+    "typescript": "^5.6.3"
+  }
+}

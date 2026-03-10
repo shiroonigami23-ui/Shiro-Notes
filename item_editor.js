@@ -460,6 +460,51 @@ createNote() {
         this.app.showToast(`Note will be ${shouldEncrypt ? 'encrypted' : 'decrypted'} on save.`, 'info');
     }
 
+    // --- EditorModule compatibility helpers ---
+
+    updateItemContent(content) {
+        const currentItem = window.editorCore?.currentItem;
+        if (!currentItem) return false;
+
+        if (currentItem.chapters !== undefined) {
+            if (typeof this.currentChapterIndex !== 'number' || !currentItem.chapters[this.currentChapterIndex]) {
+                return false;
+            }
+            currentItem.chapters[this.currentChapterIndex].content = content;
+        } else {
+            currentItem.content = content;
+        }
+
+        currentItem.lastModified = new Date().toISOString();
+        return true;
+    }
+
+    saveItemMetadata() {
+        const currentItem = window.editorCore?.currentItem;
+        if (!currentItem) return false;
+
+        const dataArray = currentItem.chapters !== undefined ? this.app.data.books : this.app.data.notes;
+        const index = dataArray.findIndex(item => item.id === currentItem.id);
+        const cloned = JSON.parse(JSON.stringify(currentItem));
+
+        if (index >= 0) {
+            dataArray[index] = cloned;
+        } else {
+            dataArray.push(cloned);
+        }
+
+        this.app.saveData();
+        this.app.updateUI();
+        return true;
+    }
+
+    clearEditorState() {
+        this.currentChapterIndex = undefined;
+        if (this.autoSaveTimer) {
+            clearTimeout(this.autoSaveTimer);
+            this.autoSaveTimer = null;
+        }
+    }
 
     // --- Common Save & Close ---
 
@@ -606,7 +651,7 @@ createNote() {
 
             // Clear editor state in core module
             window.editorCore?.clearEditorState();
-             window.editorModule?.clearAutoSaveTimer(); // Clear timer in main module
+             window.editorModule?.clearAutoSaveTimer?.(); // Clear timer in main module
 
             // Navigate back to the list page
             this.app.showPage(itemType);
@@ -616,10 +661,10 @@ createNote() {
             console.error("Error during save on close:", error);
             // Decide if we should still close or keep editor open
              if (confirm("Could not save changes. Close anyway?")) {
-                 window.editorCore?.clearEditorState();
-                 window.editorModule?.clearAutoSaveTimer();
                  const currentItem = window.editorCore?.currentItem;
                  const itemType = currentItem?.chapters === undefined ? 'notes' : 'books';
+                 window.editorCore?.clearEditorState();
+                 window.editorModule?.clearAutoSaveTimer?.();
                  this.app.showPage(itemType);
              }
         });
@@ -711,7 +756,7 @@ createNote() {
 
      }
 
-      handleCoverUpload(event, book, modal, fileNameSpan) {
+      async handleCoverUpload(event, book, modal, fileNameSpan) {
         const file = event.target.files[0];
         if (!file) {
             fileNameSpan.textContent = "No file chosen";
@@ -726,22 +771,42 @@ createNote() {
             return;
          }
 
-         fileNameSpan.textContent = this.app.escapeHtml(file.name);
+         fileNameSpan.textContent = this.app.escapeHtml(file.name) + " (uploading...)";
+         try {
+            let coverUrl = null;
+            let coverPath = null;
 
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          book.cover = { type: 'image', value: e.target.result }; // Store as base64
-          this.app.saveData();
-          this.renderBookEditorUI(book);
-          modal.remove(); // Close modal on success
-          window.editorFeatures?.restoreSelection();
-        };
-         reader.onerror = () => {
-             this.app.showToast('Error reading image file.', 'error');
-              fileNameSpan.textContent = "Error reading file";
-              window.editorFeatures?.restoreSelection();
-         };
-        reader.readAsDataURL(file);
+            if (window.storageModule?.uploadFile) {
+                const upload = await window.storageModule.uploadFile(file, {
+                    folder: 'book-covers',
+                    filename: file.name
+                });
+                coverUrl = upload.url;
+                coverPath = upload.path || null;
+                if (upload.fallback) {
+                    this.app.showToast('Storage API unavailable, saved cover locally.', 'warning');
+                }
+            } else {
+                // Fallback if storage module is missing
+                const reader = new FileReader();
+                coverUrl = await new Promise((resolve, reject) => {
+                    reader.onload = (e) => resolve(e.target.result);
+                    reader.onerror = () => reject(new Error('Error reading image file.'));
+                    reader.readAsDataURL(file);
+                });
+            }
+
+            book.cover = { type: 'image', value: coverUrl, path: coverPath };
+            this.app.saveData();
+            this.renderBookEditorUI(book);
+            modal.remove();
+            window.editorFeatures?.restoreSelection();
+            this.app.showToast('Cover updated successfully.', 'success');
+         } catch (error) {
+            this.app.showToast('Error uploading cover image.', 'error');
+            fileNameSpan.textContent = "Error uploading file";
+            window.editorFeatures?.restoreSelection();
+         }
       }
 
 } // End of ItemEditor class
