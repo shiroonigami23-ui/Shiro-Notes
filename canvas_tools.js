@@ -45,6 +45,8 @@ class CanvasTools {
             case 'polygon':
             case 'star':
             case 'heart':
+            case 'triangle':
+            case 'diamond':
                 // Shapes only draw previews during move, finalize on stop
                 this.previewData = { startX: pos.x, startY: pos.y }; // Store start point for preview
                 break;
@@ -93,6 +95,8 @@ class CanvasTools {
             case 'polygon':
             case 'star':
             case 'heart':
+            case 'triangle':
+            case 'diamond':
                 // These tools draw a temporary preview on the main (visible) canvas
                 if (!mainCtx || !this.previewData) return;
                 // 1. Clear previous preview by re-rendering layers (done by core)
@@ -138,6 +142,8 @@ class CanvasTools {
             case 'polygon':
             case 'star':
             case 'heart':
+            case 'triangle':
+            case 'diamond':
                 // Shapes draw the final version onto the active layer context
                 if (!layerCtx || !this.previewData) return;
                 const drawFuncShape = this['draw' + tool.charAt(0).toUpperCase() + tool.slice(1)];
@@ -367,6 +373,50 @@ class CanvasTools {
              ctx.globalAlpha *= 0.5;
              ctx.fill();
              ctx.globalAlpha = currentAlpha;
+        }
+        ctx.stroke();
+    }
+
+    drawTriangle(ctx, x1, y1, x2, y2, toolSettings) {
+        const left = Math.min(x1, x2);
+        const top = Math.min(y1, y2);
+        const width = Math.abs(x2 - x1);
+        const height = Math.abs(y2 - y1);
+        const centerX = left + width / 2;
+
+        ctx.beginPath();
+        ctx.moveTo(centerX, top);
+        ctx.lineTo(left, top + height);
+        ctx.lineTo(left + width, top + height);
+        ctx.closePath();
+        if (toolSettings.fillEnabled) {
+            const currentAlpha = ctx.globalAlpha;
+            ctx.globalAlpha *= 0.5;
+            ctx.fill();
+            ctx.globalAlpha = currentAlpha;
+        }
+        ctx.stroke();
+    }
+
+    drawDiamond(ctx, x1, y1, x2, y2, toolSettings) {
+        const left = Math.min(x1, x2);
+        const top = Math.min(y1, y2);
+        const width = Math.abs(x2 - x1);
+        const height = Math.abs(y2 - y1);
+        const centerX = left + width / 2;
+        const centerY = top + height / 2;
+
+        ctx.beginPath();
+        ctx.moveTo(centerX, top);
+        ctx.lineTo(left + width, centerY);
+        ctx.lineTo(centerX, top + height);
+        ctx.lineTo(left, centerY);
+        ctx.closePath();
+        if (toolSettings.fillEnabled) {
+            const currentAlpha = ctx.globalAlpha;
+            ctx.globalAlpha *= 0.5;
+            ctx.fill();
+            ctx.globalAlpha = currentAlpha;
         }
         ctx.stroke();
     }

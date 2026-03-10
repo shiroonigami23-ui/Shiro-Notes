@@ -41,6 +41,14 @@ loadToolbarHTML() {
                 <option value="Verdana">Verdana</option>
                 <option value="monospace">Monospace</option>
             </select>
+            <select class="toolbar-select" data-command="fontSize" title="Font Size">
+                <option value="2">10px</option>
+                <option value="3" selected>12px</option>
+                <option value="4">14px</option>
+                <option value="5">18px</option>
+                <option value="6">24px</option>
+                <option value="7">32px</option>
+            </select>
         </div>
         <div class="toolbar-separator"></div>
         <div class="toolbar-group">
@@ -68,6 +76,7 @@ loadToolbarHTML() {
             <button class="toolbar-btn" data-command="justifyRight" title="Align Right"><i class="fas fa-align-right"></i></button>
             <button class="toolbar-btn" data-command="insertUnorderedList" title="Bullet List"><i class="fas fa-list-ul"></i></button>
             <button class="toolbar-btn" data-command="insertOrderedList" title="Numbered List"><i class="fas fa-list-ol"></i></button>
+            <button class="toolbar-btn" data-command="removeFormat" title="Clear Formatting"><i class="fas fa-eraser"></i></button>
         </div>
         <div class="toolbar-separator"></div>
         <div class="toolbar-group">

@@ -407,6 +407,11 @@ window.dashboardModule?.loadDashboardContent(pageElement);
                                     <button class="tool-btn" data-tool="rectangle" title="Rectangle"><i data-lucide="rectangle-horizontal"></i> Rectangle</button>
                                     <button class="tool-btn" data-tool="circle" title="Circle"><i data-lucide="circle"></i> Circle</button>
                                     <button class="tool-btn" data-tool="arrow" title="Arrow"><i data-lucide="arrow-right"></i> Arrow</button>
+                                    <button class="tool-btn" data-tool="triangle" title="Triangle"><i data-lucide="triangle"></i> Triangle</button>
+                                    <button class="tool-btn" data-tool="diamond" title="Diamond"><i data-lucide="diamond"></i> Diamond</button>
+                                    <button class="tool-btn" data-tool="polygon" title="Polygon"><i data-lucide="hexagon"></i> Polygon</button>
+                                    <button class="tool-btn" data-tool="star" title="Star"><i data-lucide="star"></i> Star</button>
+                                    <button class="tool-btn" data-tool="heart" title="Heart"><i data-lucide="heart"></i> Heart</button>
                                 </div>
                             </div>
 

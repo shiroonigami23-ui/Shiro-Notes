@@ -69,8 +69,9 @@ class AutoEncryption {
 // in autoencryption.js
 
 async autoEncryptAndShare(note, isDestructive = false) {
-    if (!note) {
-        app.showToast('No note selected', 'error');
+    const appRef = window.app;
+    if (!note || note.type === 'audio' || note.type === 'canvas') {
+        appRef.showToast('Open a text note to share', 'error');
         return;
     }
 
@@ -110,10 +111,15 @@ const encrypted = CryptoJS.AES.encrypt(liveContent, password).toString();
     // The logic to handle the deletion after sharing
     const handlePostShare = () => {
         if (isDestructive) {
-            app.showToast('Note has been permanently deleted.', 'warning');
-            app.deleteItem(noteIdToDelete, 'note');
+            const idx = appRef.data.notes.findIndex(n => n.id === noteIdToDelete);
+            if (idx !== -1) {
+                appRef.data.notes.splice(idx, 1);
+                appRef.saveData();
+                appRef.updateUI();
+            }
+            appRef.showToast('Note has been permanently deleted.', 'warning');
             // Close the editor view as the note is gone
-            app.showPage('notes');
+            appRef.showPage('notes');
         }
     };
 
@@ -124,14 +130,14 @@ const encrypted = CryptoJS.AES.encrypt(liveContent, password).toString();
 // Show sharing options modal
 showSharingModal(messageBlob, fileName, password, postShareCallback = () => {}) {
     const modal = document.createElement('div');
-    modal.className = 'modal active';
+    modal.className = 'modal-overlay visible';
     modal.id = 'autoShareModal';
 
     modal.innerHTML = `
         <div class="modal-content" style="max-width: 500px;">
             <div class="modal-header">
                 <h2>Share Encrypted Note</h2>
-                <button class="close-modal" onclick="this.closest('.modal').remove()">&times;</button>
+                <button class="close-modal" onclick="this.closest('.modal-overlay').remove()">&times;</button>
             </div>
             <div class="modal-body" style="padding: 2rem;">
                 <div style="margin-bottom: 1.5rem;">
@@ -177,7 +183,7 @@ showSharingModal(messageBlob, fileName, password, postShareCallback = () => {}) 
         passwordSection.style.opacity = '1';
         passwordSection.style.pointerEvents = 'auto';
         passwordBtn.disabled = false;
-        app.showToast('Message file ready to share!', 'success');
+        window.app.showToast('Message file ready to share!', 'success');
     };
 
     // Setup share button handlers
@@ -224,7 +230,7 @@ showSharingModal(messageBlob, fileName, password, postShareCallback = () => {}) 
         const passwordBlob = new Blob([JSON.stringify(obfuscated)], { type: 'application/octet-stream' });
         const passwordUrl = URL.createObjectURL(passwordBlob);
         this.downloadFile(passwordUrl, fileName + '.key');
-        app.showToast('Password file downloaded! Share it separately.', 'success');
+        window.app.showToast('Password file downloaded! Share it separately.', 'success');
 
         setTimeout(() => {
             URL.revokeObjectURL(messageUrl);
@@ -250,12 +256,12 @@ showSharingModal(messageBlob, fileName, password, postShareCallback = () => {}) 
 // Decrypt note with both files
 async decryptWithFiles() {
     const modal = document.createElement('div');
-    modal.className = 'modal active';
+    modal.className = 'modal-overlay visible';
     modal.innerHTML = `
         <div class="modal-content" style="max-width: 500px;">
             <div class="modal-header">
                 <h2>Decrypt Note</h2>
-                <button class="close-modal" onclick="this.closest('.modal').remove()">&times;</button>
+                <button class="close-modal" onclick="this.closest('.modal-overlay').remove()">&times;</button>
             </div>
             <div class="modal-body" style="padding: 2rem;">
                 <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">
@@ -282,7 +288,7 @@ async decryptWithFiles() {
         const passwordFile = modal.querySelector('#passwordFileInput').files[0];
 
         if (!messageFile || !passwordFile) {
-            app.showToast('Please select both files', 'error');
+            window.app.showToast('Please select both files', 'error');
             return;
         }
 
@@ -301,12 +307,12 @@ async decryptWithFiles() {
             // Instead of saving, show the one-time view
             this.showOneTimeView(messageData.title, decrypted);
             
-            app.showToast('Note decrypted successfully!', 'success');
+            window.app.showToast('Note decrypted successfully!', 'success');
             modal.remove();
 
         } catch (error) {
             console.error('Decryption error:', error);
-            app.showToast('Decryption failed. Check your files.', 'error');
+            window.app.showToast('Decryption failed. Check your files.', 'error');
         }
     });
 }
@@ -325,15 +331,15 @@ async decryptWithFiles() {
 // Show the decrypted content in a temporary, one-time view modal
 showOneTimeView(title, content) {
     const modal = document.createElement('div');
-    modal.className = 'modal active one-time-view';
+    modal.className = 'modal-overlay visible one-time-view';
     
     // Using innerHTML is safe here because the content comes from a trusted, encrypted source
     // that was originally created within our own app's editor.
     modal.innerHTML = `
         <div class="modal-content" style="max-width: 800px; height: 80vh; display: flex; flex-direction: column;">
             <div class="modal-header">
-                <h2>${app.escapeHtml(title)}</h2>
-                <button class="close-modal" onclick="this.closest('.modal').remove()">&times;</button>
+                <h2>${window.app.escapeHtml(title)}</h2>
+                <button class="close-modal" onclick="this.closest('.modal-overlay').remove()">&times;</button>
             </div>
             <div class="modal-body" style="flex: 1; overflow-y: auto; padding: 2rem;">
                 <div class="one-time-warning">
@@ -343,7 +349,7 @@ showOneTimeView(title, content) {
                 <div class="one-time-content">${content}</div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn--primary" onclick="this.closest('.modal').remove()">
+                <button class="btn btn--primary" onclick="this.closest('.modal-overlay').remove()">
                     Close & Destroy Message
                 </button>
             </div>

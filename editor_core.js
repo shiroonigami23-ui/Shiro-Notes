@@ -23,6 +23,7 @@ class EditorCore {
 
         containerElement.appendChild(editorContent);
         this.currentEditor = editorContent;
+        try { document.execCommand('styleWithCSS', false, true); } catch (_) {}
         this.setupCoreEventListeners(); // Attach listeners to the new editor instance
         this.resetHistory(initialContent); // Start history with initial content
 

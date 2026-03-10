@@ -69,6 +69,15 @@ loadSecurityPageContent(pageElement) {
                             <option value="30" ${lockTimeoutMinutes == 30 ? 'selected' : ''}>30 Minutes</option>
                         </select>
                     </div>
+                    <div class="preference-item">
+                        <div>
+                            <strong>Manual Lock</strong>
+                            <p>Instantly lock this app now</p>
+                        </div>
+                        <button class="btn btn--secondary btn--sm" onclick="app.lockApp()">
+                            <i class="fas fa-lock"></i> Lock Now
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -87,6 +96,76 @@ loadSecurityPageContent(pageElement) {
         </div>
     </div>
     `;
+}
+
+showLockScreen() {
+    if (document.getElementById('appLockOverlay')) return;
+    const overlay = document.createElement('div');
+    overlay.id = 'appLockOverlay';
+    overlay.className = 'modal-overlay visible';
+    overlay.innerHTML = `
+      <div class="modal-content lock-screen-modal">
+        <div class="modal-header">
+          <h3><i class="fas fa-lock"></i> App Locked</h3>
+        </div>
+        <div class="modal-body">
+          <p>Enter your Master Password to continue.</p>
+          <div class="form-group">
+            <input type="password" id="lockScreenPassword" placeholder="Master Password" autocomplete="current-password">
+          </div>
+          <div class="decryption-error hidden" id="lockScreenError">
+            <i class="fas fa-exclamation-triangle"></i>
+            <span>Incorrect Master Password</span>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn--primary" id="unlockAppBtn">Unlock</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+    const input = document.getElementById('lockScreenPassword');
+    const unlockBtn = document.getElementById('unlockAppBtn');
+    setTimeout(() => input?.focus(), 60);
+
+    const onUnlock = async () => {
+      const entered = input?.value || '';
+      const errorEl = document.getElementById('lockScreenError');
+      if (!entered) {
+        this.app.showToast('Enter Master Password', 'warning');
+        return;
+      }
+      if (unlockBtn) {
+        unlockBtn.disabled = true;
+        unlockBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying...';
+      }
+      try {
+        const enteredHash = await cryptoModule.hash(entered);
+        if (enteredHash !== this.app.data.settings.masterPasswordHash) {
+          throw new Error('Incorrect Master Password');
+        }
+        overlay.remove();
+        this.app.unlockApp();
+        this.app.showToast('Unlocked', 'success');
+      } catch (err) {
+        if (errorEl) errorEl.classList.remove('hidden');
+        if (input) {
+          input.value = '';
+          input.focus();
+        }
+      } finally {
+        if (unlockBtn) {
+          unlockBtn.disabled = false;
+          unlockBtn.innerHTML = 'Unlock';
+        }
+      }
+    };
+
+    unlockBtn?.addEventListener('click', onUnlock);
+    input?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') onUnlock();
+    });
 }
 
 updateAutoLock(isEnabled) {
