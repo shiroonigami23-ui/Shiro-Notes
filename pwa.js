@@ -50,7 +50,13 @@
     if (!("serviceWorker" in navigator)) return;
     window.addEventListener("load", async () => {
       try {
-        await navigator.serviceWorker.register("/sw.js");
+        const registration = await navigator.serviceWorker.register("/sw.js");
+        registration.update().catch(() => {});
+        navigator.serviceWorker.addEventListener("controllerchange", () => {
+          if (sessionStorage.getItem("sn-sw-reloaded") === "1") return;
+          sessionStorage.setItem("sn-sw-reloaded", "1");
+          window.location.reload();
+        });
       } catch (error) {
         console.error("Service worker registration failed", error);
       }
@@ -62,16 +68,16 @@
     if (!installButton) return;
 
     window.addEventListener("beforeinstallprompt", (event) => {
-      event.preventDefault();
       deferredInstallPrompt = event;
       installButton.classList.remove("hidden");
     });
 
     installButton.addEventListener("click", async () => {
-      if (!deferredInstallPrompt) return;
-      deferredInstallPrompt.prompt();
-      await deferredInstallPrompt.userChoice;
-      deferredInstallPrompt = null;
+      if (deferredInstallPrompt?.prompt) {
+        deferredInstallPrompt.prompt();
+        await deferredInstallPrompt.userChoice;
+        deferredInstallPrompt = null;
+      }
       installButton.classList.add("hidden");
     });
 

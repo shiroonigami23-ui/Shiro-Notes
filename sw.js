@@ -1,4 +1,4 @@
-﻿const CACHE_NAME = "shiro-notes-v2.1.0";
+﻿const CACHE_NAME = "shiro-notes-v2.2.0";
 const OFFLINE_URL = "/offline.html";
 
 const ASSETS = [
@@ -8,6 +8,8 @@ const ASSETS = [
   "/manifest.webmanifest",
   "/pwa.css",
   "/pwa.js",
+  "/workspace.css",
+  "/workspace.js",
   "/base.css",
   "/layout.css",
   "/components.css",
@@ -37,19 +39,42 @@ const ASSETS = [
 ];
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS)).then(() => self.skipWaiting())
-  );
+  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS)).then(() => self.skipWaiting()));
 });
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))).then(() => self.clients.claim())
+    caches
+      .keys()
+      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k))))
+      .then(() => self.clients.claim())
   );
 });
 
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
+
+  const url = new URL(event.request.url);
+  const isSameOrigin = url.origin === self.location.origin;
+  const isNavigate = event.request.mode === "navigate";
+  const isHtml = event.request.headers.get("accept")?.includes("text/html");
+
+  if (isNavigate || isHtml) {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          if (response.ok && isSameOrigin) {
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, response.clone()));
+          }
+          return response;
+        })
+        .catch(async () => {
+          const cached = await caches.match(event.request);
+          return cached || (await caches.match(OFFLINE_URL)) || new Response("Offline", { status: 503, statusText: "Offline" });
+        })
+    );
+    return;
+  }
 
   event.respondWith(
     caches.match(event.request).then((cached) => {
@@ -57,18 +82,12 @@ self.addEventListener("fetch", (event) => {
 
       return fetch(event.request)
         .then((response) => {
-          const cloned = response.clone();
-          if (response.ok && new URL(event.request.url).origin === self.location.origin) {
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, cloned));
+          if (response.ok && isSameOrigin) {
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, response.clone()));
           }
           return response;
         })
-        .catch(() => {
-          if (event.request.mode === "navigate") {
-            return caches.match(OFFLINE_URL);
-          }
-          return new Response("Offline", { status: 503, statusText: "Offline" });
-        });
+        .catch(() => new Response("Offline", { status: 503, statusText: "Offline" }));
     })
   );
 });

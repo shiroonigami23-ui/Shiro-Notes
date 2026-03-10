@@ -28,6 +28,10 @@ const MIME_TYPES = {
 };
 
 function setSecurityHeaders(res) {
+  res.setHeader(
+    'Content-Security-Policy',
+    "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com https://unpkg.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; img-src 'self' data: blob: https:; font-src 'self' data: https://cdnjs.cloudflare.com https://r2cdn.perplexity.ai; media-src 'self' blob: data:; connect-src 'self' https://api.github.com https://unpkg.com https://cdnjs.cloudflare.com https://r2cdn.perplexity.ai; frame-ancestors 'self'; base-uri 'self'; form-action 'self'"
+  );
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'SAMEORIGIN');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
