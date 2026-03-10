@@ -22,7 +22,7 @@
       if (!button || !window.app) return;
       const page = button.dataset.page;
       window.app.showPage(page);
-      if (window.innerWidth <= 960 && document.getElementById("sidebar")?.classList.contains("mobile-open")) {
+      if (window.innerWidth <= 960 && document.getElementById("sidebar")?.classList.contains("open")) {
         window.app.toggleMobileSidebar();
       }
       updateBottomNavState(page);

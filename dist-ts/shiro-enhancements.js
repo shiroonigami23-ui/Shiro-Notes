@@ -119,7 +119,11 @@ function enhanceQuickSearch() {
             .slice(0, 5)
             .map((b) => ({ type: 'Book', title: b.title || b.name || 'Untitled' }));
         const notes = (app.data?.notes || [])
-            .filter((n) => (n.title || '').toLowerCase().includes(query) || (n.content || '').toLowerCase().includes(query))
+            .filter((n) => {
+            const title = (n.title || '').toLowerCase();
+            const preview = (app.stripHtml?.(n.content || '') || '').toLowerCase().slice(0, 240);
+            return title.includes(query) || preview.includes(query);
+        })
             .slice(0, 8)
             .map((n) => ({ type: 'Note', title: n.title || 'Untitled' }));
         const merged = [...books, ...notes].slice(0, 10);

@@ -6,13 +6,13 @@
     <title>Shiro Notes - Professional Note-Taking</title>
     <meta name="description" content="Shiro Notes is a feature-rich Notion and Canva inspired workspace with rich docs, drawing canvas, security features, and offline-ready PWA support.">
     <meta name="theme-color" content="#111827">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com https://unpkg.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; img-src 'self' data: blob: https:; font-src 'self' data: https://cdnjs.cloudflare.com; media-src 'self' blob: data:; connect-src 'self' https://api.github.com; frame-ancestors 'self'; base-uri 'self'; form-action 'self';">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://unpkg.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; img-src 'self' data: blob: https:; font-src 'self' data: https://cdnjs.cloudflare.com; media-src 'self' blob: data:; connect-src 'self' https://api.github.com; frame-ancestors 'self'; base-uri 'self'; form-action 'self';">
     <link rel="manifest" href="manifest.webmanifest">
     <link rel="apple-touch-icon" sizes="192x192" href="icons/icon-192.png">
     <link rel="icon" type="image/png" sizes="32x32" href="icons/icon-192.png">
 
     <!-- External Libraries -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" xintegrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
 
     
@@ -33,6 +33,7 @@
     <link rel="stylesheet" href="profile.css">
     <link rel="stylesheet" href="export.css">
     <link rel="stylesheet" href="pwa.css">
+    <link rel="stylesheet" href="workspace.css">
     <link rel="stylesheet" href="dist/tailwind.css">
 
 </head>
@@ -247,6 +248,7 @@
     <!-- TS + Tailwind enhancement bootstrap (file:// safe) -->
     <script src="dist-ts/shiro-enhancements.js"></script>
     <script src="pwa.js"></script>
+    <script src="workspace.js"></script>
 
 </body>
 </html>

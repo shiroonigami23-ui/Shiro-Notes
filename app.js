@@ -132,6 +132,7 @@ class ShiroNotes {
     saveData() {
         try {
             localStorage.setItem('shiroNotesData', JSON.stringify(this.data));
+            window.dispatchEvent(new CustomEvent('sn:data-saved', { detail: { at: Date.now() } }));
             // Optional: Data integrity check (handled by security module if needed)
             // window.securityModule?.verifyDataIntegrity();
         } catch (error) {
@@ -936,6 +937,15 @@ renderBooksPage(pageElement) {
          this.updateUI(); // Update counts etc.
           this.hideQuickNote(); // Close popup via uiModule
           this.showToast('Quick note saved!', 'success');
+     }
+
+     // --- High-level action wrappers ---
+     createBook() {
+         window.editorModule?.createBook();
+     }
+
+     createNote() {
+         window.editorModule?.createNote();
      }
 
       // --- Default Templates ---

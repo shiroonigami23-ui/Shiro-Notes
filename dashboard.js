@@ -124,7 +124,7 @@ populateDashboardData() {
       .slice(0, 3); // Show top 3
 
     if (recentBooks.length === 0) {
-      container.innerHTML = '<p class="empty-state text-center text-secondary"><i class="fas fa-book"></i><br>No books yet.<br><button class="btn btn--primary btn--sm mt-4" onclick="app.createBook()">Create your first book!</button></p>';
+      container.innerHTML = '<p class="empty-state text-center text-secondary"><i class="fas fa-book"></i><br>No books yet.<br><button class="btn btn--primary btn--sm mt-4" onclick="window.editorModule?.createBook()">Create your first book!</button></p>';
       return;
     }
 
@@ -154,7 +154,7 @@ populateDashboardData() {
       .slice(0, 3); // Show top 3
 
     if (recentNotes.length === 0) {
-      container.innerHTML = '<p class="empty-state text-center text-secondary"><i class="fas fa-sticky-note"></i><br>No notes yet.<br><button class="btn btn--primary btn--sm mt-4" onclick="app.createNote()">Create your first note!</button></p>';
+      container.innerHTML = '<p class="empty-state text-center text-secondary"><i class="fas fa-sticky-note"></i><br>No notes yet.<br><button class="btn btn--primary btn--sm mt-4" onclick="window.editorModule?.createNote()">Create your first note!</button></p>';
       return;
     }
 
@@ -211,10 +211,10 @@ populateDashboardData() {
   handleQuickAction(action) {
     switch (action) {
       case 'newBook':
-        this.app.createBook(); // Assumes createBook is on the main app
+        window.editorModule?.createBook();
         break;
       case 'newNote':
-        this.app.createNote(); // Assumes createNote is on the main app
+        window.editorModule?.createNote();
         break;
       case 'newCanvas':
         this.app.showPage('canvas');

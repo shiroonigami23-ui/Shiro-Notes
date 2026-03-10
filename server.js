@@ -34,6 +34,36 @@ function setSecurityHeaders(res) {
   res.setHeader('Permissions-Policy', 'camera=(), microphone=(self), geolocation=(), payment=()');
 }
 
+function patchResponseHelpers(res) {
+  if (typeof res.status !== 'function') {
+    res.status = function status(code) {
+      res.statusCode = code;
+      return res;
+    };
+  }
+  if (typeof res.json !== 'function') {
+    res.json = function json(payload) {
+      setSecurityHeaders(res);
+      res.setHeader('Content-Type', 'application/json; charset=utf-8');
+      res.end(JSON.stringify(payload));
+      return res;
+    };
+  }
+  if (typeof res.send !== 'function') {
+    res.send = function send(payload) {
+      if (Buffer.isBuffer(payload)) {
+        res.end(payload);
+        return res;
+      }
+      if (typeof payload === 'object') {
+        return res.json(payload);
+      }
+      res.end(String(payload));
+      return res;
+    };
+  }
+}
+
 function loadDotEnv(filePath) {
   if (!fs.existsSync(filePath)) return;
   const lines = fs.readFileSync(filePath, 'utf8').split(/\r?\n/);
@@ -127,6 +157,8 @@ function serveStatic(req, res, pathname) {
 
 async function requestHandler(req, res) {
   try {
+    patchResponseHelpers(res);
+    setSecurityHeaders(res);
     const host = req.headers.host || `localhost:${PORT}`;
     const urlObj = new URL(req.url, `http://${host}`);
     const pathname = urlObj.pathname;
